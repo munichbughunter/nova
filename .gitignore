@@ -1,0 +1,11 @@
+.env
+nova
+coverage
+CURSOR.md
+temp
+nova-macos
+junit-report.xml
+nova-cli
+.deno
+node_modules
+.DS_Store
