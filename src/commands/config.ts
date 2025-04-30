@@ -63,13 +63,13 @@ const testCmd = new Command()
 const setCmd = new Command()
     .arguments('<key:string> <value:string>')
     .description('Set a configuration value')
-    .example('Set GitLab token', 'joyia config set gitlab.token "your-token-here"')
-    .example('Set AWS region', 'joyia config set aws.region eu-central-1')
+    .example('Set GitLab token', 'nova config set gitlab.token "your-token-here"')
+    .example('Set AWS region', 'nova config set aws.region eu-central-1')
     .action(async (_, key, value) => {
         const parts = key.split('.');
-        if (!['github', 'gitlab', 'openai', 'backstage', 'aws'].includes(parts[0])) {
+        if (!['github', 'gitlab', 'openai', 'aws'].includes(parts[0])) {
             logger.error(
-                'Invalid configuration section. Must be one of: github, gitlab, openai, backstage, aws',
+                'Invalid configuration section. Must be one of: github, gitlab, openai, aws',
             );
             Deno.exit(1);
         }
@@ -110,8 +110,8 @@ const setCmd = new Command()
 const getCmd = new Command()
     .arguments('<key:string>')
     .description('Get a configuration value')
-    .example('Get GitLab URL', 'joyia config get gitlab.url')
-    .example('Get AWS region', 'joyia config get aws.region')
+    .example('Get GitLab URL', 'nova config get gitlab.url')
+    .example('Get AWS region', 'nova config get aws.region')
     .action(async (_, key) => {
         try {
             const config = await configManager.loadConfig();
