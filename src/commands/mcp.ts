@@ -263,7 +263,7 @@ export const mcpServerCommand = new Command()
                         if (req.method === "GET" && new URL(req.url!, "http://localhost").pathname === endpoint) {
                             logger.debug('New SSE connection request received');
                             // Create new SSE transport for this connection with MCP context
-                            const transport = new SSEServerTransport("joyia-mcp-sse", res);
+                            const transport = new SSEServerTransport("nova-mcp-sse", res);
                             activeTransports[transport.sessionId] = transport;
                             logger.debug(`Created SSE transport with session ID: ${transport.sessionId}`);
                         
@@ -329,7 +329,7 @@ export const mcpServerCommand = new Command()
                             logger.info('Request headers:', req.headers);
                         
                             const url = new URL(req.url!, "http://localhost");
-                            if (url.pathname === '/joyia-mcp-sse') {
+                            if (url.pathname === '/nova-mcp-sse') {
                                 logger.info('POST request matches SSE endpoint');
                                 const sessionId = url.searchParams.get('sessionId');
                                 if (!sessionId) {

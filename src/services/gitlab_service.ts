@@ -852,7 +852,7 @@ export class GitLabService {
                 deploymentFrequency: 0,
                 defaultBranch: 'main',
                 environments: {
-                nodes: [],
+                    nodes: [],
                 },
                 hasReadme: false,
                 hasContributing: false,

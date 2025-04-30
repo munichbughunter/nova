@@ -10,6 +10,8 @@ import { configManager } from './src/config/mod.ts';
 import { configCommand } from './src/commands/config.ts';
 import { StatusService } from './src/services/status_service.ts';
 import { setupCommand } from './src/commands/setup.ts';
+import { mcpCommand } from './src/commands/mcp.ts';
+// import { gitlabCommand } from './src/commands/gitlab.ts';
 /**
  * Initialize Nova CLI
  */
@@ -46,7 +48,7 @@ program
   // .command('git', gitCommand)
   // .command('update', updateCommand)
   .command('setup', setupCommand)
-  // .command('mcp', mcpCommand)
+  .command('mcp', mcpCommand)
 
 // Add custom help command
 program.command(

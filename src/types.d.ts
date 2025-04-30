@@ -186,7 +186,6 @@ declare global {
     hasLicense: boolean;
     hasSecurityPolicy: boolean;
     hasCodeOwners: boolean;
-    hasBackstageCatalog: boolean;
     hasGitlabCI: boolean;
     hasPackageJson: boolean;
     hasComposerJson: boolean;
@@ -280,7 +279,6 @@ declare global {
     hasLicense: boolean;
     hasSecurityPolicy: boolean;
     hasCodeOwners: boolean;
-    hasBackstageCatalog: boolean;
     hasGitlabCI: boolean;
     hasPackageJson: boolean;
     hasComposerJson: boolean;
