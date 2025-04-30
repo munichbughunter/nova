@@ -67,9 +67,9 @@ const setCmd = new Command()
     .example('Set AWS region', 'nova config set aws.region eu-central-1')
     .action(async (_, key, value) => {
         const parts = key.split('.');
-        if (!['github', 'gitlab', 'openai', 'backstage', 'aws'].includes(parts[0])) {
+        if (!['github', 'gitlab', 'openai', 'aws'].includes(parts[0])) {
             logger.error(
-                'Invalid configuration section. Must be one of: github, gitlab, openai, backstage, aws',
+                'Invalid configuration section. Must be one of: github, gitlab, openai, aws',
             );
             Deno.exit(1);
         }

@@ -142,12 +142,6 @@ type DoraMetricsResult = MCPToolResult & {
     };
 };
 
-type OpsGenieCreateAlertResult = MCPToolResult & {
-    data?: {
-        alert: unknown;
-    };
-};
-
 // Helper function to format MCP tool result
 function _formatMCPResult(
     result: { success: boolean; error?: string; data?: unknown },
@@ -250,15 +244,6 @@ const doraMetricsSchema = createToolParameters(
     }),
 );
 
-const opsgenieCreateAlertSchema = createToolParameters(
-    z.object({
-        message: z.string().describe('Alert message'),
-        description: z.string().describe('Alert description'),
-        priority: z.enum(['P1', 'P2', 'P3', 'P4', 'P5']).describe('Alert priority'),
-        tags: z.array(z.string()).optional().describe('Optional tags to apply'),
-    }),
-);
-
 // Define tool types
 type ListDirParams = z.infer<typeof listDirSchema>;
 type SearchCodeParams = z.infer<typeof searchCodeSchema>;
@@ -271,7 +256,6 @@ type ConfluenceSearchParams = z.infer<typeof confluenceSearchSchema>;
 type ConfluenceCreatePageParams = z.infer<typeof confluenceCreatePageSchema>;
 type DatadogSearchParams = z.infer<typeof datadogSearchSchema>;
 type DoraMetricsParams = z.infer<typeof doraMetricsSchema>;
-type OpsGenieCreateAlertParams = z.infer<typeof opsgenieCreateAlertSchema>;
 
 /**
  * ToolService provides a standardized approach to create and manage AI tools
