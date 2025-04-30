@@ -275,7 +275,7 @@ type OpsGenieCreateAlertParams = z.infer<typeof opsgenieCreateAlertSchema>;
 
 /**
  * ToolService provides a standardized approach to create and manage AI tools
- * across different services in the Joyia CLI.
+ * across different services in the Nova CLI.
  */
 export class ToolService {
     private static instance: ToolService | null = null;
@@ -285,7 +285,7 @@ export class ToolService {
 
     constructor(config: Config) {
         this.config = config;
-        this.logger = new Logger('ToolService', Deno.env.get('JOYIA_DEBUG') === 'true');
+        this.logger = new Logger('ToolService', Deno.env.get('NOVA_DEBUG') === 'true');
         this.mcpService = MCPService.getInstance(config);
     }
 
