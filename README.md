@@ -431,5 +431,5 @@ Help text and option completion
 WIP for not Tech Users...
 Bundle in .pkg
 
-pkgbuild --root package_root --identifier de.prosieben.nova --version 0.2.8 --install-location /usr/local/bin nova.pkg
-TODO: Codesign? Notarize?
+pkgbuild --root package_root --identifier nova --version 0.2.8 --install-location /usr/local/bin nova.pkg
+TODO: Codesign?
