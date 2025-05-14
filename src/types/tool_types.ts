@@ -3,7 +3,8 @@
  * Placing these types in a separate file helps avoid circular dependencies.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
+// import { ProjectSchema } from '@gitbeaker/rest'; // Temporarily commented out
 
 // Forward declarations of service classes to avoid circular imports
 declare class MCPService {
@@ -107,12 +108,16 @@ export interface LLMProvider {
  * GitLab service interface
  */
 export interface GitLabServiceType {
-    searchProjects(query: string): Promise<unknown>;
+    searchProjects(query: string): Promise<any[]>; // Changed to Promise<any[]> for array return type
     getProjectIssues(project: string): Promise<unknown>;
     searchIssues(query: string, timeframe?: string): Promise<unknown>;
-    getProjectMergeRequests(project: string, timeframe?: string): Promise<unknown>;
+    getProjectMergeRequests(projectPath: string, limit?: number, state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all', searchString?: string): Promise<unknown>;
     searchMergeRequests(query: string): Promise<unknown>;
     createIssue(project: string, options: Record<string, unknown>): Promise<unknown>;
+    createMergeRequestDiffComment(project: string, mr_iid: number, options: Record<string, unknown>): Promise<unknown>;
+    getMergeRequestChanges(project: string, mr_iid: number): Promise<unknown>;
+    getMergeRequest(project: string, mr_iid: number): Promise<unknown>;
+    getMergeRequestComments(project: string | number, mr_iid: number): Promise<any[]>; // Added missing method
     getProjectMetrics(path: string, timeframe: string): Promise<unknown>;
     [key: string]: unknown;
 }
