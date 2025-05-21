@@ -328,15 +328,6 @@ interface GitLabEnvironment extends Omit<EnvironmentSchema, 'last_deployment'> {
     } | null;
 }
 
-interface GitLabEnvironmentWithDeployment extends GitLabEnvironment {
-    last_deployment: {
-        created_at: string;
-        id?: string;
-        finishedAt?: string;
-        status?: string;
-    };
-}
-
 /**
  * GitLabService is a service that provides a client for the GitLab API.
  * It is used to get project metrics, code quality, and other information.
@@ -1533,41 +1524,121 @@ export class GitLabService {
      * @param mrIid The internal ID of the merge request
      * @returns Promise with an array of file changes
      */
-    public async getMergeRequestChanges(
-        projectPath: string,
-        mrIid: number
+    private async fetchMergeRequestChangesRaw(
+        projectId: string | number,
+        mrIid: number,
+        view?: 'inline' | 'parallel'
     ): Promise<MergeRequestChange[]> {
         try {
-            this.logger.debug(`Fetching changes for merge request #${mrIid} in ${projectPath}`);
+            this.logger.debug(`Fetching raw changes for merge request #${mrIid} in project ${projectId}`);
             
-            // Use the MergeRequests.showChange method to get the changes
-            const response = await (this.gitlab.MergeRequests as any).changes(
-                projectPath,
-                mrIid
-            );
+            // Use the GitLab API to get the changes
+            const response = await this.gitlab.MergeRequests.showChanges(projectId, mrIid);
             
-            // The response includes a "changes" array with all the file changes
-            const changes = response.changes || [];
-
-            return changes.map((change: any) => ({
-                id: change.id || '',
-                title: change.title || '',
+            // The response should have a 'changes' property that is an array
+            if (!response || !response.changes || !Array.isArray(response.changes)) {
+                this.logger.warn(`Unexpected response format for MR changes: ${JSON.stringify(response)}`);
+                return [];
+            }
+            
+            // Map the raw changes to our MergeRequestChange interface
+            return response.changes.map(change => ({
+                id: change.id ? 
+                    (typeof change.id === 'string' || typeof change.id === 'number' ? 
+                        change.id : 
+                        `${change.old_path || change.new_path}`) : 
+                    `${change.old_path || change.new_path}`,
+                title: change.new_path || change.old_path || '',
+                new_file: Boolean(change.new_file),
+                renamed_file: Boolean(change.renamed_file),
+                deleted_file: Boolean(change.deleted_file),
+                diff: change.diff || '',
+                file_path: change.new_path || change.old_path || '',
                 a_mode: change.a_mode,
                 b_mode: change.b_mode,
-                new_file: !!change.new_file,
-                renamed_file: !!change.renamed_file,
-                deleted_file: !!change.deleted_file,
-                diff: change.diff || '',
-                diff_refs: change.diff_refs,
-                file_path: change.file_path || '',
-                line_count: change.line_count,
-                patch: change.patch
+                // Konvertiere line_count zu number oder undefined
+                line_count: typeof change.line_count === 'number' ? change.line_count : undefined,
+                // Konvertiere patch zu string oder undefined
+                patch: typeof change.patch === 'string' ? change.patch : undefined
             }));
         } catch (error) {
-            this.logger.error(`Error fetching changes for merge request #${mrIid} in ${projectPath}:`, error);
+            this.logger.error(`Error fetching raw changes for merge request #${mrIid} in project ${projectId}:`, error);
+            if (error instanceof Error) {
+                this.logger.error(`Full error: ${error.stack || error.message}`);
+            }
             throw error;
         }
     }
+
+    // public async getMergeRequestChanges(
+    //     projectId: string | number,
+    //     mrIid: number,
+    //     options: {
+    //         renderDiffWithHighlighting?: boolean;
+    //         includeDiffStats?: boolean;
+    //     } = {}
+    // ): Promise<{
+    //     changes: MergeRequestChange[];
+    //     diffRefs: { base_sha: string; head_sha: string; start_sha: string; };
+    //     stats?: { additions: number; deletions: number; total_changes: number; };
+    // }>  {
+    //     try {
+    //         this.logger.debug(`Fetching detailed diff for merge request #${mrIid} in project ${projectId}`);
+    //         // Get the changes using the helper method
+    //         const changes = await this.fetchMergeRequestChangesRaw(projectId, mrIid);
+    //         // Get the MR data to extract diff refs if needed
+    //         const mr = await this.getMergeRequest(projectId, mrIid);
+
+    //         // Ensure we have diffRefs
+    //         if (!mr.diff_refs) {
+    //             throw new Error(`Could not retrieve diff refs for merge request #${mrIid}`);
+    //         }
+
+    //          // Calculate stats if requested
+    //         let stats;
+    //         if (options.includeDiffStats) {
+    //             let additions = 0;
+    //             let deletions = 0;
+            
+    //             // Parse the diffs to count additions and deletions
+    //             for (const change of changes) {
+    //                 if (change.diff) {
+    //                     const diffLines = change.diff.split('\n');
+    //                     for (const line of diffLines) {
+    //                         if (line.startsWith('+') && !line.startsWith('+++')) {
+    //                             additions++;
+    //                         } else if (line.startsWith('-') && !line.startsWith('---')) {
+    //                             deletions++;
+    //                         }
+    //                     }
+    //                 }
+    //             }
+            
+    //             stats = {
+    //                 additions,
+    //                 deletions,
+    //                 total_changes: additions + deletions
+    //             };
+    //         }
+        
+    //         // Apply syntax highlighting if requested
+    //         if (options.renderDiffWithHighlighting) {
+    //             // This would typically involve sending the diff to a syntax highlighting service
+    //             // or using a library to process it. For now, we'll just note that it was requested.
+    //             this.logger.debug(`Syntax highlighting for diff was requested but is not implemented yet`);
+    //         }
+        
+    //         return {
+    //             changes,
+    //             diffRefs: mr.diff_refs,
+    //             stats
+    //         };
+            
+    //     } catch (error) {
+    //         this.logger.error(`Error fetching changes for merge request #${mrIid} in ${projectId}:`, error);
+    //         throw error;
+    //     }
+    // }
 
     /**
      * Convert REST MergeRequest schema to internal GitLabMergeRequest type
@@ -1707,12 +1778,12 @@ export class GitLabService {
                     full_path: String((project.namespace as Record<string, unknown>).fullPath || 
                                 (project.namespace as Record<string, unknown>).full_path || ''),
                     parent_id: Number((project.namespace as Record<string, unknown>).parent_id || 
-                                   (project.namespace as Record<string, unknown>).parentId || 0),
+                                (project.namespace as Record<string, unknown>).parentId || 0),
                     avatar_url: String((project.namespace as Record<string, unknown>).avatar_url || 
-                             (project.namespace as Record<string, unknown>).avatarUrl || ''),
+                                (project.namespace as Record<string, unknown>).avatarUrl || ''),
                     web_url: String((project.namespace as Record<string, unknown>).web_url || 
                                 (project.namespace as Record<string, unknown>).webUrl || ''),
-                  }
+                }
                 : {
                     id: 0,
                     name: '',
@@ -1722,7 +1793,7 @@ export class GitLabService {
                     parent_id: 0,
                     avatar_url: '',
                     web_url: '',
-                  },
+                },
             container_registry_image_prefix: String(project.container_registry_image_prefix || ''),
             _links: {
                 self: String((project._links as Record<string, unknown>)?.self || ''),
@@ -1744,7 +1815,7 @@ export class GitLabService {
                 id: project.owner ? Number((project.owner as Record<string, unknown>).id || 0) : 0,
                 name: project.owner ? String((project.owner as Record<string, unknown>).name || '') : '',
                 created_at: project.owner ? String((project.owner as Record<string, unknown>).created_at || 
-                           (project.owner as Record<string, unknown>).createdAt || '') : '',
+                            (project.owner as Record<string, unknown>).createdAt || '') : '',
             },
             resolve_outdated_diff_discussions: Boolean(project.resolve_outdated_diff_discussions || false),
             container_registry_enabled: Boolean(project.container_registry_enabled || false),
@@ -1931,6 +2002,79 @@ export class GitLabService {
     }
 
     /**
+     * Search for projects across GitLab
+     * 
+     * This method searches for projects that match the provided query string.
+     * 
+     * @param query The search query string
+     * @returns Promise with an array of ProjectSchema objects
+     */
+    public async searchProjects(query: string): Promise<ProjectSchema[]> {
+        try {
+            this.logger.debug(`Searching for projects with query: "${query}"`);
+            
+            // Use the GitLab API to search for projects
+            const projects = await this.gitlab.Projects.all({
+                search: query,
+                orderBy: 'last_activity_at',
+                sort: 'desc',
+                simple: false, // Get full project details
+                perPage: 20 // Reasonable limit for search results
+            });
+            
+            this.logger.debug(`Found ${projects.length} projects matching query: "${query}"`);
+            
+            // Convert to ProjectSchema if needed (gitbeaker sometimes returns camelCase properties)
+            return projects.map((project) => {
+                if (this.isFullProjectSchema(project)) {
+                    return project as ProjectSchema;
+                }
+                return this.convertToProjectSchema(project);
+            });
+        } catch (error) {
+            this.logger.error(`Error searching projects with query "${query}":`, error);
+            if (error instanceof Error) {
+                this.logger.error(`Full error: ${error.stack || error.message}`);
+            }
+            return [];
+        }
+    }
+
+    /**
+     * Get a specific merge request by project path and merge request IID
+     * 
+     * This method fetches a merge request by its IID for a given project.
+     * It ensures proper error handling and logging.
+     * 
+     * @param projectId The project path with namespace or ID
+     * @param mergeRequestIid The internal ID of the merge request
+     * @returns Promise with GitLabMergeRequest object
+     */
+    public async getMergeRequests(
+        project: string | number, 
+        limit: number = 50, 
+        state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all'
+    ): Promise<GitLabMergeRequest[]> {
+        try {
+            this.logger.debug(`Fetching project merge requests for project with ID: ${project} and with state: ${state || 'any'}, limit: ${limit} using REST API`);
+            const mrs = await this.gitlab.MergeRequests.all({ projectId: project, perPage: limit });
+            
+            this.logger.debug(
+                `Retrieved ${mrs.length} merge requests via REST for ${project} (limit: ${limit}, state: ${state || 'any'})`,
+            );
+            
+            // Convert to GitLabMergeRequest format
+            return mrs.map(mr => this.convertRestMergeRequestToGitLabMergeRequest(mr as MergeRequestSchema));
+        } catch (error) {
+            this.logger.error(`Error fetching merge requests for project with ID: ${project}, (state: ${state}):`, error);
+            if (error instanceof Error) {
+                this.logger.error(`Full error: ${error.stack || error.message}`);
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Get merge requests for a project
      * 
      * @param projectPath Path or ID of the project
@@ -1973,45 +2117,6 @@ export class GitLabService {
     }
 
     /**
-     * Search for projects across GitLab
-     * 
-     * This method searches for projects that match the provided query string.
-     * 
-     * @param query The search query string
-     * @returns Promise with an array of ProjectSchema objects
-     */
-    public async searchProjects(query: string): Promise<ProjectSchema[]> {
-        try {
-            this.logger.debug(`Searching for projects with query: "${query}"`);
-            
-            // Use the GitLab API to search for projects
-            const projects = await this.gitlab.Projects.all({
-                search: query,
-                orderBy: 'last_activity_at',
-                sort: 'desc',
-                simple: false, // Get full project details
-                perPage: 20 // Reasonable limit for search results
-            });
-            
-            this.logger.debug(`Found ${projects.length} projects matching query: "${query}"`);
-            
-            // Convert to ProjectSchema if needed (gitbeaker sometimes returns camelCase properties)
-            return projects.map((project) => {
-                if (this.isFullProjectSchema(project)) {
-                    return project as ProjectSchema;
-                }
-                return this.convertToProjectSchema(project);
-            });
-        } catch (error) {
-            this.logger.error(`Error searching projects with query "${query}":`, error);
-            if (error instanceof Error) {
-                this.logger.error(`Full error: ${error.stack || error.message}`);
-            }
-            return [];
-        }
-    }
-
-    /**
      * Search for merge requests across GitLab
      * 
      * This method searches for merge requests that match the provided query string.
@@ -2048,35 +2153,7 @@ export class GitLabService {
         }
     }
 
-    /**
-     * Get a specific merge request by project path and merge request IID
-     * 
-     * This method fetches a merge request by its IID for a given project.
-     * It ensures proper error handling and logging.
-     * 
-     * @param projectId The project path with namespace or ID
-     * @param mergeRequestIid The internal ID of the merge request
-     * @returns Promise with GitLabMergeRequest object
-     */
-    public async getMergeRequest(projectId: string | number, mergeRequestIid: number): Promise<GitLabMergeRequest> {
-        try {
-            this.logger.debug(`Fetching merge request with IID ${mergeRequestIid} for project ${projectId}`);
-            
-            // Use the GitLab API to get a specific merge request
-            const mergeRequest = await this.gitlab.MergeRequests.show(projectId, mergeRequestIid);
-            
-            this.logger.debug(`Successfully fetched merge request #${mergeRequestIid}`);
-            
-            // Convert to GitLabMergeRequest format
-            return this.convertRestMergeRequestToGitLabMergeRequest(mergeRequest as MergeRequestSchema);
-        } catch (error) {
-            this.logger.error(`Error fetching merge request #${mergeRequestIid} for project ${projectId}:`, error);
-            if (error instanceof Error) {
-                this.logger.error(`Full error: ${error.stack || error.message}`);
-            }
-            throw error;
-        }
-    }
+   
 
     /**
      * Gets comments for a specific merge request
@@ -2126,6 +2203,91 @@ export class GitLabService {
             }
             return [];
         }
+    }
+
+    /**
+     * Creates a comment on a specific line in a merge request diff
+     * 
+     * @param projectId The project path with namespace or ID
+     * @param mergeRequestIid The internal ID of the merge request
+     * @param options Options for creating the comment
+     * @returns Promise with the created note/comment
+     */
+    public async createMergeRequestDiffComment(
+        projectId: string | number,
+        mergeRequestIid: number,
+        comment: string,
+        options: {
+            position: {
+                baseSha: string;
+                startSha: string;
+                headSha: string;
+                oldPath: string;
+                newPath: string;
+                positionType: string;
+                new_line: number;
+            };
+        }
+    ): Promise<any> {
+        try {
+            this.logger.debug(`Creating diff comment on merge request #${mergeRequestIid} in project ${projectId}`);
+
+            this.logger.debug(`Creating diff comment on merge request with baseSHA: ${options.position.baseSha}`);
+            this.logger.debug(`Creating diff comment on merge request with startSHA: ${options.position.startSha}`);
+            this.logger.debug(`Creating diff comment on merge request with headSHA: ${options.position.headSha}`);
+            this.logger.debug(`Creating diff comment on merge request with oldPath: ${options.position.oldPath}`);
+            this.logger.debug(`Creating diff comment on merge request with newPath: ${options.position.newPath}`);
+            this.logger.debug(`Creating diff comment on merge request with newLine: ${options.position.new_line}`);
+
+        
+
+            const discussion = await this.gitlab.MergeRequestDiscussions.create(
+                projectId,
+                mergeRequestIid,
+                comment,
+                {
+                    position: {
+                        baseSha: options.position.baseSha,
+                        startSha: options.position.startSha,
+                        headSha: options.position.headSha,
+                        oldPath: options.position.oldPath,
+                        newPath: options.position.newPath,
+                        positionType: 'text',
+                        newLine: String(options.position.new_line),
+                    }
+                }
+            );
+
+            return discussion;
+        } catch (error) {
+            this.logger.error("Failed to create merge request diff comment:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Generate a line code for a diff comment
+     * 
+     * GitLab requires a line_code parameter when creating diff comments.
+     * This is a unique identifier for the specific line in the diff.
+     * 
+     * @param newPath Path to the new file
+     * @param newLine Line number in the new file
+     * @param oldPath Path to the old file
+     * @param oldLine Line number in the old file
+     * @returns A line code string in the format expected by GitLab
+     */
+    private generateLineCode(
+        newPath: string,
+        newLine: number,
+        oldPath: string,
+        oldLine: number
+    ): string {
+        // GitLab expects line codes in a specific format
+        // This is a simplified version - in a real implementation, you might need to generate
+        // line codes that match GitLab's internal format more precisely
+        const cleanPath = newPath.replace(/[^a-zA-Z0-9]/g, '_');
+        return `${cleanPath}_${oldLine}_${newLine}`;
     }
 }
 

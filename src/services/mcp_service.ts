@@ -50,6 +50,41 @@ type CodeResponse = {
   code: string;
 };
 
+// Add interface for changes
+interface GitLabMergeRequestChanges {
+    changes: Array<{
+        id: string;
+        title: string;
+        new_file: boolean;
+        renamed_file: boolean;
+        deleted_file: boolean;
+        file_path: string;
+        line_count: number;
+    }>;
+    stats: unknown;
+    diffRefs: {
+        base_sha: string;
+        head_sha: string;
+        start_sha: string;
+    };
+}
+
+type GitLabMergeRequest = {
+  iid: number;
+  title: string;
+  description: string;
+  state: string;
+  web_url: string;
+  source_branch: string;
+  target_branch: string;
+  created_at: string;
+  updated_at: string;
+  author?: {
+    name: string;
+    username: string;
+  };
+};
+
 /**
  * MCP Service
  *
@@ -378,273 +413,246 @@ export class MCPService {
         },
       },
       // GitLab Merge Request Tools
-      {
-        type: "function",
-        function: {
-          name: "list_open_merge_requests",
-          description: "Lists all open merge requests in the project",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              verbose: {
-                type: "boolean",
-                description: "Whether to include detailed information",
-                default: false,
-              },
-            },
-            required: ["project_id"],
-          },
-        },
-      },
-      {
-        type: "function",
-        function: {
-          name: "get_merge_request_details",
-          description:
-            "Get details about a specific merge request of a project like title, description, author, assignee, state, and more",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              merge_request_iid: {
-                type: "number",
-                description: "The internal ID of the merge request",
-                example: 123,
-              },
-              verbose: {
-                type: "boolean",
-                description: "Whether to include detailed information",
-                default: false,
-              },
-            },
-            required: ["project_id", "merge_request_iid"],
-          },
-        },
-      },
-      {
-        type: "function",
-        function: {
-          name: "get_merge_request_comments",
-          description: "Get general and file diff comments of a certain merge request",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              merge_request_iid: {
-                type: "number",
-                description: "The internal ID of the merge request",
-                example: 123,
-              },
-              verbose: {
-                type: "boolean",
-                description: "Whether to include full raw discussion objects",
-                default: false,
-              },
-            },
-            required: ["project_id", "merge_request_iid"],
-          },
-        },
-      },
-      {
-        type: "function",
-        function: {
-          name: "add_merge_request_diff_comment",
-          description: "Add a comment of a merge request at a specific line in a file diff",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              merge_request_iid: {
-                type: "number",
-                description: "The internal ID of the merge request",
-                example: 123,
-              },
-              comment: {
-                type: "string",
-                description: "The content of the comment",
-                example: "This variable name could be more descriptive",
-              },
-              file_path: {
-                type: "string",
-                description: "The path of the file to comment on",
-                example: "src/utils/helpers.ts",
-              },
-              line_number: {
-                type: "number",
-                description: "The line number to comment on",
-                example: 42,
-              },
-              base_sha: {
-                type: "string",
-                description: "The base SHA of the commit",
-                example: "abc123def456",
-              },
-              start_sha: {
-                type: "string",
-                description: "The start SHA of the commit",
-                example: "abc123def456",
-              },
-              head_sha: {
-                type: "string",
-                description: "The head SHA of the commit",
-                example: "xyz789ghi012",
-              },
-            },
-            required: ["project_id", "merge_request_iid", "comment", "file_path", "line_number"],
-          },
-        },
-      },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "get_merge_request_details",
+      //     description:
+      //       "Get details about a specific merge request of a project like title, description, author, assignee, state, and more",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         project_id: {
+      //           type: "string",
+      //           description: "The ID or path of the project",
+      //           example: "mygroup/myproject",
+      //         },
+      //         merge_request_iid: {
+      //           type: "number",
+      //           description: "The internal ID of the merge request",
+      //           example: 123,
+      //         },
+      //         verbose: {
+      //           type: "boolean",
+      //           description: "Whether to include detailed information",
+      //           default: false,
+      //         },
+      //       },
+      //       required: ["project_id", "merge_request_iid"],
+      //     },
+      //   },
+      // },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "get_merge_request_comments",
+      //     description: "Get general and file diff comments of a certain merge request",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         project_id: {
+      //           type: "string",
+      //           description: "The ID or path of the project",
+      //           example: "mygroup/myproject",
+      //         },
+      //         merge_request_iid: {
+      //           type: "number",
+      //           description: "The internal ID of the merge request",
+      //           example: 123,
+      //         },
+      //         verbose: {
+      //           type: "boolean",
+      //           description: "Whether to include full raw discussion objects",
+      //           default: false,
+      //         },
+      //       },
+      //       required: ["project_id", "merge_request_iid"],
+      //     },
+      //   },
+      // },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "add_merge_request_diff_comment",
+      //     description: "Add a comment of a merge request at a specific line in a file diff",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         project_id: {
+      //           type: "string",
+      //           description: "The ID or path of the project",
+      //           example: "mygroup/myproject",
+      //         },
+      //         merge_request_iid: {
+      //           type: "number",
+      //           description: "The internal ID of the merge request",
+      //           example: 123,
+      //         },
+      //         comment: {
+      //           type: "string",
+      //           description: "The content of the comment",
+      //           example: "This variable name could be more descriptive",
+      //         },
+      //         file_path: {
+      //           type: "string",
+      //           description: "The path of the file to comment on",
+      //           example: "src/utils/helpers.ts",
+      //         },
+      //         line_number: {
+      //           type: "number",
+      //           description: "The line number to comment on",
+      //           example: 42,
+      //         },
+      //         base_sha: {
+      //           type: "string",
+      //           description: "The base SHA of the commit",
+      //           example: "abc123def456",
+      //         },
+      //         start_sha: {
+      //           type: "string",
+      //           description: "The start SHA of the commit",
+      //           example: "abc123def456",
+      //         },
+      //         head_sha: {
+      //           type: "string",
+      //           description: "The head SHA of the commit",
+      //           example: "xyz789ghi012",
+      //         },
+      //       },
+      //       required: ["project_id", "merge_request_iid", "comment", "file_path", "line_number"],
+      //     },
+      //   },
+      // },
       // NEW: GitLab MR tools from dev-kit
       {
         type: "function",
         function: {
-          name: "list_open_merge_requests",
+          name: "get_open_merge_requests",
           description: "Lists all open merge requests in the project",
           parameters: {
             type: "object",
             properties: {
-              project_id: {
+              project: {
                 type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              verbose: {
-                type: "boolean",
-                description: "Whether to include detailed information",
-                default: false,
+                description: "The ID of the project",
+                example: "4795",
               },
             },
-            required: ["project_id"],
+            required: ["project"],
           },
         },
       },
-      {
-        type: "function",
-        function: {
-          name: "get_merge_request_details",
-          description:
-            "Get details about a specific merge request of a project like title, description, author, assignee, state, and more",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              merge_request_iid: {
-                type: "number",
-                description: "The internal ID of the merge request",
-                example: 123,
-              },
-              verbose: {
-                type: "boolean",
-                description: "Whether to include detailed information",
-                default: false,
-              },
-            },
-            required: ["project_id", "merge_request_iid"],
-          },
-        },
-      },
-      {
-        type: "function",
-        function: {
-          name: "get_merge_request_comments",
-          description: "Get general and file diff comments of a certain merge request",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              merge_request_iid: {
-                type: "number",
-                description: "The internal ID of the merge request",
-                example: 123,
-              },
-              verbose: {
-                type: "boolean",
-                description: "Whether to include full raw discussion objects",
-                default: false,
-              },
-            },
-            required: ["project_id", "merge_request_iid"],
-          },
-        },
-      },
-      {
-        type: "function",
-        function: {
-          name: "add_merge_request_diff_comment",
-          description: "Add a comment of a merge request at a specific line in a file diff",
-          parameters: {
-            type: "object",
-            properties: {
-              project_id: {
-                type: "string",
-                description: "The ID or path of the project",
-                example: "mygroup/myproject",
-              },
-              merge_request_iid: {
-                type: "number",
-                description: "The internal ID of the merge request",
-                example: 123,
-              },
-              comment: {
-                type: "string",
-                description: "The content of the comment",
-                example: "This variable name could be more descriptive",
-              },
-              file_path: {
-                type: "string",
-                description: "The path of the file to comment on",
-                example: "src/utils/helpers.ts",
-              },
-              line_number: {
-                type: "number",
-                description: "The line number to comment on",
-                example: 42,
-              },
-              base_sha: {
-                type: "string",
-                description: "The base SHA of the commit",
-                example: "abc123def456",
-              },
-              start_sha: {
-                type: "string",
-                description: "The start SHA of the commit",
-                example: "abc123def456",
-              },
-              head_sha: {
-                type: "string",
-                description: "The head SHA of the commit",
-                example: "xyz789ghi012",
-              },
-            },
-            required: ["project_id", "merge_request_iid", "comment", "file_path", "line_number"],
-          },
-        },
-      },
+      
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "get_merge_request_details",
+      //     description:
+      //       "Get details about a specific merge request of a project like title, description, author, assignee, state, and more",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         project_id: {
+      //           type: "string",
+      //           description: "The ID or path of the project",
+      //           example: "mygroup/myproject",
+      //         },
+      //         merge_request_iid: {
+      //           type: "number",
+      //           description: "The internal ID of the merge request",
+      //           example: 123,
+      //         },
+      //         verbose: {
+      //           type: "boolean",
+      //           description: "Whether to include detailed information",
+      //           default: false,
+      //         },
+      //       },
+      //       required: ["project_id", "merge_request_iid"],
+      //     },
+      //   },
+      // },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "get_merge_request_comments",
+      //     description: "Get general and file diff comments of a certain merge request",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         project_id: {
+      //           type: "string",
+      //           description: "The ID or path of the project",
+      //           example: "mygroup/myproject",
+      //         },
+      //         merge_request_iid: {
+      //           type: "number",
+      //           description: "The internal ID of the merge request",
+      //           example: 123,
+      //         },
+      //         verbose: {
+      //           type: "boolean",
+      //           description: "Whether to include full raw discussion objects",
+      //           default: false,
+      //         },
+      //       },
+      //       required: ["project_id", "merge_request_iid"],
+      //     },
+      //   },
+      // },
+      // {
+      //   type: "function",
+      //   function: {
+      //     name: "add_merge_request_diff_comment",
+      //     description: "Add a comment of a merge request at a specific line in a file diff",
+      //     parameters: {
+      //       type: "object",
+      //       properties: {
+      //         project_id: {
+      //           type: "string",
+      //           description: "The ID or path of the project",
+      //           example: "mygroup/myproject",
+      //         },
+      //         merge_request_iid: {
+      //           type: "number",
+      //           description: "The internal ID of the merge request",
+      //           example: 123,
+      //         },
+      //         comment: {
+      //           type: "string",
+      //           description: "The content of the comment",
+      //           example: "This variable name could be more descriptive",
+      //         },
+      //         file_path: {
+      //           type: "string",
+      //           description: "The path of the file to comment on",
+      //           example: "src/utils/helpers.ts",
+      //         },
+      //         line_number: {
+      //           type: "number",
+      //           description: "The line number to comment on",
+      //           example: 42,
+      //         },
+      //         base_sha: {
+      //           type: "string",
+      //           description: "The base SHA of the commit",
+      //           example: "abc123def456",
+      //         },
+      //         start_sha: {
+      //           type: "string",
+      //           description: "The start SHA of the commit",
+      //           example: "abc123def456",
+      //         },
+      //         head_sha: {
+      //           type: "string",
+      //           description: "The head SHA of the commit",
+      //           example: "xyz789ghi012",
+      //         },
+      //       },
+      //       required: ["project_id", "merge_request_iid", "comment", "file_path", "line_number"],
+      //     },
+      //   },
+      // },
       {
         type: "function",
         function: {
@@ -1078,19 +1086,19 @@ export class MCPService {
         // GitLab Tools
         case "gitlab_search":
           return await this.executeGitLabSearch(params, context);
-        case "gitlab_create_issue":
-          return await this.executeGitLabCreateIssue(params, context);
-        case "gitlab_create_mr_diff_comment":
-          return await this.executeGitLabCreateDiffComment(params, context);
-        // New GitLab MR tools
-        case "list_open_merge_requests":
+           // New GitLab MR tools
+        case "get_open_merge_requests":
           return await this.executeListOpenMergeRequests(params, context);
-        case "get_merge_request_details":
-          return await this.executeGetMergeRequestDetails(params, context);
-        case "get_merge_request_comments":
-          return await this.executeGetMergeRequestComments(params, context);
-        case "add_merge_request_diff_comment":
-          return await this.executeAddMergeRequestDiffComment(params, context);
+        // case "gitlab_create_issue":
+        //   return await this.executeGitLabCreateIssue(params, context);
+        // case "gitlab_create_mr_diff_comment":
+        //   return await this.executeGitLabCreateDiffComment(params, context);
+        // case "get_merge_request_details":
+        //   return await this.executeGetMergeRequestDetails(params, context);
+        // case "get_merge_request_comments":
+        //   return await this.executeGetMergeRequestComments(params, context);
+        // case "add_merge_request_diff_comment":
+        //   return await this.executeAddMergeRequestDiffComment(params, context);
 
         // case 'gitlab_create_merge_request':
         //     return await this.executeGitLabCreateMergeRequest(params, context);
@@ -1599,78 +1607,88 @@ export class MCPService {
     }
   }
 
-  private async executeGitLabCreateDiffComment(
-    params: Record<string, unknown>,
-    context: MCPToolContext,
-  ): Promise<MCPToolResult> {
-    try {
-      const gitlabService = context.gitlab as GitLabServiceType;
-      if (!gitlabService) {
-        return { success: false, error: "GitLab service not available." };
-      }
+//   private async executeGitLabCreateDiffComment(
+//     params: Record<string, unknown>,
+//     context: MCPToolContext,
+//   ): Promise<MCPToolResult> {
+//     try {
+//         const gitlabService = context.gitlab as GitLabServiceType;
+//         if (!gitlabService) {
+//             return { success: false, error: "GitLab service not available." };
+//         }
 
-      const {
-        project,
-        mr_iid,
-        comment_body,
-        file_path,
-        line_number,
-        old_file_path,
-        old_line_number,
-      } = params as {
-        project: string | number;
-        mr_iid: number;
-        comment_body: string;
-        file_path: string;
-        line_number?: number;
-        old_file_path?: string;
-        old_line_number?: number;
-      };
 
-      // Essential check: Ensure at least one line number is provided
-      if (line_number === undefined && old_line_number === undefined) {
-        return { success: false, error: "Either line_number or old_line_number must be provided." };
-      }
+//         const {
+//             project,
+//             mr_iid,
+//             comment_body,
+//             file_path,
+//             line_number,
+//             old_file_path,
+//             old_line_number,
+//         } = params as {
+//             project: string | number;
+//             mr_iid: number;
+//             comment_body: string;
+//             file_path: string;
+//             line_number?: number;
+//             old_file_path?: string;
+//             old_line_number?: number;
+//         };
 
-      // Declare diffRefs here to make it available in the outer scope
-      let diffRefs: { base_sha: string; head_sha: string; start_sha: string } | undefined;
+//         // First, search for the project to get the correct path with namespace if a string identifier is provided
+//         let projectPath = project;
+//         if (typeof project === 'string' && !project.includes('/')) {
+//           this.logger.debug(`Project identifier "${project}" doesn't contain namespace, attempting to find full path`);
+//           const projects = await gitlabService.searchProjects(project);
+//           if (projects && projects.length > 0) {
+//               projectPath = projects[0].path_with_namespace;
+//               this.logger.debug(`Found full project path: ${projectPath}`);
+//           } else {
+//               throw new Error(`Project "${project}" not found. Please provide full path with namespace (e.g., "group/project").`);
+//           }
+//         }
 
-      try {
-        const mrDetails = await gitlabService.getMergeRequest(project as string, mr_iid);
-        if (!mrDetails || !(mrDetails as { diff_refs?: unknown }).diff_refs) {
-          // Check if diff_refs exists
-          return { success: false, error: "Could not retrieve merge request details or diff_refs for SHAs." };
-        }
-        // Type assertion after check
-        diffRefs = (mrDetails as { diff_refs: { base_sha: string; head_sha: string; start_sha: string } }).diff_refs;
-      } catch (fetchError) {
-        this.logger.error("Failed to fetch MR details for diff comment:", fetchError);
-        return { success: false, error: `Failed to fetch MR details: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}` };
-      }
+//         // Essential check: Ensure at least one line number is provided
+//         if (line_number === undefined && old_line_number === undefined) {
+//             return { success: false, error: "Either line_number or old_line_number must be provided." };
+//         }
 
-      const commentParams = {
-        body: comment_body,
-        baseSha: diffRefs.base_sha,
-        headSha: diffRefs.head_sha,
-        startSha: diffRefs.start_sha,
-        newPath: file_path,
-        newLine: line_number,
-        oldPath: old_file_path,
-        oldLine: old_line_number,
-      };
 
-      const discussion = await gitlabService.createMergeRequestDiffComment(
-        project as string,
-        mr_iid,
-        commentParams,
-      );
-
-      return { success: true, data: discussion };
-    } catch (error) {
-      this.logger.error("Failed to create GitLab diff comment:", error);
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
-    }
-  }
+//         try {
+//           //   const mrDetails = await gitlabService.getMergeRequests(projectPath, 'opened');
+//           //   if (!mrDetails || !(mrDetails as { diff_refs?: unknown }).diff_refs) {
+//           //       return { success: false, error: "Could not retrieve merge request details or diff_refs for SHAs." };
+//           //   }
+//           //   let diffRefs: { base_sha: string; head_sha: string; start_sha: string };
+//           //   diffRefs = (mrDetails as { diff_refs: { base_sha: string; head_sha: string; start_sha: string } }).diff_refs;
+//           //   const discussion = await gitlabService.createMergeRequestDiffComment(
+//           //     project as string,
+//           //     mr_iid,
+//           //     comment_body,
+//           //     {
+//           //         position: {
+//           //             baseSha: diffRefs.base_sha,
+//           //             startSha: diffRefs.start_sha,
+//           //             headSha: diffRefs.head_sha,
+//           //             oldPath: old_file_path || file_path,
+//           //             newPath: file_path,
+//           //             positionType: 'text',
+//           //             new_line: line_number || 1
+//           //         }
+//           //     }
+//           // );
+//           return { success: true, data: discussion };
+//         } catch (fetchError) {
+//             this.logger.error("Failed to fetch MR details for diff comment:", fetchError);
+//             return { success: false, error: `Failed to fetch MR details: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}` };
+//         }
+        
+//     } catch (error) {
+//         this.logger.error("Failed to create GitLab diff comment:", error);
+//         return { success: false, error: error instanceof Error ? error.message : String(error) };
+//     }
+// }
 
   /**
    * Implementation of the list_open_merge_requests tool
@@ -1685,71 +1703,23 @@ export class MCPService {
         return { success: false, error: "GitLab service not available." };
       }
 
-      const { project_id, verbose = false } = params as {
-        project_id: string;
-        verbose?: boolean;
-      };
+      const { project } = params as { project: string };
 
-      // First, search for the project to get the correct ID or path with namespace
-      this.logger.debug(`Searching for project with query: "${project_id}"`);
-      const projects = await gitlabService.searchProjects(project_id) as any[];
+      const mergeRequests = await gitlabService.getMergeRequests(Number(project), undefined, 'opened');
 
-      if (!projects || projects.length === 0) {
+      // Falls immer noch keine MRs gefunden wurden
+      if (!mergeRequests) {
         return {
           success: false,
-          error: `Project "${project_id}" not found. Please verify the project name or ID.`,
+          error: `Could not retrieve merge requests for project "${project}".`,
         };
       }
 
-      // Use the first matching project's path_with_namespace
-      const projectPath = projects[0].path_with_namespace;
-      this.logger.debug(`Found project: ${projectPath} (ID: ${projects[0].id})`);
-
-      // Now use the correct project path to fetch merge requests
-      const mergeRequests = await gitlabService.getProjectMergeRequests(
-        projectPath,
-        100, // Reasonable limit
-        "opened" // Only get open MRs
-      ) as GitLabMergeRequest[]; // Type assertion to fix 'unknown' type error
-
-      // Define the GitLabMergeRequest interface to type the merge request objects
-      interface GitLabMergeRequest {
-        iid: number;
-        title: string;
-        description: string;
-        state: string;
-        web_url: string;
-        source_branch: string;
-        target_branch: string;
-        created_at: string;
-        updated_at: string;
-        author?: {
-          name: string;
-          username: string;
-        };
-      }
-
-      // If not verbose, simplify the output
-      const filteredMergeRequests = verbose ? mergeRequests : mergeRequests.map((mr: GitLabMergeRequest) => ({
-        iid: mr.iid,
-        project_id: project_id,
-        title: mr.title,
-        description: mr.description,
-        state: mr.state,
-        web_url: mr.web_url,
-        source_branch: mr.source_branch,
-        target_branch: mr.target_branch,
-        created_at: mr.created_at,
-        updated_at: mr.updated_at,
-        author: mr.author ? {
-          name: mr.author.name,
-          username: mr.author.username,
-        } : null,
-      }));
+      this.logger.debug("list of found open merge requests:", mergeRequests);
 
       return {
         success: true,
-        data: filteredMergeRequests,
+        data: mergeRequests,
       };
     } catch (error) {
       this.logger.error("Failed to list open merge requests:", error);
@@ -1763,302 +1733,326 @@ export class MCPService {
   /**
    * Implementation of the get_merge_request_details tool
    */
-  private async executeGetMergeRequestDetails(
-    params: Record<string, unknown>,
-    context: MCPToolContext,
-  ): Promise<MCPToolResult> {
-    try {
-      const gitlabService = context.gitlab as GitLabServiceType;
-      if (!gitlabService) {
-        return { success: false, error: "GitLab service not available." };
-      }
+//   private async executeGetMergeRequestDetails(
+//     params: Record<string, unknown>,
+//     context: MCPToolContext,
+//   ): Promise<MCPToolResult> {
+//     try {
+//         const gitlabService = context.gitlab as GitLabServiceType;
+//         if (!gitlabService) {
+//             return { success: false, error: "GitLab service not available." };
+//         }
 
-      const { project_id, merge_request_iid, verbose = false } = params as {
-        project_id: string;
-        merge_request_iid: number;
-        verbose?: boolean;
-      };
+//         const { project_id, merge_request_iid, verbose = false } = params as {
+//             project_id: string;
+//             merge_request_iid: number;
+//             verbose?: boolean;
+//         };
 
-      // First, search for the project to get the correct ID or path with namespace
-      this.logger.debug(`Searching for project with query: "${project_id}"`);
-      const projects = await gitlabService.searchProjects(project_id) as any[];
+//         // First, search for the project to get the correct ID or path with namespace
+//         this.logger.debug(`Searching for project with query: "${project_id}"`);
+//         const projects = await gitlabService.searchProjects(project_id) as any[];
 
-      if (!projects || projects.length === 0) {
-        return {
-          success: false,
-          error: `Project "${project_id}" not found. Please verify the project name or ID.`,
-        };
-      }
+//         if (!projects || projects.length === 0) {
+//             return {
+//                 success: false,
+//                 error: `Project "${project_id}" not found. Please verify the project name or ID.`,
+//             };
+//         }
 
-      // Use the first matching project's path_with_namespace
-      const projectPath = projects[0].path_with_namespace;
-      this.logger.debug(`Found project: ${projectPath} (ID: ${projects[0].id})`);
+//         // Use the first matching project's path_with_namespace
+//         const projectPath = projects[0].path_with_namespace;
+//         this.logger.debug(`Found project: ${projectPath} (ID: ${projects[0].id})`);
 
-      // Fetch the merge request details using the correct project path
-      try {
-        const mr = await gitlabService.getMergeRequest(projectPath, merge_request_iid);
+//         // Fetch both merge request details and changes in parallel
+//         try {
+//             const [mr, changes] = await Promise.all([
+//                 gitlabService.getMergeRequest(projectPath, merge_request_iid),
+//                 gitlabService.getMergeRequestChanges(projectPath, merge_request_iid)
+//             ]) as [unknown, GitLabMergeRequestChanges];
 
-        // Define the expected type for the merge request
-        interface GitLabMergeRequest {
-          iid: number;
-          title: string;
-          description: string;
-          state: string;
-          web_url: string;
-          source_branch: string;
-          target_branch: string;
-          created_at: string;
-          updated_at: string;
-          author?: {
-            name: string;
-            username: string;
-          };
-          assignees?: {
-            nodes?: Array<{
-              name: string;
-              username: string;
-            }>;
-          };
-          reviewers?: {
-            nodes?: Array<{
-              name: string;
-              username: string;
-            }>;
-          };
-          approved?: boolean;
-          labels?: {
-            nodes?: Array<{
-              title: string;
-            }>;
-          };
-        }
+//             // Define the expected type for the merge request
+//             interface GitLabMergeRequest {
+//                 iid: number;
+//                 title: string;
+//                 description: string;
+//                 state: string;
+//                 web_url: string;
+//                 source_branch: string;
+//                 target_branch: string;
+//                 created_at: string;
+//                 updated_at: string;
+//                 author?: {
+//                     name: string;
+//                     username: string;
+//                 };
+//                 assignees?: {
+//                     nodes?: Array<{
+//                         name: string;
+//                         username: string;
+//                     }>;
+//                 };
+//                 reviewers?: {
+//                     nodes?: Array<{
+//                         name: string;
+//                         username: string;
+//                     }>;
+//                 };
+//                 approved?: boolean;
+//                 labels?: {
+//                     nodes?: Array<{
+//                         title: string;
+//                     }>;
+//                 };
+//             }
 
-        // Type assertion
-        const typedMR = mr as GitLabMergeRequest;
+//             // Type assertion
+//             const typedMR = mr as GitLabMergeRequest;
 
-        // Return full details if verbose, otherwise simplify
-        const result = verbose ? mr : {
-          iid: typedMR.iid,
-          project_id: project_id,
-          title: typedMR.title,
-          description: typedMR.description,
-          state: typedMR.state,
-          web_url: typedMR.web_url,
-          source_branch: typedMR.source_branch,
-          target_branch: typedMR.target_branch,
-          created_at: typedMR.created_at,
-          updated_at: typedMR.updated_at,
-          author: typedMR.author ? {
-            name: typedMR.author.name,
-            username: typedMR.author.username,
-          } : null,
-          assignees: typedMR.assignees?.nodes?.map((a) => ({ name: a.name, username: a.username })),
-          reviewers: typedMR.reviewers?.nodes?.map((r) => ({ name: r.name, username: r.username })),
-          approved: typedMR.approved,
-          labels: typedMR.labels?.nodes?.map((l: { title: string }) => l.title),
-        };
+//             // Return full details if verbose, otherwise simplify
+//             const result = verbose ? {
+//                 ...typedMR,
+//                 changes: changes.changes,
+//                 diffStats: changes.stats,
+//                 diffRefs: changes.diffRefs
+//             } : {
+//                 iid: typedMR.iid,
+//                 project_id: project_id,
+//                 title: typedMR.title,
+//                 description: typedMR.description,
+//                 state: typedMR.state,
+//                 web_url: typedMR.web_url,
+//                 source_branch: typedMR.source_branch,
+//                 target_branch: typedMR.target_branch,
+//                 created_at: typedMR.created_at,
+//                 updated_at: typedMR.updated_at,
+//                 author: typedMR.author ? {
+//                     name: typedMR.author.name,
+//                     username: typedMR.author.username,
+//                 } : null,
+//                 assignees: typedMR.assignees?.nodes?.map((a) => ({ name: a.name, username: a.username })),
+//                 reviewers: typedMR.reviewers?.nodes?.map((r) => ({ name: r.name, username: r.username })),
+//                 approved: typedMR.approved,
+//                 labels: typedMR.labels?.nodes?.map((l: { title: string }) => l.title),
+//                 // Füge die Changes-Informationen hinzu
+//                 changes: changes.changes.map(change => ({
+//                     id: change.id,
+//                     title: change.title,
+//                     new_file: change.new_file,
+//                     renamed_file: change.renamed_file,
+//                     deleted_file: change.deleted_file,
+//                     file_path: change.file_path,
+//                     line_count: change.line_count
+//                 })),
+//                 diffStats: changes.stats,
+//                 diffRefs: changes.diffRefs
+//             };
 
-        return {
-          success: true,
-          data: result,
-        };
-      } catch (error) {
-        this.logger.error("Failed to get merge request details:", error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    } catch (error) {
-      this.logger.error("Failed to get merge request details:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
+//             return {
+//                 success: true,
+//                 data: result,
+//             };
+//         } catch (error) {
+//             this.logger.error("Failed to get merge request details:", error);
+//             return {
+//                 success: false,
+//                 error: error instanceof Error ? error.message : String(error),
+//             };
+//         }
+//     } catch (error) {
+//         this.logger.error("Failed to get merge request details:", error);
+//         return {
+//             success: false,
+//             error: error instanceof Error ? error.message : String(error),
+//         };
+//     }
+// }
 
   /**
    * Implementation of the get_merge_request_comments tool
    */
-  private async executeGetMergeRequestComments(
-    params: Record<string, unknown>,
-    context: MCPToolContext,
-  ): Promise<MCPToolResult> {
-    try {
-      const gitlabService = context.gitlab as GitLabServiceType;
-      if (!gitlabService) {
-        return { success: false, error: "GitLab service not available." };
-      }
+  // private async executeGetMergeRequestComments(
+  //   params: Record<string, unknown>,
+  //   context: MCPToolContext,
+  // ): Promise<MCPToolResult> {
+  //   try {
+  //     const gitlabService = context.gitlab as GitLabServiceType;
+  //     if (!gitlabService) {
+  //       return { success: false, error: "GitLab service not available." };
+  //     }
 
-      const { project_id, merge_request_iid, verbose = false } = params as {
-        project_id: string | number; // Allow number as well, will cast to string for search
-        merge_request_iid: number;
-        verbose?: boolean;
-      };
+  //     const { project_id, merge_request_iid, verbose = false } = params as {
+  //       project_id: string | number; // Allow number as well, will cast to string for search
+  //       merge_request_iid: number;
+  //       verbose?: boolean;
+  //     };
 
-      // First, search for the project to get the correct ID or path with namespace
-      this.logger.debug(`Searching for project with query: "${project_id}"`);
-      const projects = await gitlabService.searchProjects(String(project_id)) as any[];
+  //     // First, search for the project to get the correct ID or path with namespace
+  //     this.logger.debug(`Searching for project with query: "${project_id}"`);
+  //     const projects = await gitlabService.searchProjects(String(project_id)) as any[];
 
-      if (!projects || projects.length === 0) {
-        return {
-          success: false,
-          error: `Project "${project_id}" not found. Please verify the project name or ID.`,
-        };
-      }
+  //     if (!projects || projects.length === 0) {
+  //       return {
+  //         success: false,
+  //         error: `Project "${project_id}" not found. Please verify the project name or ID.`,
+  //       };
+  //     }
 
-      const projectIdentifier = projects[0].id;
-      const projectPath = projects[0].path_with_namespace;
-      this.logger.debug(`Found project: ${projectPath} (ID: ${projectIdentifier}). Fetching comments for MR !${merge_request_iid}`);
+  //     const projectIdentifier = projects[0].id;
+  //     const projectPath = projects[0].path_with_namespace;
+  //     this.logger.debug(`Found project: ${projectPath} (ID: ${projectIdentifier}). Fetching comments for MR !${merge_request_iid}`);
 
-      const comments = await gitlabService.getMergeRequestComments(projectIdentifier, merge_request_iid);
+  //     const comments = await gitlabService.getMergeRequestComments(projectIdentifier, merge_request_iid);
 
-      // Assuming GitLabMergeRequestComment is a type available via GitLabServiceType or globally
-      // For now, using 'any' for comment type in map function to avoid potential type errors
-      // if GitLabMergeRequestComment is not directly in scope.
-      const formattedComments = comments.map((comment: any /* GitLabMergeRequestComment */) => ({
-        id: comment.id,
-        body: comment.body,
-        author: comment.author ? { name: comment.author.name, username: comment.author.username } : null,
-        created_at: comment.created_at,
-        updated_at: comment.updated_at,
-        system: comment.system,
-        resolvable: comment.resolvable,
-        resolved: comment.resolved,
-        type: comment.type,
-        position: comment.position,
-      }));
+  //     // Assuming GitLabMergeRequestComment is a type available via GitLabServiceType or globally
+  //     // For now, using 'any' for comment type in map function to avoid potential type errors
+  //     // if GitLabMergeRequestComment is not directly in scope.
+  //     const formattedComments = comments.map((comment: any /* GitLabMergeRequestComment */) => ({
+  //       id: comment.id,
+  //       body: comment.body,
+  //       author: comment.author ? { name: comment.author.name, username: comment.author.username } : null,
+  //       created_at: comment.created_at,
+  //       updated_at: comment.updated_at,
+  //       system: comment.system,
+  //       resolvable: comment.resolvable,
+  //       resolved: comment.resolved,
+  //       type: comment.type,
+  //       position: comment.position,
+  //     }));
 
-      return {
-        success: true,
-        data: verbose ? comments : formattedComments,
-      };
-    } catch (error) {
-      const p = params as { project_id?: unknown; merge_request_iid?: unknown };
-      this.logger.error(`Failed to get merge request comments for MR !${p.merge_request_iid} in project \"${p.project_id}\":`, error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       data: verbose ? comments : formattedComments,
+  //     };
+  //   } catch (error) {
+  //     const p = params as { project_id?: unknown; merge_request_iid?: unknown };
+  //     this.logger.error(`Failed to get merge request comments for MR !${p.merge_request_iid} in project \"${p.project_id}\":`, error);
+  //     return {
+  //       success: false,
+  //       error: error instanceof Error ? error.message : String(error),
+  //     };
+  //   }
+  // }
 
   /**
    * Implementation of the add_merge_request_diff_comment tool
    */
-  private async executeAddMergeRequestDiffComment(
-    params: Record<string, unknown>,
-    context: MCPToolContext,
-  ): Promise<MCPToolResult> {
-    try {
-      const gitlabService = context.gitlab as GitLabServiceType;
-      if (!gitlabService) {
-        return { success: false, error: "GitLab service not available." };
-      }
+  // private async executeAddMergeRequestDiffComment(
+  //   params: Record<string, unknown>,
+  //   context: MCPToolContext,
+  // ): Promise<MCPToolResult> {
+  //   try {
+  //     const gitlabService = context.gitlab as GitLabServiceType;
+  //     if (!gitlabService) {
+  //       return { success: false, error: "GitLab service not available." };
+  //     }
 
-      const {
-        project_id,
-        merge_request_iid,
-        comment,
-        file_path,
-        line_number,
-        base_sha,
-        start_sha,
-        head_sha,
-      } = params as {
-        project_id: string;
-        merge_request_iid: number;
-        comment: string;
-        file_path: string;
-        line_number: number;
-        base_sha?: string;
-        start_sha?: string;
-        head_sha?: string;
-      };
+  //     const {
+  //       project_id,
+  //       merge_request_iid,
+  //       comment,
+  //       file_path,
+  //       line_number,
+  //       base_sha,
+  //       start_sha,
+  //       head_sha,
+  //     } = params as {
+  //       project_id: string;
+  //       merge_request_iid: number;
+  //       comment: string;
+  //       file_path: string;
+  //       line_number: number;
+  //       base_sha?: string;
+  //       start_sha?: string;
+  //       head_sha?: string;
+  //     };
 
-      // First, search for the project to get the correct ID or path with namespace
-      this.logger.debug(`Searching for project with query: "${project_id}"`);
-      const projects = await gitlabService.searchProjects(project_id) as any[];
+  //     // First, search for the project to get the correct ID or path with namespace
+  //     this.logger.debug(`Searching for project with query: "${project_id}"`);
+  //     const projects = await gitlabService.searchProjects(project_id) as any[];
 
-      if (!projects || projects.length === 0) {
-        return {
-          success: false,
-          error: `Project "${project_id}" not found. Please verify the project name or ID.`,
-        };
-      }
+  //     if (!projects || projects.length === 0) {
+  //       return {
+  //         success: false,
+  //         error: `Project "${project_id}" not found. Please verify the project name or ID.`,
+  //       };
+  //     }
 
-      // Use the first matching project's path_with_namespace
-      const projectPath = projects[0].path_with_namespace;
-      this.logger.debug(`Found project: ${projectPath} (ID: ${projects[0].id})`);
+  //     // Use the first matching project's path_with_namespace
+  //     const projectPath = projects[0].path_with_namespace;
+  //     this.logger.debug(`Found project: ${projectPath} (ID: ${projects[0].id})`);
 
-      // If SHAs are not provided, we need to fetch them from the MR
-      let baseSha = base_sha;
-      let startSha = start_sha;
-      let headSha = head_sha;
+  //     // If SHAs are not provided, we need to fetch them from the MR
+  //     let baseSha = base_sha;
+  //     let startSha = start_sha;
+  //     let headSha = head_sha;
 
-      if (!baseSha || !startSha || !headSha) {
-        try {
-          // Get merge request details to extract diffs using the correct project path
-          const mr = await gitlabService.getMergeRequest(projectPath, merge_request_iid);
+  //     if (!baseSha || !startSha || !headSha) {
+  //       try {
+  //         // Get merge request details to extract diffs using the correct project path
+  //         const mr = await gitlabService.getMergeRequest(projectPath, merge_request_iid);
 
-          // Import the GitLabMergeRequest type from the project's type definitions
-          type GitLabMergeRequest = {
-            diff_refs?: {
-              base_sha: string;
-              start_sha: string;
-              head_sha: string;
-            };
-            // Other properties might exist but we only need diff_refs
-          };
+  //         // Import the GitLabMergeRequest type from the project's type definitions
+  //         type GitLabMergeRequest = {
+  //           diff_refs?: {
+  //             base_sha: string;
+  //             start_sha: string;
+  //             head_sha: string;
+  //           };
+  //           // Other properties might exist but we only need diff_refs
+  //         };
 
-          // Cast to the type we expect
-          const typedMR = mr as GitLabMergeRequest;
+  //         // Cast to the type we expect
+  //         const typedMR = mr as GitLabMergeRequest;
 
-          if (typedMR.diff_refs) {
-            baseSha = baseSha || typedMR.diff_refs.base_sha;
-            startSha = startSha || typedMR.diff_refs.start_sha;
-            headSha = headSha || typedMR.diff_refs.head_sha;
-          } else {
-            return {
-              success: false,
-              error: "Could not retrieve diff_refs from merge request. Please provide base_sha, start_sha, and head_sha parameters.",
-            };
-          }
-        } catch (error) {
-          return {
-            success: false,
-            error: `Failed to fetch merge request diff refs: ${error instanceof Error ? error.message : String(error)}`,
-          };
-        }
-      }
+  //         if (typedMR.diff_refs) {
+  //           baseSha = baseSha || typedMR.diff_refs.base_sha;
+  //           startSha = startSha || typedMR.diff_refs.start_sha;
+  //           headSha = headSha || typedMR.diff_refs.head_sha;
+  //         } else {
+  //           return {
+  //             success: false,
+  //             error: "Could not retrieve diff_refs from merge request. Please provide base_sha, start_sha, and head_sha parameters.",
+  //           };
+  //         }
+  //       } catch (error) {
+  //         return {
+  //           success: false,
+  //           error: `Failed to fetch merge request diff refs: ${error instanceof Error ? error.message : String(error)}`,
+  //         };
+  //       }
+  //     }
+  //     this.logger.debug('CALLING CREATE MERGE REQUEST DIFF COMMENT METHOD!!!!');
+  //     // Create the comment using GitLabService and the correct project path
+  //     const result = await gitlabService.createMergeRequestDiffComment(
+  //       projectPath,
+  //       merge_request_iid,
+  //       comment,
+  //       {
+  //           position: {
+  //               baseSha: baseSha,
+  //               startSha: startSha,
+  //               headSha: headSha,
+  //               oldPath: file_path,
+  //               newPath: file_path,
+  //               positionType: 'text',
+  //               new_line: line_number
+  //           }
+  //       }
+  //     );
 
-      // Create the comment using GitLabService and the correct project path
-      const result = await gitlabService.createMergeRequestDiffComment(
-        projectPath,
-        merge_request_iid,
-        {
-          comment,
-          baseSha,
-          startSha,
-          headSha,
-          newPath: file_path,
-          newLine: line_number,
-        }
-      );
-
-      return {
-        success: true,
-        data: result,
-      };
-    } catch (error) {
-      this.logger.error("Failed to add merge request diff comment:", error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }
+  //     return {
+  //       success: true,
+  //       data: result,
+  //     };
+  //   } catch (error) {
+  //     this.logger.error("Failed to add merge request diff comment:", error);
+  //     return {
+  //       success: false,
+  //       error: error instanceof Error ? error.message : String(error),
+  //     };
+  //   }
+  // }
 
   // ToDo: Jira Tool Implementations
   // private async executeJiraSearch(

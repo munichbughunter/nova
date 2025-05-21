@@ -109,14 +109,34 @@ export interface LLMProvider {
  */
 export interface GitLabServiceType {
     searchProjects(query: string): Promise<any[]>; // Changed to Promise<any[]> for array return type
+    searchMergeRequests(query: string): Promise<unknown>;
+    getMergeRequests(projectId: number, limit?: number, state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all'): Promise<unknown>;
+    getProjectMergeRequests(projectPath: string, limit?: number, state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all', searchString?: string): Promise<unknown>;
+
     getProjectIssues(project: string): Promise<unknown>;
     searchIssues(query: string, timeframe?: string): Promise<unknown>;
-    getProjectMergeRequests(projectPath: string, limit?: number, state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all', searchString?: string): Promise<unknown>;
-    searchMergeRequests(query: string): Promise<unknown>;
+    
+    
+    
     createIssue(project: string, options: Record<string, unknown>): Promise<unknown>;
-    createMergeRequestDiffComment(project: string, mr_iid: number, options: Record<string, unknown>): Promise<unknown>;
+    createMergeRequestDiffComment(
+        projectId: string | number,
+        mergeRequestIid: number,
+        comment: string,
+        options: {
+            position: {
+                baseSha: string;
+                startSha: string;
+                headSha: string;
+                oldPath: string;
+                newPath: string;
+                positionType: string;
+                new_line: number;
+            };
+        }
+    ): Promise<any>;
     getMergeRequestChanges(project: string, mr_iid: number): Promise<unknown>;
-    getMergeRequest(project: string, mr_iid: number): Promise<unknown>;
+    
     getMergeRequestComments(project: string | number, mr_iid: number): Promise<any[]>; // Added missing method
     getProjectMetrics(path: string, timeframe: string): Promise<unknown>;
     [key: string]: unknown;
