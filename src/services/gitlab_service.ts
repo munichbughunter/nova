@@ -2074,6 +2074,24 @@ export class GitLabService {
         }
     }
 
+    public async getMergeRequestDetails(projectId: string | number, merge_request_iid: number): Promise<GitLabMergeRequest> {
+        try {
+            this.logger.debug(`Fetching merge request details for project with ID: ${projectId} and merge request with ID: ${merge_request_iid} using REST API`);
+            const mrDetails = await this.gitlab.MergeRequests.show(projectId, merge_request_iid);
+            this.logger.debug(
+                `Retrieved ${mrDetails.length} merge request details via REST for ${projectId} and merge request with ID: ${merge_request_iid}`,
+            );
+
+            return this.convertRestMergeRequestToGitLabMergeRequest(mrDetails as MergeRequestSchema);
+        }catch (error) {
+            this.logger.error(`Error fetching merge request details for project with ID: ${projectId}, merge request id: ${merge_request_iid}`, error);
+            if (error instanceof Error) {
+                this.logger.error(`Full error: ${error.stack || error.message}`);
+            }
+            throw error;
+        }
+    }
+
     /**
      * Get merge requests for a project
      * 
