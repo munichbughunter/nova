@@ -112,6 +112,10 @@ export interface GitLabServiceType {
     searchMergeRequests(query: string): Promise<unknown>;
     getMergeRequests(projectId: number, limit?: number, state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all'): Promise<unknown>;
     getMergeRequestDetails(projectId: string | number, merge_request_iid: number): Promise<unknown>;
+    getMergeRequestDiscussions(projectId: string | number, merge_request_iid: number): Promise<unknown>;
+    getMergeRequestDiffs(projectId: string | number, merge_request_iid: number): Promise<unknown>;
+
+
     
     getProjectMergeRequests(projectPath: string, limit?: number, state?: 'opened' | 'closed' | 'merged' | 'locked' | 'all', searchString?: string): Promise<unknown>;
 

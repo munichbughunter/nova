@@ -2079,11 +2079,11 @@ export class GitLabService {
             this.logger.debug(`Fetching merge request details for project with ID: ${projectId} and merge request with ID: ${merge_request_iid} using REST API`);
             const mrDetails = await this.gitlab.MergeRequests.show(projectId, merge_request_iid);
             this.logger.debug(
-                `Retrieved ${mrDetails.length} merge request details via REST for ${projectId} and merge request with ID: ${merge_request_iid}`,
+                `Retrieved merge request details via REST for ${projectId} and merge request with ID: ${merge_request_iid}: ${JSON.stringify(mrDetails, null, 2)}`,
             );
 
             return this.convertRestMergeRequestToGitLabMergeRequest(mrDetails as MergeRequestSchema);
-        }catch (error) {
+        } catch (error) {
             this.logger.error(`Error fetching merge request details for project with ID: ${projectId}, merge request id: ${merge_request_iid}`, error);
             if (error instanceof Error) {
                 this.logger.error(`Full error: ${error.stack || error.message}`);
@@ -2092,6 +2092,35 @@ export class GitLabService {
         }
     }
 
+    public async getMergeRequestDiscussions(projectId: string | number, merge_request_iid: number): Promise<GitLabDiscussion[]> {
+        try {
+            this.logger.debug(`Fetching merge request discussions for project with ID: ${projectId} and merge request with ID: ${merge_request_iid} using REST API`);
+            const discussions = await this.gitlab.MergeRequestDiscussions.all(projectId, merge_request_iid);
+
+            return discussions.map(discussion => this.convertDiscussionToGitLabDiscussion(discussion));
+        } catch (error) {
+            this.logger.error(`Error fetching merge request discussions for project with ID: ${projectId}, merge request id: ${merge_request_iid}`, error);
+            if (error instanceof Error) {
+                this.logger.error(`Full error: ${error.stack || error.message}`);
+            }
+            throw error;
+        }
+    }
+
+    public async getMergeRequestsDiffs(projectId: string | number, merge_request_iid: number): Promise<GitLabMergeRequestDiffs[]> {
+        try {
+            this.logger.debug(`Fetching merge request changes for project with ID: ${projectId} and merge request with ID: ${merge_request_iid}`);
+            const changes = await this.gitlab.MergeRequests.showChanges(projectId, merge_request_iid, { accessRawDiffs: true });
+
+            return this.convertMergeRequestDiffs(changes);
+        } catch (error) {
+            this.logger.error(`Error fetching merge request changes for project with ID: ${projectId}, merge request id: ${merge_request_iid}`, error);
+            if (error instanceof Error) {
+                this.logger.error(`Full error: ${error.stack || error.message}`);
+            }
+            throw error;
+        }
+    }
     /**
      * Get merge requests for a project
      * 
@@ -2307,6 +2336,45 @@ export class GitLabService {
         const cleanPath = newPath.replace(/[^a-zA-Z0-9]/g, '_');
         return `${cleanPath}_${oldLine}_${newLine}`;
     }
+
+    /**
+     * Hilfsfunktion: Wandelt ein GitLab Discussion-Objekt in das gewünschte Format um
+     */
+    private convertDiscussionToGitLabDiscussion(discussion: any): GitLabDiscussion {
+        return {
+            id: String(discussion.id),
+            notes: {
+                nodes: Array.isArray(discussion.notes)
+                    ? discussion.notes.map((note: any) => ({
+                        id: String(note.id),
+                        body: note.body || '',
+                        author: note.author ? {
+                            name: note.author.name || '',
+                            username: note.author.username || '',
+                        } : { name: '', username: '' },
+                        created_at: note.created_at || '',
+                        system: note.system || false,
+                    }))
+                    : [],
+            },
+        };
+    }
+
+    /**
+     * Hilfsfunktion: Wandelt ein GitLab Discussion-Objekt in das gewünschte Format um
+     */
+    private convertMergeRequestDiffs(changes: any): GitLabMergeRequestDiffs[] {
+        return changes.map((change: any) => ({
+            old_path: change.old_path,
+            new_path: change.new_path,
+            a_mode: change.a_mode,
+            b_mode: change.b_mode,
+            diff: change.diff,
+            new_file: change.new_file,
+            renamed_file: change.renamed_file,
+            deleted_file: change.deleted_file
+        }));
+    }
 }
 
 /**
@@ -2424,4 +2492,18 @@ interface GitLabDiscussion {
             system: boolean;
         }>;
     };
+}
+
+interface GitLabMergeRequestDiff {
+    old_path: string;
+    new_path: string;
+    a_mode: string;
+    b_mode: string;
+    diff: string;
+    new_file: boolean;
+    renamed_file: boolean;
+    deleted_file: boolean;
+}
+interface GitLabMergeRequestDiffs {
+    changes: GitLabMergeRequestDiff[];
 }

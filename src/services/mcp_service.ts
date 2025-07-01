@@ -85,6 +85,20 @@ type GitLabMergeRequest = {
   };
 };
 
+// At the top of src/services/mcp_service.ts
+type GitLabDiscussion = {
+  id: string;
+  notes: {
+    nodes: Array<{
+      id: string;
+      body: string;
+      author: { name: string; username: string };
+      created_at: string;
+      system: boolean;
+    }>;
+  };
+};
+
 /**
  * MCP Service
  *
@@ -1059,7 +1073,8 @@ export class MCPService {
           return await this.executeListOpenMergeRequests(params, context);
         case "get_merge_request_details":
           return await this.executeGetMergeRequestDetails(params, context);
-        // case "gitlab_create_issue":
+        case "get_merge_request_changes":
+          return await this.executeGetMergeRequestChanges(params, context);
         //   return await this.executeGitLabCreateIssue(params, context);
         // case "gitlab_create_mr_diff_comment":
         //   return await this.executeGitLabCreateDiffComment(params, context);
@@ -1718,22 +1733,50 @@ export class MCPService {
         verbose?: boolean;
       };
 
-      const mrDetails = await gitlabService.getMergeRequestDetails(project_id, merge_request_iid);
-        // try {
-        //   const [mrDetails, changes] = await Promise.all([
-        //     gitlabService.getMergeRequestDetails(project_id, merge_request_iid),
-
-        //   ]) as [GitLabMergeRequest, GitLabMergeRequestDiscussions];
-        // }
+      let mrDetails;
+      let discussions;
+      try {
+        [mrDetails, discussions] = await Promise.all([
+          gitlabService.getMergeRequestDetails(project_id, merge_request_iid),
+          gitlabService.getMergeRequestDiscussions(project_id, merge_request_iid),
+        ]) as [GitLabMergeRequest, GitLabDiscussion];
+      } catch (error) {
+        this.logger.error("Failed to get merge request details:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
         
         // Wenn mrDetails ein Array ist, nimm das erste Element:
       const mr = Array.isArray(mrDetails) ? mrDetails[0] : mrDetails;
+
+      // Kategorisiere die Discussions
+      const unresolvedNotes = Array.isArray(discussions) 
+        ? discussions.flatMap((discussion: GitLabDiscussion) => discussion.notes?.nodes?.filter((note: any) => !note.system) || [])
+        : (discussions?.notes?.nodes?.filter((note: any) => !note.system) || []);
+      const discussionNotes = unresolvedNotes.filter((note: any) => note?.type === 'DiscussionNote').map((note: any) => ({
+        id: note?.id,
+        noteable_id: note?.noteable_id,
+        body: note?.body,
+        author_name: note?.author?.name,
+      }));
+      const diffNotes = unresolvedNotes.filter((note: any) => note?.type === 'DiffNote').map((note: any) => ({
+        id: note?.id,
+        noteable_id: note?.noteable_id,
+        body: note?.body,
+        author_name: note?.author?.name,
+        position: note?.position,
+      }));
 
       const result = verbose ? {
         ...mr,
         changes: mr.changes,
         diffStats: mr.diffStats,
-        diffRefs: mr.diffRefs
+        diffRefs: mr.diffRefs,
+        unresolvedNotes,
+        discussionNotes,
+        diffNotes
       } : {
         iid: mr.iid,
         project_id: project_id,
@@ -1753,7 +1796,6 @@ export class MCPService {
         reviewers: mr.reviewers?.nodes?.map((r: { name: string; username: string }) => ({ name: r.name, username: r.username })),
         approved: mr.approved,
         labels: mr.labels?.nodes?.map((l: { title: string }) => l.title),
-        // Füge die Changes-Informationen hinzu
         changes: mr.changes.map((change: { id: string; title: string; new_file: boolean; renamed_file: boolean; deleted_file: boolean; file_path: string; line_count: number }) => ({
           id: change.id,
           title: change.title,
@@ -1765,6 +1807,8 @@ export class MCPService {
         })),
         diffStats: mr.diffStats,
         diffRefs: mr.diffRefs,
+        discussionNotes,
+        diffNotes
       };
 
       return {
@@ -1778,73 +1822,33 @@ export class MCPService {
         error: error instanceof Error ? error.message : String(error),
       };
     }
-}
+  }
 
-  /**
-   * Implementation of the get_merge_request_comments tool
-   */
-  // private async executeGetMergeRequestComments(
-  //   params: Record<string, unknown>,
-  //   context: MCPToolContext,
-  // ): Promise<MCPToolResult> {
-  //   try {
-  //     const gitlabService = context.gitlab as GitLabServiceType;
-  //     if (!gitlabService) {
-  //       return { success: false, error: "GitLab service not available." };
-  //     }
+  private async executeGetMergeRequestChanges(params: Record<string, unknown>, context: MCPToolContext): Promise<MCPToolResult> {
+    try {
+      const gitlabService = context.gitlab as GitLabServiceType;
+      if (!gitlabService) {
+        return { success: false, error: "GitLab service not available." };
+      }
+      const { project_id, merge_request_iid } = params as {
+        project_id: string;
+        merge_request_iid: number;
+      };
 
-  //     const { project_id, merge_request_iid, verbose = false } = params as {
-  //       project_id: string | number; // Allow number as well, will cast to string for search
-  //       merge_request_iid: number;
-  //       verbose?: boolean;
-  //     };
+      const mergeRequestDiffs = await gitlabService.getMergeRequestDiffs(project_id, merge_request_iid);
 
-  //     // First, search for the project to get the correct ID or path with namespace
-  //     this.logger.debug(`Searching for project with query: "${project_id}"`);
-  //     const projects = await gitlabService.searchProjects(String(project_id)) as any[];
-
-  //     if (!projects || projects.length === 0) {
-  //       return {
-  //         success: false,
-  //         error: `Project "${project_id}" not found. Please verify the project name or ID.`,
-  //       };
-  //     }
-
-  //     const projectIdentifier = projects[0].id;
-  //     const projectPath = projects[0].path_with_namespace;
-  //     this.logger.debug(`Found project: ${projectPath} (ID: ${projectIdentifier}). Fetching comments for MR !${merge_request_iid}`);
-
-  //     const comments = await gitlabService.getMergeRequestComments(projectIdentifier, merge_request_iid);
-
-  //     // Assuming GitLabMergeRequestComment is a type available via GitLabServiceType or globally
-  //     // For now, using 'any' for comment type in map function to avoid potential type errors
-  //     // if GitLabMergeRequestComment is not directly in scope.
-  //     const formattedComments = comments.map((comment: any /* GitLabMergeRequestComment */) => ({
-  //       id: comment.id,
-  //       body: comment.body,
-  //       author: comment.author ? { name: comment.author.name, username: comment.author.username } : null,
-  //       created_at: comment.created_at,
-  //       updated_at: comment.updated_at,
-  //       system: comment.system,
-  //       resolvable: comment.resolvable,
-  //       resolved: comment.resolved,
-  //       type: comment.type,
-  //       position: comment.position,
-  //     }));
-
-  //     return {
-  //       success: true,
-  //       data: verbose ? comments : formattedComments,
-  //     };
-  //   } catch (error) {
-  //     const p = params as { project_id?: unknown; merge_request_iid?: unknown };
-  //     this.logger.error(`Failed to get merge request comments for MR !${p.merge_request_iid} in project \"${p.project_id}\":`, error);
-  //     return {
-  //       success: false,
-  //       error: error instanceof Error ? error.message : String(error),
-  //     };
-  //   }
-  // }
+      return {
+        success: true,
+        data: mergeRequestDiffs,
+      };
+    } catch (error) {
+      this.logger.error("Failed to get merge request diffs:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
 
   /**
    * Implementation of the add_merge_request_diff_comment tool
