@@ -2162,819 +2162,545 @@ export class GitLabService {
     }
 
     /**
-     * Get environment deployments for a project
+     * Update a merge request
+     * @param projectPath Project path (namespace/project_name)
+     * @param mrIid Merge request internal ID
+     * @param updates Object containing fields to update
+     * @returns Updated merge request details
      */
-    public async getEnvironmentDeployments(projectPath: string): Promise<
-        Array<{
-            name: string;
-            deployments: number;
-            lastDeployedAt?: Date;
-        }>
-    > {
+    public async updateMergeRequest(
+        projectPath: string,
+        mrIid: number,
+        updates: {
+            title?: string;
+            description?: string;
+            target_branch?: string;
+            state_event?: 'close' | 'reopen';
+            remove_source_branch?: boolean;
+            allow_collaboration?: boolean;
+            draft?: boolean;
+            assignee_ids?: number[];
+            reviewer_ids?: number[];
+            labels?: string;
+        },
+    ): Promise<GitLabMergeRequest> {
+        await this.ensureInitialized();
         try {
-            const environments = await this.getEnvironments(projectPath);
-            return this.processEnvironments(environments, projectPath);
+            this.logger.debug(
+                `Updating merge request #${mrIid} in project '${projectPath}' with updates:`,
+                updates,
+            );
+
+            // Use REST API for updating merge request
+            const baseUrl = this.config.gitlab!.url.endsWith('/')
+                ? this.config.gitlab!.url.slice(0, -1)
+                : this.config.gitlab!.url;
+
+            const updateData: Record<string, unknown> = {};
+            
+            // Only include fields that are provided
+            if (updates.title !== undefined) updateData.title = updates.title;
+            if (updates.description !== undefined) updateData.description = updates.description;
+            if (updates.target_branch !== undefined) updateData.target_branch = updates.target_branch;
+            if (updates.state_event !== undefined) updateData.state_event = updates.state_event;
+            if (updates.remove_source_branch !== undefined) updateData.remove_source_branch = updates.remove_source_branch;
+            if (updates.allow_collaboration !== undefined) updateData.allow_collaboration = updates.allow_collaboration;
+            if (updates.draft !== undefined) updateData.draft = updates.draft;
+            if (updates.assignee_ids !== undefined) updateData.assignee_ids = updates.assignee_ids;
+            if (updates.reviewer_ids !== undefined) updateData.reviewer_ids = updates.reviewer_ids;
+            if (updates.labels !== undefined) updateData.labels = updates.labels;
+
+            const response = await fetch(
+                `${baseUrl}/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${mrIid}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'PRIVATE-TOKEN': this.config.gitlab!.token,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to update merge request #${mrIid} in project ${projectPath}: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            const mrData = await response.json() as {
+                id: string;
+                iid: number;
+                title: string;
+                description: string;
+                state: string;
+                web_url: string;
+                source_branch: string;
+                target_branch: string;
+                created_at: string;
+                updated_at: string;
+                author: GitLabUser;
+                assignees: GitLabUser[];
+                reviewers: GitLabUser[];
+                labels: Array<{ name: string }>;
+            };
+
+            // Convert to our internal format
+            const updatedMR: GitLabMergeRequest = {
+                id: mrData.id,
+                iid: mrData.iid,
+                title: mrData.title,
+                description: mrData.description,
+                state: mrData.state,
+                web_url: mrData.web_url,
+                source_branch: mrData.source_branch,
+                target_branch: mrData.target_branch,
+                created_at: mrData.created_at,
+                updated_at: mrData.updated_at,
+                author: mrData.author,
+                reviewers: { nodes: mrData.reviewers || [] },
+                approved: false, // This would need additional API call to determine
+                approvedBy: { nodes: [] },
+                assignees: { nodes: mrData.assignees || [] },
+                labels: { nodes: mrData.labels?.map(label => ({ title: label.name })) || [] },
+                changes: [], // Changes are fetched separately
+            };
+
+            this.logger.debug(`Successfully updated merge request #${mrIid}`);
+            return updatedMR;
         } catch (error) {
-            this.logger.error('Error getting environment deployments:', error);
-        return [];
+            this.logger.error(`Error updating merge request #${mrIid} in project '${projectPath}':`, error);
+            throw error;
         }
-    }
-
-    private async getEnvironments(projectPath: string): Promise<GitLabEnvironment[]> {
-        const query = this.queries.getProjectEnvironments;
-        const response = await this.graphqlRequest<
-            GitLabGraphQLResponse<{
-                project: {
-                    environments: {
-                        nodes: GitLabEnvironment[];
-                    };
-                };
-            }>
-        >(query, { fullPath: projectPath });
-
-        if (!response?.data?.project?.environments?.nodes) {
-            throw new Error('Invalid response format from GitLab API');
-        }
-
-        return response.data.project.environments.nodes;
     }
 
     /**
-     * Search projects with the given search term
-     * @param search Search term to filter projects
+     * Get merge request diffs/changes with optional view format
+     * @param projectPath Project path (namespace/project_name)
+     * @param mrIid Merge request internal ID
+     * @param view Diff view type ('inline' or 'parallel', defaults to 'inline')
+     * @returns Array of merge request diff information
      */
-    public async searchProjects(search: string): Promise<ProjectSchema[]> {
+    public async getMergeRequestDiffs(
+        projectPath: string,
+        mrIid: number,
+        view: 'inline' | 'parallel' = 'inline',
+    ): Promise<GitLabChange[]> {
+        await this.ensureInitialized();
         try {
+            this.logger.debug(
+                `Getting diffs for merge request #${mrIid} in project '${projectPath}' with view '${view}'`,
+            );
+
+            // Use REST API for getting diffs
+            const baseUrl = this.config.gitlab!.url.endsWith('/')
+                ? this.config.gitlab!.url.slice(0, -1)
+                : this.config.gitlab!.url;
+
+            const params = new URLSearchParams();
+            if (view) params.append('view', view);
+
+            const response = await fetch(
+                `${baseUrl}/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${mrIid}/changes?${params}`,
+                {
+                    headers: {
+                        'PRIVATE-TOKEN': this.config.gitlab!.token,
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to get diffs for merge request #${mrIid} in project ${projectPath}: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            interface RestChange {
+                old_path: string;
+                new_path: string;
+                deleted_file: boolean;
+                new_file: boolean;
+                renamed_file: boolean;
+                diff: string;
+            }
+
+            const data = await response.json() as { changes: RestChange[] };
+            
+            this.logger.debug(`Retrieved ${data.changes.length} changes for merge request #${mrIid}`);
+            
+            return data.changes.map((change) => ({
+                old_path: change.old_path,
+                new_path: change.new_path,
+                deleted_file: change.deleted_file,
+                new_file: change.new_file,
+                renamed_file: change.renamed_file,
+                diff: change.diff,
+            }));
+        } catch (error) {
+            this.logger.error(
+                `Error getting diffs for merge request #${mrIid} in project '${projectPath}':`,
+                error,
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * List all discussions for a merge request
+     * @param projectPath Project path (namespace/project_name)
+     * @param mrIid Merge request internal ID
+     * @returns Array of merge request discussions
+     */
+    public async listMergeRequestDiscussions(
+        projectPath: string,
+        mrIid: number,
+    ): Promise<GitLabDiscussion[]> {
+        await this.ensureInitialized();
+        try {
+            this.logger.debug(
+                `Getting discussions for merge request #${mrIid} in project '${projectPath}'`,
+            );
+
+            // Use GraphQL API for getting discussions
             const query = `
-                query searchProjects($search: String) {
-                projects(search: $search, first: 20) {
-                    nodes {
-                    id
-                    name
-                    fullPath
-                    description
-                    webUrl
-                    visibility
-                    lastActivityAt
-                    archived
+                query GetMergeRequestDiscussions($fullPath: ID!, $iid: String!) {
+                    project(fullPath: $fullPath) {
+                        mergeRequest(iid: $iid) {
+                            discussions {
+                                nodes {
+                                    id
+                                    notes {
+                                        nodes {
+                                            id
+                                            body
+                                            author {
+                                                name
+                                               
+                                                username
+                                            }
+                                            createdAt
+                                            system
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
                 }
             `;
 
-            const variables = { search };
-            const response = await this.graphqlRequest<SearchProjectsResponse>(query, variables);
-
-            // Get nodes from the response and convert to ProjectSchema
-            return this.convertToProjectSchemas(response.data.projects.nodes);
-        } catch (error) {
-            this.logger.error('Failed to search projects:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Convert a GitLab GraphQL response project to a ProjectSchema object
-     * @param project Project object from GraphQL with camelCase properties
-     * @returns A properly formatted ProjectSchema object with snake_case properties
-     */
-    public convertToProjectSchema(project: Record<string, unknown>): ProjectSchema {
-        // Ensure we handle both camelCase and snake_case property names
-        const pns = (project.path_with_namespace as string) ||
-        (project.fullPath as string) || '';
-        const webUrl = (project.web_url as string) ||
-        (project.webUrl as string) || '';
-        const archived = project.archived as boolean;
-        const visibility = project.visibility as string;
-        const lastActivity = (project.last_activity_at as string) ||
-        (project.lastActivityAt as string) ||
-        new Date().toISOString();
-
-        return {
-            id: project.id as string | number,
-            name: project.name as string,
-            description: (project.description as string) || '',
-            path_with_namespace: pns,
-            web_url: webUrl,
-            visibility: visibility,
-            last_activity_at: lastActivity,
-            archived: archived,
-            // ProjectSchema requires these properties, but we can provide minimal values
-            // as they're typically not used in our application context
-            avatar_url: null,
-            created_at: lastActivity,
-            default_branch: 'main',
-            description_html: (project.description as string) || '',
-            forks_count: 0,
-            http_url_to_repo: webUrl,
-            issues_enabled: true,
-            jobs_enabled: true,
-            lfs_enabled: false,
-            merge_requests_enabled: true,
-            mirror: false,
-            namespace: {
-                id: 0,
-                name: pns.split('/')[0] || '',
-                path: pns.split('/')[0] || '',
-                kind: 'group',
-                full_path: pns.split('/')[0] || '',
-            },
-            open_issues_count: 0,
-            owner: null,
-            public_jobs: true,
-            readme_url: null,
-            runners_token: '',
-            shared_runners_enabled: true,
-            ssh_url_to_repo: '',
-            star_count: 0,
-            tag_list: [],
-            empty_repo: false,
-            wiki_enabled: true,
-            snippets_enabled: true,
-            can_create_merge_request_in: true,
-            resolve_outdated_diff_discussions: false,
-            container_registry_access_level: 'enabled',
-            container_registry_enabled: true,
-            security_and_compliance_enabled: false,
-            packages_enabled: true,
-            service_desk_enabled: false,
-            service_desk_address: null,
-            issues_access_level: 'enabled',
-            repository_access_level: 'enabled',
-            merge_requests_access_level: 'enabled',
-            forking_access_level: 'enabled',
-            wiki_access_level: 'enabled',
-            builds_access_level: 'enabled',
-            snippets_access_level: 'enabled',
-            pages_access_level: 'enabled',
-            operations_access_level: 'enabled',
-            analytics_access_level: 'enabled',
-            container_registry_image_prefix: '',
-            _links: {
-                self: webUrl,
-                issues: `${webUrl}/issues`,
-                merge_requests: `${webUrl}/merge_requests`,
-                repo_branches: `${webUrl}/branches`,
-                labels: `${webUrl}/labels`,
-                events: `${webUrl}/events`,
-                members: `${webUrl}/members`,
-                cluster_agents: `${webUrl}/cluster_agents`,
-            },
-            build_coverage_regex: null,
-            build_git_strategy: 'fetch',
-            build_timeout: 3600,
-            auto_cancel_pending_pipelines: 'enabled',
-            build_allow_git_fetch: true,
-            pull_mirror_available_override: false,
-            ci_config_path: null,
-            ci_default_git_depth: 20,
-            remove_source_branch_after_merge: true,
-            request_access_enabled: true,
-            shared_with_groups: [],
-            only_allow_merge_if_pipeline_succeeds: false,
-            only_allow_merge_if_all_discussions_are_resolved: false,
-            allow_merge_on_skipped_pipeline: false,
-            permissions: {
-                project_access: null,
-                group_access: null,
-            },
-        } as unknown as ProjectSchema;
-    }
-
-    /**
-     * Convert an array of GitLab GraphQL response projects to ProjectSchema objects
-     */
-    public convertToProjectSchemas(projects: Array<Record<string, unknown>>): ProjectSchema[] {
-        return projects.map((project) => this.convertToProjectSchema(project));
-    }
-
-    public async searchIssues(query: string, _timeRange: string): Promise<
-        Array<{
-            title: string;
-            description?: string;
-            state: string;
-            author: GitLabUser;
-            createdAt: string;
-        }>
-    > {
-        const response = await this.graphqlRequest<GitlabSearchResponse>(
-        `
-        query($query: String!) {
-            search(query: $query) {
-            nodes {
-                ... on Issue {
-                title
-                description
-                state
-                author {
-                    name
-                    username
-                }
-                createdAt
-                }
-            }
-            }
-        }
-        `,
-        { query },
-        );
-
-        return response.data?.search?.nodes || [];
-    }
-
-    public async getProjectIssues(projectPath: string): Promise<
-        Array<{
-            title: string;
-            description?: string;
-            state: string;
-            author: GitLabUser;
-            createdAt: string;
-        }>
-    > {
-        const response = await this.graphqlRequest<GitlabProjectIssuesResponse>(
-            `
-            query($fullPath: ID!) {
-                project(fullPath: $fullPath) {
-                issues {
-                    nodes {
-                    title
-                    description
-                    state
-                    author {
-                        name
-                        username
-                    }
-                    createdAt
-                    }
-                }
-                }
-            }
-            `,
-            { fullPath: projectPath },
-        );
-
-        return response.data?.project?.issues?.nodes || [];
-    }
-
-    public async searchMergeRequests(query: string): Promise<GitLabMergeRequest[]> {
-        const response = await this.graphqlRequest<GitlabSearchMRResponse>(
-            `
-            query($query: String!) {
-                search(query: $query) {
-                nodes {
-                    ... on MergeRequest {
-                    id
-                    iid
-                    title
-                    description
-                    state
-                    createdAt
-                    updatedAt
-                    sourceBranch
-                    targetBranch
-                    webUrl
-                    author {
-                        name
-                        username
-                    }
-                    }
-                }
-                }
-            }
-            `,
-            { query },
-        );
-
-        return (response.data?.search?.nodes || []).map((mr: GitLabMergeRequestBase) =>
-            this.convertMergeRequestFromAPI(mr)
-        );
-    }
-
-    public async createIssue(projectPath: string, params: {
-        title: string;
-        description: string;
-        labels?: string;
-    }): Promise<{
-        iid: number;
-        title: string;
-        web_url: string;
-    }> {
-        const mutation = `
-        mutation($input: CreateIssueInput!) {
-            createIssue(input: $input) {
-            issue {
-                iid
-                title
-                webUrl
-            }
-            errors
-            }
-        }
-        `;
-
-        const response = await this.graphqlRequest<GitlabCreateIssueResponse>(mutation, {
-            input: {
-                projectPath,
-                title: params.title,
-                description: params.description,
-                labels: params.labels ? params.labels.split(',') : [],
-            },
-        });
-
-        if (response.data?.createIssue?.errors?.length) {
-            throw new Error(response.data.createIssue.errors[0]);
-        }
-
-        const issue = response.data?.createIssue?.issue;
-        if (!issue) {
-            throw new Error('Failed to create issue: No issue data returned');
-        }
-
-        return {
-            iid: parseInt(issue.iid),
-            title: issue.title,
-            web_url: issue.webUrl,
-        };
-    }
-
-    /**
-     * Get raw file content from GitLab repository
-     * @param projectPath Project path (namespace/project)
-     * @param filePath File path within the repository
-     * @param ref Branch or commit reference
-     * @param maxSizeBytes Maximum file size in bytes to retrieve (default 1MB)
-     * @returns Raw file content as string
-     */
-    public async getRawFile(
-        projectPath: string,
-        filePath: string,
-        ref: string,
-        maxSizeBytes: number = 1024 * 1024, // Default 1MB limit
-    ): Promise<string> {
-        await this.ensureInitialized();
-
-        try {
-            const url =
-                `${this.config.gitlab?.url}/api/v4/projects/${projectPath}/repository/files/${filePath}/raw?ref=${ref}`;
-            const response = await this.request<Response>(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'text/plain',
-                },
-                rawResponse: true,
-            });
-
-            if (response.ok) {
-                // Check response size before processing
-                const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
-                if (contentLength > maxSizeBytes) {
-                    throw new Error(
-                        `File size (${contentLength} bytes) exceeds maximum allowed size (${maxSizeBytes} bytes)`,
-                    );
-                }
-
-                return await response.text();
-            } else {
-                this.logger.error(`Error fetching raw file: ${response.status} ${response.statusText}`);
-                throw new Error(`Failed to fetch file: HTTP ${response.status}`);
-            }
-        } catch (error) {
-            this.logger.error(`Error fetching raw file: ${error}`);
-            throw error;
-        }
-    }
-
-    /**
-     * Get a limited set of recent projects using gitbeaker/rest
-     * @param limit Maximum number of projects to return (default: 20)
-     * @returns Array of ProjectSchema objects
-     */
-    public async getRecentProjectsRest(limit = 20): Promise<ProjectSchema[]> {
-        try {
-            // Get projects sorted by last activity
-            const rawProjects = await this.gitlab.Projects.all({
-                membership: true,
-                orderBy: 'last_activity_at',
-                sort: 'desc',
-                perPage: limit,
-                archived: false,
-                statistics: true,
-                simple: false,
-            });
-
-            this.logger.debug(`Retrieved ${rawProjects.length} recent projects`);
-
-            // Convert to ProjectSchema format
-            return rawProjects.map((project) => this.convertToProjectSchema(project));
-        } catch (error) {
-            this.logger.error('Failed to get recent projects:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Get project activity data using gitbeaker/rest
-     * @param projectId Project ID
-     * @returns Project activity data
-     */
-    public async getProjectActivityRest(projectId: number | string): Promise<{
-        commits: Array<Pick<CommitSchema, 'id' | 'title' | 'author_name' | 'created_at'>>;
-        issues: Array<Pick<IssueSchema, 'iid' | 'title' | 'state' | 'created_at'>>;
-        mergeRequests: Array<Pick<MergeRequestSchema, 'iid' | 'title' | 'state' | 'created_at'>>;
-    }> {
-        try {
-            // Get data in parallel
-            const [rawCommits, rawIssues, rawMergeRequests] = await Promise.all([
-                this.gitlab.Commits.all(projectId, { perPage: 10 }),
-                this.gitlab.Issues.all({ projectId, perPage: 10 }),
-                this.gitlab.MergeRequests.all({ projectId, perPage: 10 }),
-            ]);
-
-            return {
-                commits: rawCommits.map((c) => ({
-                    id: c.id,
-                    title: c.title,
-                    author_name: String(c.author_name),
-                    created_at: String(c.created_at),
-                })) as Array<Pick<CommitSchema, 'id' | 'title' | 'author_name' | 'created_at'>>,
-                issues: rawIssues.map((i) => ({
-                    iid: i.iid,
-                    title: i.title,
-                    state: i.state,
-                    created_at: String(i.created_at),
-                })) as Array<Pick<IssueSchema, 'iid' | 'title' | 'state' | 'created_at'>>,
-                mergeRequests: rawMergeRequests.map((mr) => ({
-                    iid: mr.iid,
-                    title: mr.title,
-                    state: mr.state,
-                    created_at: String(mr.created_at),
-                })) as Array<Pick<MergeRequestSchema, 'iid' | 'title' | 'state' | 'created_at'>>,
-            };
-        } catch (error) {
-            this.logger.error(`Failed to get project activity for ${projectId}:`, error);
-            return {
-                commits: [],
-                issues: [],
-                mergeRequests: [],
-            };
-        }
-    }
-
-    private async shouldRefreshCache(
-        projectId: string | number,
-        cacheKey: string,
-        cacheType: string,
-    ): Promise<boolean> {
-        try {
-            // Get project from cached projects list first
-            await this.ensureInitialized();
-            const projects = await this.getProjects();
-            const projectMatch = projects.find((p) =>
-                String(p.id) === String(projectId) || p.path_with_namespace === String(projectId)
-            );
-
-            if (!projectMatch) {
-                this.logger.debug(`Project not found in cache for ID/path: ${projectId}`);
-                return true; // Refresh if we can't find the project
-            }
-
-            // Get cache metadata
-            const cached = await this.cache.get<{ _cached_at?: string }>(cacheKey, cacheType);
-            if (!cached || !cached._cached_at) {
-                this.logger.debug(`No cache found for key: ${cacheKey}`);
-                return true;
-            }
-
-            // Check if project was updated after our last cache
-            const lastActivity = new Date(projectMatch.last_activity_at);
-            const cacheTime = new Date(cached._cached_at);
-
-            const shouldRefresh = lastActivity > cacheTime;
-            this.logger.debug(
-                `Cache check for ${projectId}: lastActivity=${lastActivity.toISOString()}, cacheTime=${cacheTime.toISOString()}, shouldRefresh=${shouldRefresh}`,
-            );
-
-            return shouldRefresh;
-        } catch (error) {
-            this.logger.error(`Error checking cache freshness: ${error}`);
-            return true; // Refresh on error to be safe
-        }
-    }
-
-    public async getProjectActivityLightRest(projectId: string | number): Promise<{
-        lastCommit?: { id: string; created_at: string };
-        openIssues: number;
-        openMergeRequests: number;
-        _cached_at?: string;
-    }> {
-        try {
-            // Get project info first to get default branch
-            const projects = await this.getProjects();
-            const project = projects.find((p) => String(p.id) === String(projectId));
-
-            if (!project) {
-                throw new Error(`Project ${projectId} not found`);
-            }
-
-            const [defaultBranch, issues, mergeRequests] = await Promise.all([
-                this.gitlab.Branches.show(projectId, project.default_branch),
-                this.gitlab.Issues.all({ projectId: String(projectId), state: 'opened' }),
-                this.gitlab.MergeRequests.all({ projectId: String(projectId), state: 'opened' }),
-            ]);
-
-            const commitDate = defaultBranch?.commit?.created_at;
-            const created_at = typeof commitDate === 'string' ? commitDate : new Date().toISOString();
-
-            return {
-                lastCommit: defaultBranch
-                ? {
-                    id: defaultBranch.commit.id,
-                    created_at,
-                }
-                : undefined,
-                openIssues: issues.length,
-                openMergeRequests: mergeRequests.length,
-                _cached_at: new Date().toISOString(),
-            };
-        } catch (error) {
-            this.logger.error(`Error getting project activity for ${projectId}:`, error);
-            throw error;
-        }
-    }
-
-    public async getLatestTag(
-        projectId: string | number,
-    ): Promise<{ name: string; createdAt: string } | null> {
-        try {
-            const response = await this.gitlab.Tags.all(projectId);
-            const tags = (response as GitLabTagResponse[])
-                .filter((tag): tag is GitLabTag => {
-                return tag?.name != null &&
-                    tag?.commit?.created_at != null &&
-                    typeof tag.commit.created_at === 'string';
-                });
-
-            if (!tags || tags.length === 0) {
-                return null;
-            }
-
-            // Sort tags by semantic version if possible, fallback to creation date
-            const sortedTags = tags.sort((a, b) => {
-                try {
-                // Try to parse as semantic versions first
-                const versionA = a.name.replace(/^v/, '').split('.').map(Number);
-                const versionB = b.name.replace(/^v/, '').split('.').map(Number);
-
-                for (let i = 0; i < 3; i++) {
-                    if (versionA[i] !== versionB[i]) {
-                    return (versionB[i] || 0) - (versionA[i] || 0);
-                    }
-                }
-                return 0;
-                } catch {
-                // Fallback to creation date if semantic version parsing fails
-                const dateA = new Date(a.commit.created_at);
-                const dateB = new Date(b.commit.created_at);
-                return dateB.getTime() - dateA.getTime();
-                }
-            });
-
-            // Return the most recent tag
-            return {
-                name: sortedTags[0].name,
-                createdAt: sortedTags[0].commit.created_at,
-            };
-        } catch (error) {
-            this.logger.error(`Error getting latest tag for ${projectId}:`, error);
-            return null;
-        }
-    }
-
-    /**
-     * Check if a project has a changelog file
-     * @param projectId Project ID
-     * @returns Boolean indicating if changelog exists
-     */
-    public async hasChangelog(projectId: string | number): Promise<boolean> {
-        try {
-            await this.getRawFile(`${projectId}`, 'CHANGELOG.md', 'main');
-            return true;
-        } catch {
-            try {
-                await this.getRawFile(`${projectId}`, 'changelog.md', 'main');
-                return true;
-            } catch {
-                return false;
-            }
-        }
-    }
-
-    /**
-     * Get project summary including latest tag and changelog status
-     * @param project Project to get summary for
-     * @param options Optional settings for what data to fetch
-     * @returns Enhanced project summary
-     */
-    public async getProjectSummary(project: ProjectSchema, options: {
-        includeDeployments?: boolean;
-        includePipelines?: boolean;
-    } = {}): Promise<{
-        latestTag: { name: string; createdAt: string; } | null;
-        hasChangelog: boolean;
-        lastDeployment: { environment: string; deployedAt: string } | null;
-        pipeline: { stats: { success: number; failed: number; running: number; total: number } } | null;
-    }> {
-        try {
-            // Get data in parallel
-            const [latestTag, hasChangelog] = await Promise.all([
-                this.getLatestTag(project.id),
-                this.hasChangelog(project.id),
-            ]);
-
-            let lastDeployment = null;
-            let pipeline = null;
-
-            if (options.includeDeployments) {
-                try {
-                    const environments = await this.gitlab.Environments.all(project.id);
-
-                    if (environments && environments.length > 0) {
-                        const productionEnvs = environments
-                        .filter((env) => this.isProductionEnvironment(env.name))
-                        .filter((env) => this.isGitLabEnvironmentWithDeployment(env));
-
-                        if (productionEnvs.length > 0) {
-                            const mostRecentEnv = productionEnvs.reduce((latest, current) => {
-                                return new Date(current.last_deployment.created_at) >
-                                    new Date(latest.last_deployment.created_at)
-                                ? current
-                                : latest;
-                            });
-
-                            lastDeployment = {
-                                environment: mostRecentEnv.name,
-                                deployedAt: mostRecentEnv.last_deployment.created_at,
+            const response = await this.graphqlRequest<{
+                data: {
+                    project: {
+                        mergeRequest: {
+                            discussions: {
+                                nodes: Array<{
+                                    id: string;
+                                    notes: {
+                                        nodes: Array<{
+                                            id: string;
+                                            body: string;
+                                            author: GitLabUser;
+                                            createdAt: string;
+                                            system: boolean;
+                                        }>;
+                                    };
+                                }>;
                             };
-                        }
-                    }
-                } catch (error) {
-                    this.logger.error('Error getting environments:', error);
-                }
-            }
-
-            if (options.includePipelines) {
-                try {
-                    const pipelines = await this.gitlab.Pipelines.all(project.id, { perPage: 100 });
-                    const stats = {
-                        success: pipelines.filter((p) => p.status === 'success').length,
-                        failed: pipelines.filter((p) => p.status === 'failed').length,
-                        running: pipelines.filter((p) => p.status === 'running').length,
-                        total: pipelines.length,
+                        };
                     };
-                    pipeline = { stats };
-                } catch (error) {
-                    this.logger.error('Error getting pipeline stats:', error);
-                }
-            }
-
-            return {
-                latestTag,
-                hasChangelog,
-                lastDeployment,
-                pipeline,
-            };
-        } catch (error) {
-            this.logger.error('Error in getProjectSummary:', error);
-            return {
-                latestTag: null,
-                hasChangelog: false,
-                lastDeployment: null,
-                pipeline: null,
-            };
-        }
-    }
-
-    public async getProjectPipelinesRest(projectId: number | string): Promise<{
-        pipelines: Array<
-            Pick<PipelineSchema, 'id' | 'status' | 'ref' | 'created_at'> & { duration?: number }
-        >;
-        stats: {
-            success: number;
-            failed: number;
-            running: number;
-            total: number;
-        };
-        _cached_at?: string;
-    }> {
-        type CacheType = {
-            pipelines: Array<
-                Pick<PipelineSchema, 'id' | 'status' | 'ref' | 'created_at'> & { duration?: number }
-            >;
-            stats: {
-                success: number;
-                failed: number;
-                running: number;
-                total: number;
-            };
-            _cached_at: string;
-        };
-
-        try {
-            const cacheKey = `pipelines_${projectId}`;
-
-            // Check if we need to refresh cache
-            const shouldRefresh = await this.shouldRefreshCache(projectId, cacheKey, 'pipelines');
-            if (!shouldRefresh) {
-                const cached = await this.cache.get<CacheType>(cacheKey, 'pipelines');
-                if (cached && 'pipelines' in cached && 'stats' in cached) {
-                return cached;
-                }
-            }
-
-            const since = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-            const rawPipelines = await this.gitlab.Pipelines.all(projectId, {
-                perPage: 1,
-                orderBy: 'updated_at',
-                sort: 'desc',
-                updatedAfter: since,
+                };
+            }>(query, {
+                fullPath: projectPath,
+                iid: mrIid.toString(),
             });
 
-            const pipelines = rawPipelines.map((p) => ({
-                id: p.id,
-                status: p.status,
-                ref: p.ref,
-                created_at: String(p.created_at),
-                duration: typeof p.duration === 'number' ? p.duration : undefined,
-            })) as Array<
-                Pick<PipelineSchema, 'id' | 'status' | 'ref' | 'created_at'> & { duration?: number }
-            >;
+            if (!response?.data?.project?.mergeRequest?.discussions) {
+                throw new Error(`Merge request #${mrIid} not found in project ${projectPath}`);
+            }
 
-            // Calculate stats
-            const stats = {
-                success: pipelines.filter((p) => p.status === 'success').length,
-                failed: pipelines.filter((p) => p.status === 'failed').length,
-                running: pipelines.filter((p) => p.status === 'running').length,
-                total: pipelines.length,
-            };
+            const discussions = response.data.project.mergeRequest.discussions.nodes;
 
-            const result: CacheType = {
-                pipelines,
-                stats,
-                _cached_at: new Date().toISOString(),
-            };
-
-            // Cache the result
-            await this.cache.set(cacheKey, result, 'pipelines');
-
-            return result;
-        } catch (error) {
-            this.logger.error(`Failed to get project pipelines for ${projectId}:`, error);
-            return {
-                pipelines: [],
-                stats: {
-                success: 0,
-                failed: 0,
-                running: 0,
-                total: 0,
+            // Convert to our internal format
+            const convertedDiscussions: GitLabDiscussion[] = discussions.map((discussion) => ({
+                id: discussion.id,
+                notes: {
+                    nodes: discussion.notes.nodes.map((note) => ({
+                        id: note.id,
+                        body: note.body,
+                        author: note.author,
+                        created_at: note.createdAt,
+                        system: note.system,
+                    })),
                 },
-                _cached_at: new Date().toISOString(),
-            };
+            }));
+
+            this.logger.debug(
+                `Retrieved ${convertedDiscussions.length} discussions for merge request #${mrIid}`,
+            );
+            
+            return convertedDiscussions;
+        } catch (error) {
+            this.logger.error(
+                `Error getting discussions for merge request #${mrIid} in project '${projectPath}':`,
+                error,
+            );
+            throw error;
         }
     }
 
     /**
-     * Get project members data using gitbeaker/rest
-     * @param projectId Project ID
-     * @returns Project members data
+     * Add a comment to a specific line in a merge request diff
+     * @param projectPath Project path (namespace/project_name)
+     * @param mrIid Merge request internal ID
+     * @param body Comment text
+     * @param position Position in the diff where to add the comment
+     * @returns Created discussion/note details
      */
-    public async getProjectMembersRest(
-        projectId: number | string,
-    ): Promise<Array<Pick<MemberSchema, 'id' | 'username' | 'name' | 'state' | 'access_level'>>> {
+    public async createMergeRequestDiffComment(
+        projectPath: string,
+        mrIid: number,
+        body: string,
+        position: GitLabDiffPosition,
+    ): Promise<GitLabDiscussion> {
+        await this.ensureInitialized();
         try {
-            const members = await this.gitlab.ProjectMembers.all(projectId, { perPage: 100 });
-            return members.map((m) => ({
-                id: m.id,
-                username: m.username,
-                name: m.name,
-                state: m.state,
-                access_level: Number(m.access_level) as typeof AccessLevel[keyof typeof AccessLevel],
-            })) as Array<Pick<MemberSchema, 'id' | 'username' | 'name' | 'state' | 'access_level'>>;
+            this.logger.debug(
+                `Creating diff comment for merge request #${mrIid} in project '${projectPath}' at position:`,
+                position,
+            );
+
+            // Use REST API for creating diff comments
+            const baseUrl = this.config.gitlab!.url.endsWith('/')
+                ? this.config.gitlab!.url.slice(0, -1)
+                : this.config.gitlab!.url;
+
+            const noteData = {
+                body: body,
+                position: {
+                    base_sha: position.base_sha,
+                    start_sha: position.start_sha,
+                    head_sha: position.head_sha,
+                    position_type: 'text',
+                    old_path: position.old_path,
+                    new_path: position.new_path,
+                    old_line: position.old_line,
+                    new_line: position.new_line,
+                    line_range: position.line_range,
+                },
+            };
+
+            const response = await fetch(
+                `${baseUrl}/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${mrIid}/discussions`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'PRIVATE-TOKEN': this.config.gitlab!.token,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(noteData),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to create diff comment for merge request #${mrIid} in project ${projectPath}: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            const discussionData = await response.json() as {
+                id: string;
+                notes: Array<{
+                    id: string;
+                    body: string;
+                    author: GitLabUser;
+                    created_at: string;
+                    system: boolean;
+                }>;
+            };
+
+            // Convert to our internal format
+            const discussion: GitLabDiscussion = {
+                id: discussionData.id,
+                notes: {
+                    nodes: discussionData.notes.map((note) => ({
+                        id: note.id,
+                        body: note.body,
+                        author: note.author,
+                        created_at: note.created_at,
+                        system: note.system,
+                    })),
+                },
+            };
+
+            this.logger.debug(`Successfully created diff comment for merge request #${mrIid}`);
+            return discussion;
         } catch (error) {
-            this.logger.error(`Failed to get project members for ${projectId}:`, error);
-            return [];
+            this.logger.error(
+                `Error creating diff comment for merge request #${mrIid} in project '${projectPath}':`,
+                error,
+            );
+            throw error;
         }
     }
 
-    private isGitLabEnvironmentWithDeployment(env: unknown): env is GitLabEnvironmentWithDeployment {
-        if (!(typeof env === 'object' && env !== null && 'last_deployment' in env)) {
-            return false;
-        }
+    /**
+     * Add a comment to an existing merge request discussion thread
+     * @param projectPath Project path (namespace/project_name)
+     * @param mrIid Merge request internal ID
+     * @param discussionId Discussion thread ID
+     * @param body Comment text
+     * @returns Created note details
+     */
+    public async addMergeRequestDiscussionReply(
+        projectPath: string,
+        mrIid: number,
+        discussionId: string,
+        body: string,
+    ): Promise<GitLabNote> {
+        await this.ensureInitialized();
+        try {
+            this.logger.debug(
+                `Adding reply to discussion ${discussionId} for merge request #${mrIid} in project '${projectPath}'`,
+            );
 
-        const deployment = (env as { last_deployment: unknown }).last_deployment;
-        if (!(typeof deployment === 'object' && deployment !== null && 'created_at' in deployment)) {
-            return false;
-        }
+            // Use REST API for adding replies to discussions
+            const baseUrl = this.config.gitlab!.url.endsWith('/')
+                ? this.config.gitlab!.url.slice(0, -1)
+                : this.config.gitlab!.url;
 
-        return typeof (deployment as { created_at: unknown }).created_at === 'string';
+            const noteData = {
+                body: body,
+            };
+
+            const response = await fetch(
+                `${baseUrl}/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${mrIid}/discussions/${discussionId}/notes`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'PRIVATE-TOKEN': this.config.gitlab!.token,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(noteData),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to add reply to discussion ${discussionId} for merge request #${mrIid} in project ${projectPath}: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            const noteData_response = await response.json() as {
+                id: string;
+                body: string;
+                author: GitLabUser;
+                created_at: string;
+                system: boolean;
+            };
+
+            // Convert to our internal format
+            const note: GitLabNote = {
+                id: noteData_response.id,
+                body: noteData_response.body,
+                author: noteData_response.author,
+                created_at: noteData_response.created_at,
+                system: noteData_response.system,
+            };
+
+            this.logger.debug(`Successfully added reply to discussion ${discussionId}`);
+            return note;
+        } catch (error) {
+            this.logger.error(
+                `Error adding reply to discussion ${discussionId} for merge request #${mrIid} in project '${projectPath}':`,
+                error,
+            );
+            throw error;
+        }
     }
+
+    /**
+     * Resolve or unresolve a merge request discussion thread
+     * @param projectPath Project path (namespace/project_name)
+     * @param mrIid Merge request internal ID
+     * @param discussionId Discussion thread ID
+     * @param resolved Whether to resolve (true) or unresolve (false) the discussion
+     * @returns Updated discussion details
+     */
+    public async resolveMergeRequestDiscussion(
+        projectPath: string,
+        mrIid: number,
+        discussionId: string,
+        resolved: boolean,
+    ): Promise<GitLabDiscussion> {
+        await this.ensureInitialized();
+        try {
+            this.logger.debug(
+                `${resolved ? 'Resolving' : 'Unresolving'} discussion ${discussionId} for merge request #${mrIid} in project '${projectPath}'`,
+            );
+
+            // Use REST API for resolving discussions
+            const baseUrl = this.config.gitlab!.url.endsWith('/')
+                ? this.config.gitlab!.url.slice(0, -1)
+                : this.config.gitlab!.url;
+
+            const updateData = {
+                resolved: resolved,
+            };
+
+            const response = await fetch(
+                `${baseUrl}/api/v4/projects/${encodeURIComponent(projectPath)}/merge_requests/${mrIid}/discussions/${discussionId}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'PRIVATE-TOKEN': this.config.gitlab!.token,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updateData),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to ${resolved ? 'resolve' : 'unresolve'} discussion ${discussionId} for merge request #${mrIid} in project ${projectPath}: ${response.status} ${response.statusText}`,
+                );
+            }
+
+            const discussionData = await response.json() as {
+                id: string;
+                notes: Array<{
+                    id: string;
+                    body: string;
+                    author: GitLabUser;
+                    created_at: string;
+                    system: boolean;
+                }>;
+            };
+
+            // Convert to our internal format
+            const discussion: GitLabDiscussion = {
+                id: discussionData.id,
+                notes: {
+                    nodes: discussionData.notes.map((note) => ({
+                        id: note.id,
+                        body: note.body,
+                        author: note.author,
+                        created_at: note.created_at,
+                        system: note.system,
+                    })),
+                },
+            };
+
+            this.logger.debug(`Successfully ${resolved ? 'resolved' : 'unresolved'} discussion ${discussionId}`);
+            return discussion;
+        } catch (error) {
+            this.logger.error(
+                `Error ${resolved ? 'resolving' : 'unresolving'} discussion ${discussionId} for merge request #${mrIid} in project '${projectPath}':`,
+                error,
+            );
+            throw error;
+        }
+    }
+
+    // ...existing code...
 }
