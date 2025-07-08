@@ -1,10 +1,5 @@
 # Configuration Guide
 
-!!! danger "AWS Setup Order"
-    1. Complete [AWS pre-setup requirements](../user-guide/integrations/aws.md#pre-setup-requirements)
-    2. Start a new AWS session with `aws-sts t1d-publishing`
-    3. Then proceed with Nova configuration
-
 This guide covers different ways to configure Nova CLI for your development workflow and integrate it with various services.
 
 ## Configuration Methods
@@ -91,7 +86,6 @@ nova setup
     |--------|-------------|
     | `--gitlab <token>` | Set GitLab token directly |
     | `--jira <token>` | Set Jira token directly |
-    | `--aws-region <region>` | Set AWS region directly |
     | `--ollama` | Configure Ollama LLM settings |
 
 === "Example"
@@ -118,10 +112,6 @@ Nova uses a JSON configuration file located at `~/.nova/config.json`:
       "gitlab": {
         "url": "your-gitlab-url",
         "token": "your-token"
-      },
-      "aws": {
-        "region": "your-region",
-        "profile": "your-profile"
       },
       "ai": {
         "provider": "openai",
@@ -152,7 +142,6 @@ Nova respects these environment variables:
 | **Core** | `NOVA_CONFIG_PATH`<br>`NOVA_DEBUG` | `export NOVA_CONFIG_PATH=~/.config/nova/config.json` |
 | **Atlassian** | `ATLASSIAN_TOKEN`<br>`JIRA_URL`<br>`CONFLUENCE_URL` | `export ATLASSIAN_TOKEN="your-token"` |
 | **GitLab** | `GITLAB_TOKEN`<br>`GITLAB_URL` | `export GITLAB_TOKEN="your-token"` |
-| **AWS** | `AWS_PROFILE`<br>`AWS_REGION` | `export AWS_PROFILE="your-profile"` |
 | **AI** | `OPENAI_API_KEY`<br>`OPENAI_MODEL` | `export OPENAI_API_KEY="your-key"` |
 
 !!! tip "Shell Configuration"
@@ -182,14 +171,6 @@ Nova respects these environment variables:
     Configure Jira and Confluence
     
     [:octicons-arrow-right-24: Atlassian Setup](#atlassian-jiraconfluence)
-
-- :aws: __AWS__
-
-    ---
-
-    Configure AWS integration
-    
-    [:octicons-arrow-right-24: AWS Setup](#aws)
 
 - :brain: __AI__
 
@@ -285,52 +266,6 @@ Nova respects these environment variables:
     ```
     ✓ Jira: Connected successfully (User: Your Name)
     ✓ Confluence: Connected successfully (Space count: 12)
-    ```
-
-### AWS
-
-!!! warning "Prerequisites"
-    Ensure you have [AWS CLI](https://aws.amazon.com/cli/) installed and configured before setting up AWS integration in Nova.
-
-=== "Step 1: Configure AWS CLI"
-    ```bash
-    aws configure
-    # Enter your AWS Access Key ID and Secret Access Key
-    ```
-    
-    Or for SSO:
-    ```bash
-    aws configure sso
-    # Follow the prompts to configure SSO
-    ```
-
-=== "Step 2: Configure Nova"
-    **Option A: Using setup wizard**
-    ```bash
-    nova setup
-    # AWS settings will be detected automatically from AWS CLI configuration
-    ```
-    
-    **Option B: Using config command**
-    ```bash
-    nova config set aws.profile "your-profile"
-    nova config set aws.region "your-region"
-    ```
-    
-    **Option C: Using environment variables**
-    ```bash
-    export AWS_PROFILE="your-profile"
-    export AWS_REGION="your-region"
-    ```
-
-=== "Step 3: Test Connection"
-    ```bash
-    nova config test aws
-    ```
-    
-    Expected output:
-    ```
-    ✓ AWS: Credentials valid (Account: 123456789012, User: YourUserName)
     ```
 
 ### AI Providers
@@ -432,10 +367,6 @@ Create a `.nova.json` file in your project directory for project-specific settin
     "name": "my-awesome-project",
     "jira_project": "MYPROJ",
     "gitlab_project": "my-group/my-project"
-  },
-  "aws": {
-    "region": "eu-west-1",
-    "profile": "my-project-profile"
   }
 }
 ```

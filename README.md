@@ -11,7 +11,7 @@ will be wrapped inside a MCP Server.
 
 Quick Install
 
-brew install nova
+tbd
 
 Table of Contents
 
@@ -51,16 +51,6 @@ GitLab project management
 Jira issue tracking
 Confluence documentation
 Datadog monitoring
-SST infrastructure management
-
-
-
-☁️ AWS Infrastructure Management
-
-SST resource visualization
-AWS profile management with SSO support
-Multi-region support
-Infrastructure insights
 
 
 
@@ -243,18 +233,6 @@ DORA Metrics Commands
 
 nova dora metrics      # Show DORA metrics for linked Jira and GitLab projects
 
-SST Commands
-
-nova sst functions    # List SST Lambda functions
-nova sst stages       # List SST stages
-nova sst dashboard    # Show SST resources dashboard
-
-AWS STS Commands
-
-nova aws-sts         # AWS STS profile management
-nova aws-sts list    # List available AWS profiles
-nova aws-sts recent  # List recently used AWS profiles
-nova aws-sts switch  # Switch to a specific AWS profile
 Most commands support additional options:
 
 
@@ -371,32 +349,6 @@ Security vulnerability detection
 Performance optimization suggestions
 Clean code principles enforcement
 
-To enable AI code review in your GitLab pipeline, add the following to your .gitlab-ci.yml:
-
-include:
-  - local: common/default.base.gitlab-ci.yml
-
-ai-reviewer:
-  stage: verify
-  image: ${global_toolboximage}
-  variables:
-    OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
-    OPENAI_URL: ${AZURE_OPENAI_URL}
-    OPENAI_API_VERSION: '2024-10-01-preview'
-    REPORTER_TOKEN: ${GITLAB_API_TOKEN}
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: manual
-    - when: never
-The AI reviewer will:
-
-Analyze changed files in merge requests
-Provide detailed code review comments
-Suggest improvements using GitLab's suggestion format
-Track file changes to avoid duplicate reviews
-Support multiple programming languages
-
-
 Contributing
 We welcome contributions! Please see our Contributing Guide for details.
 
@@ -416,20 +368,3 @@ Bash
 deno completions bash > ~/.bash_completion.d/nova.bash
 # Add to ~/.bashrc:
 source ~/.bash_completion.d/nova.bash
-
-Fish
-
-deno completions fish > ~/.config/fish/completions/nova.fish
-This will give you:
-
-Completion for agent types (eng, pm, bm, rs)
-Command completion based on agent type
-File/directory completion for the review command
-Help text and option completion
-
-
-WIP for not Tech Users...
-Bundle in .pkg
-
-pkgbuild --root package_root --identifier nova --version 0.2.8 --install-location /usr/local/bin nova.pkg
-TODO: Codesign?

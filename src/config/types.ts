@@ -29,9 +29,6 @@ export const ConfigSchema = z.object({
         token: z.string().min(1),
         project_id: z.string().min(1).optional().nullable(),
     }),
-    aws: z.object({
-        region: z.string().min(1),
-    }).optional(),
     datadog: z.object({
         api_key: z.string().min(1),
         app_key: z.string().min(1),

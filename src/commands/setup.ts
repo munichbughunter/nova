@@ -164,14 +164,8 @@ async function setupOpenAI(existingConfig: Partial<ExtendedConfig>, emoji: strin
     return { api_key: apiKey, api_url: apiUrl, api_version: apiVersion };
 }
 
-// Add AWS config interface
-interface AWSConfig {
-    region: string;
-}
-
 interface ExtendedConfig {
     gitlab: Config['gitlab'];
-    aws?: AWSConfig;
     atlassian?: AtlassianConfig;
     datadog?: {
         api_key: string;
@@ -185,44 +179,7 @@ interface ExtendedConfig {
     copilot?: CopilotConfig;
 }
 
-// Add AWS setup function
-async function setupAWS(
-    existingConfig: Partial<ExtendedConfig>,
-    emoji: string = '',
-): Promise<AWSConfig> {
-    const awsConfigured = Boolean(existingConfig.aws?.region);
 
-    if (awsConfigured) {
-        const shouldReconfigure = await Confirm.prompt({
-            message:
-            `${emoji} AWS configuration exists (${existingConfig.aws?.region}). Would you like to change it?`,
-            default: false,
-        });
-
-        if (!shouldReconfigure) {
-            return existingConfig.aws as AWSConfig;
-        }
-    }
-
-    formatInfo('\nSetting up AWS configuration...');
-
-    // Default to eu-central-1 unless user wants to change it
-    const shouldChangeRegion = awsConfigured ? true : await Confirm.prompt({
-        message: 'Would you like to use a different AWS region than eu-central-1?',
-        default: false,
-    });
-
-    if (!shouldChangeRegion) {
-        return { region: 'eu-central-1' };
-    }
-
-    const region = await Input.prompt({
-        message: 'AWS Region',
-        default: existingConfig.aws?.region || 'eu-central-1',
-    });
-
-    return { region };
-}
 
 async function checkOllama(): Promise<boolean> {
     logger.debug('Checking Ollama service...');
@@ -800,10 +757,6 @@ export const setupCommand = new Command()
         // Check if config file exists
         if (await exists(`${Deno.env.get('HOME')}/.nova/config.json`)) {
             existingConfig = await configManager.loadConfig() as Partial<ExtendedConfig>;
-            // Set default AWS region if not set
-            if (!existingConfig.aws?.region) {
-                existingConfig.aws = { region: 'eu-central-1' };
-            }
 
             // Show initial configuration status
             formatInfo('Current Configuration:');
@@ -813,29 +766,18 @@ export const setupCommand = new Command()
         } else {
             isFirstTimeSetup = true;
             formatInfo('No existing configuration found. Starting first-time setup...');
-            existingConfig.aws = { region: 'eu-central-1' };
         }
     } catch {
         // Ignore errors, treat as no existing config
         isFirstTimeSetup = true;
         formatInfo('No existing configuration found. Starting first-time setup...');
-        existingConfig.aws = { region: 'eu-central-1' };
     }
 
     formatInfo('Setting up Authentication Services:');
 
-    // --------------------------------
-    // AWS Configuration Section
-    // --------------------------------
-    formatInfo('Setting up AWS Configuration:');
-    const awsConfigured = Boolean(existingConfig.aws?.region);
-    const awsEmoji = awsConfigured ? theme.symbols.update : theme.symbols.new;
-    const aws = await setupAWS(existingConfig, awsEmoji);
-
     // Create a config object to store all settings
     const config: ExtendedConfig = {
         gitlab: existingConfig.gitlab || { url: '', token: '', project_id: null },
-        aws, // Add AWS config
     };
 
     // GitLab setup (required)
@@ -918,16 +860,14 @@ export const setupCommand = new Command()
         // Show available commands
         formatInfo('\nPrimary Commands:');
         logger.passThrough('log', '  nova setup             - Interactive setup for Nova configuration');
-        logger.passThrough('log', '  nova gitlab            - GitLab operations');
-        logger.passThrough('log', '  nova agent eng         - Engineering Agent (uses GitHub Copilot)');
-        logger.passThrough('log', '  nova agent pm          - Project Manager');
+        logger.passThrough('log', '  nova mcp setup         - Set up MCP configuration');
+        logger.passThrough('log', '  nova mcp server        - Start MCP server');
 
         formatInfo('\nUtility Commands:');
         logger.passThrough('log', '  nova config            - Manage Nova configuration');
         logger.passThrough('log', '  nova config list       - List all configuration values');
         logger.passThrough('log', '  nova config get        - Get specific configuration value');
         logger.passThrough('log', '  nova config set        - Set specific configuration value');
-        logger.passThrough('log', '  nova config aws-region - Set AWS region (default: eu-central-1)');
         logger.passThrough('log', '');
     } catch (error) {
         if (error instanceof Error) {
