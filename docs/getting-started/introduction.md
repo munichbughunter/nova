@@ -17,7 +17,6 @@
         - **Jira**: Project and issue tracking
         - **GitLab**: Repository and CI/CD management
         - **Confluence**: Documentation management
-        - **AWS**: Cloud infrastructure
 
     ???+ example "Integration Usage"
         ```bash
@@ -32,26 +31,26 @@
         
         ```
 
-=== "Profile Management :key:"
-    !!! info "Credential Management"
-        Easily manage access across platforms:
+=== "Project Management :clipboard:"
+    !!! info "Development Workflow"
+        Streamline your development processes:
 
-        - AWS profile switching
-        - Recent profile tracking
-        - Cached credentials
-        - Profile filtering
-        - SSO client configuration
+        - Project metrics and insights
+        - Team performance tracking
+        - Issue tracking integration
+        - Documentation management
+        - AI-powered code analysis
 
-    ???+ example "Profile Commands"
+    ???+ example "Management Commands"
         ```bash
-        # List AWS profiles
-        nova aws-sts list
-        
-        # Switch profiles
-        nova aws-sts switch profile-name
-        
-        # Use recent profile
-        nova aws-sts --recent
+        # View project dashboard
+        nova dashboard
+
+        # Get project metrics
+        nova metrics
+
+        # Search across platforms
+        nova search "issue query"
 
         ```
 
@@ -92,7 +91,6 @@
        ```bash
        export ATLASSIAN_TOKEN="your-token"
        export GITLAB_TOKEN="your-token"
-       export AWS_PROFILE="your-profile"
        ```
 
 ## Common Workflows
@@ -116,13 +114,13 @@
        nova confluence search "topic"
        ```
     
-    3. AWS Management:
+    3. Project Analytics:
        ```bash
-       # List profiles
-       nova aws-sts list
+       # Get project dashboard
+       nova dashboard
        
-       # Switch context
-       nova aws-sts switch profile
+       # View team metrics
+       nova metrics --team
        ```
 
 ## Support

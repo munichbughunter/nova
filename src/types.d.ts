@@ -1191,10 +1191,7 @@ declare global {
     lastViewed: Date;
   }
 
-  interface RecentAwsProfile {
-    name: string;
-    lastViewed: Date;
-  }
+
 
   interface ConfluenceSpace {
     id: string;

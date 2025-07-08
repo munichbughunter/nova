@@ -23,52 +23,7 @@ export class StatusService {
         this.logger = new Logger('Status', Deno.env.get('NOVA_DEBUG') === 'true');
     }
 
-    async checkAwsCli(): Promise<boolean> {
-        try {
-            const process = new Deno.Command('aws', {
-                args: ['--version'],
-            });
-            const { success } = await process.output();
-            return success;
-        } catch {
-            return false;
-        }
-    }
 
-    async checkAwsSts(): Promise<boolean> {
-        const commonPaths = [
-            'aws-sts', // Check in PATH
-            '/opt/homebrew/bin/aws-sts', // Homebrew on Apple Silicon
-            '/usr/local/bin/aws-sts', // Homebrew on Intel Mac
-        ];
-
-        for (const path of commonPaths) {
-            try {
-                const process = new Deno.Command(path, {
-                    stderr: 'null',
-                    stdout: 'null',
-                });
-                const { success } = await process.output();
-                if (success) return true;
-            } catch {
-                // Continue to next path
-                continue;
-            }
-        }
-        return false;
-    }
-
-    async checkAwsSession(): Promise<boolean> {
-        try {
-            const process = new Deno.Command('aws', {
-                args: ['sts', 'get-caller-identity'],
-            });
-            const { success } = await process.output();
-            return success;
-        } catch {
-            return false;
-        }
-    }
 
     async checkOllama(): Promise<boolean> {
         try {
@@ -184,15 +139,7 @@ export class StatusService {
             });
         }
 
-        // AWS Status
-        const awsSessionActive = await this.checkAwsSession();
-        statuses.push({
-            name: 'AWS',
-            status: awsSessionActive 
-                ? `Connected${config.aws?.region ? ` (${config.aws.region})` : ''} ${theme.symbols.success}`
-                : `No Session ${theme.symbols.error}`,
-            source: 'aws cli',
-        });
+
 
         if (config.datadog) {
             statuses.push({

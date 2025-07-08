@@ -110,14 +110,7 @@ export class DatabaseService {
         )
       `);
 
-      // Create recent AWS profiles table
-      this.db.exec(`
-        CREATE TABLE IF NOT EXISTS recent_aws_profiles (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          profile_name TEXT UNIQUE,
-          last_viewed TEXT
-        )
-      `);
+
 
       // Create Jira dashboard cache table
       this.db.exec(`
@@ -551,47 +544,7 @@ export class DatabaseService {
     }
   }
 
-  // AWS Profile Methods
-  public addRecentAwsProfile(profile: RecentAwsProfile): void {
-    try {
-      // First, delete if profile already exists
-      const deleteStmt = this.db.prepare(
-        'DELETE FROM recent_aws_profiles WHERE profile_name = $name',
-      );
-      deleteStmt.run({ $name: profile.name });
 
-      // Then insert new record
-      const insertStmt = this.db.prepare(
-        'INSERT INTO recent_aws_profiles (profile_name, last_viewed) VALUES ($name, $viewed)',
-      );
-      insertStmt.run({
-        $name: profile.name,
-        $viewed: profile.lastViewed.toISOString(),
-      });
-
-    } catch (error) {
-      this.logger.error('Error adding recent AWS profile:', error);
-    }
-  }
-
-  public getRecentAwsProfiles(): RecentAwsProfile[] {
-    try {
-      const stmt = this.db.prepare(
-        'SELECT profile_name as name, last_viewed FROM recent_aws_profiles ORDER BY last_viewed DESC LIMIT 10',
-      );
-      const rows = stmt.all() as Array<{ name: string; last_viewed: string }>;
-
-      const profiles = rows.map((row) => ({
-        name: row.name,
-        lastViewed: new Date(row.last_viewed),
-      }));
-
-      return profiles;
-    } catch (error) {
-      this.logger.error('Error getting recent AWS profiles:', error);
-      return [];
-    }
-  }
 
   public getGitLabDashboard(projectPath: string): CachedDashboard | null {
     try {
