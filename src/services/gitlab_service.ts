@@ -577,6 +577,39 @@ export class GitLabService {
     }
 
     /**
+     * Convert a partial project object to ProjectSchema format
+     */
+    private convertToProjectSchema(project: Record<string, unknown>): ProjectSchema {
+        // Handle cases where gitbeaker returns camelCase properties
+        // Map them to the expected snake_case format for ProjectSchema
+        return {
+            id: project.id as number,
+            name: project.name as string,
+            path: project.path as string,
+            path_with_namespace: (project.path_with_namespace || project.pathWithNamespace) as string,
+            description: project.description as string,
+            web_url: (project.web_url || project.webUrl) as string,
+            avatar_url: (project.avatar_url || project.avatarUrl) as string,
+            star_count: (project.star_count || project.starCount) as number,
+            forks_count: (project.forks_count || project.forksCount) as number,
+            last_activity_at: (project.last_activity_at || project.lastActivityAt) as string,
+            namespace: project.namespace as Record<string, unknown>,
+            archived: project.archived as boolean,
+            visibility: project.visibility as string,
+            issues_enabled: (project.issues_enabled || project.issuesEnabled) as boolean,
+            merge_requests_enabled: (project.merge_requests_enabled || project.mergeRequestsEnabled) as boolean,
+            wiki_enabled: (project.wiki_enabled || project.wikiEnabled) as boolean,
+            jobs_enabled: (project.jobs_enabled || project.jobsEnabled) as boolean,
+            snippets_enabled: (project.snippets_enabled || project.snippetsEnabled) as boolean,
+            empty_repo: (project.empty_repo || project.emptyRepo) as boolean,
+            default_branch: (project.default_branch || project.defaultBranch) as string,
+            open_issues_count: (project.open_issues_count || project.openIssuesCount) as number,
+            // Add any other properties that might be missing
+            ...project,
+        } as ProjectSchema;
+    }
+
+    /**
      * Get detailed information about a specific project
      */
     async getProjectDetails(fullPath: string): Promise<ProjectSchema> {
