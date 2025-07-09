@@ -116,28 +116,139 @@ export class OllamaProvider implements LLMProvider {
 
     async generateObject<T>(options: GenerateObjectOptions<T>): Promise<T> {
         const systemPrompt = options.systemPrompt || 
-            'You must respond with valid JSON that matches the required schema. Do not include any other text or formatting.';
+            'You are a helpful assistant that responds only with valid JSON. Do not include any explanations, formatting, or additional text.';
         
-        const fullPrompt = `${options.prompt}\n\nRespond with valid JSON only.`;
+        // Create a more detailed prompt with schema example
+        const schemaDescription = this.getSchemaDescription(options.schema);
+        const fullPrompt = `${options.prompt}
+
+Please respond with valid JSON that matches this exact structure:
+${schemaDescription}
+
+Important:
+- Respond ONLY with valid JSON
+- Do not include markdown code blocks
+- Do not include any explanations
+- Make sure all required fields are included
+
+JSON Response:`;
         
         try {
             const response = await this.generate(fullPrompt, {
                 ...options,
                 systemPrompt,
+                temperature: options.temperature || 0.1, // Lower temperature for more consistent JSON
             });
 
-            // Try to parse JSON response
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            const jsonStr = jsonMatch ? jsonMatch[0] : response.trim();
+            this.logger.debug('Raw LLM response:', response.substring(0, 200));
+
+            // Clean and extract JSON from response
+            let jsonStr = response.trim();
             
-            const parsed = JSON.parse(jsonStr);
+            // Remove markdown code blocks if present
+            jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+            
+            // Try to find JSON object in the response
+            const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonStr = jsonMatch[0];
+            }
+            
+            // Attempt to parse and validate
+            let parsed;
+            try {
+                parsed = JSON.parse(jsonStr);
+            } catch (parseError) {
+                this.logger.error('JSON parse failed, response was:', jsonStr);
+                throw new Error(`Invalid JSON response from LLM: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+            }
+            
+            // Normalize common enum values that LLMs might capitalize
+            parsed = this.normalizeEnumValues(parsed);
+            
             const validated = options.schema.parse(parsed);
-            
             return validated;
+            
         } catch (error) {
             this.logger.error('Failed to generate structured object:', error);
+            
+            // If structured generation fails, provide a fallback error response
+            if (error instanceof Error && error.message.includes('ZodError')) {
+                this.logger.warn('Structured output validation failed, LLM response format was incorrect');
+            }
+            
             throw new Error(`Failed to generate structured object: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
+    }
+
+    /**
+     * Generate a human-readable description of the Zod schema for the LLM
+     */
+    private getSchemaDescription(schema: z.ZodType<unknown>): string {
+        try {
+            // For now, provide a simple JSON structure example
+            // This could be enhanced to parse the Zod schema more deeply
+            if (schema instanceof z.ZodObject) {
+                const shape = schema.shape;
+                const example: Record<string, unknown> = {};
+                
+                for (const [key, value] of Object.entries(shape)) {
+                    if (value instanceof z.ZodString) {
+                        example[key] = `"example ${key}"`;
+                    } else if (value instanceof z.ZodEnum) {
+                        example[key] = `"${value.options[0]}"`;
+                    } else if (value instanceof z.ZodArray) {
+                        example[key] = [`"example item"`];
+                    } else {
+                        example[key] = `"value"`;
+                    }
+                }
+                
+                return JSON.stringify(example, null, 2);
+            }
+        } catch (error) {
+            this.logger.debug('Failed to generate schema description:', error);
+        }
+        
+        // Fallback description
+        return `{
+  "summary": "Brief description",
+  "language": "Programming language",
+  "complexity": "low|medium|high",
+  "suggestions": ["suggestion 1", "suggestion 2"],
+  "issues": ["issue 1", "issue 2"]
+}`;
+    }
+
+    /**
+     * Normalize enum values that LLMs might capitalize or format incorrectly
+     */
+    private normalizeEnumValues(obj: unknown): unknown {
+        if (typeof obj !== 'object' || obj === null) {
+            return obj;
+        }
+        
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.normalizeEnumValues(item));
+        }
+        
+        const normalized: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+            if (typeof value === 'string') {
+                // Normalize known enum fields
+                if (key === 'complexity') {
+                    normalized[key] = value.toLowerCase();
+                } else {
+                    normalized[key] = value;
+                }
+            } else if (typeof value === 'object') {
+                normalized[key] = this.normalizeEnumValues(value);
+            } else {
+                normalized[key] = value;
+            }
+        }
+        
+        return normalized;
     }
 
     async chat(

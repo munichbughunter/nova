@@ -46,9 +46,30 @@ export class ExampleAgent extends BaseAgent {
 
     async execute(input: string, options?: AgentExecuteOptions): Promise<AgentResponse> {
         const validatedOptions = this.validateOptions(options);
-        this.logger.info(`Processing request: ${input.substring(0, 100)}...`);
+        
+        // Handle case where input starts with agent name (e.g., "example analyze main.ts")
+        let actualInput = input;
+        const inputParts = input.trim().split(/\s+/);
+        if (inputParts.length > 1 && (inputParts[0] === 'example' || inputParts[0] === 'dev' || inputParts[0] === 'development')) {
+            actualInput = inputParts.slice(1).join(' ');
+            this.logger.debug(`Detected agent name prefix, using: "${actualInput}"`);
+        }
+        
+        this.logger.info(`Processing request: ${actualInput.substring(0, 100)}...`);
 
         try {
+            // Check if this is a help request
+            if (actualInput.toLowerCase().trim() === 'help' || actualInput.toLowerCase().includes('help')) {
+                const helpContent = await this.help();
+                return this.createResponse(
+                    true,
+                    helpContent,
+                    undefined,
+                    undefined,
+                    { analysisType: 'help' }
+                );
+            }
+
             // Notify user that processing has started
             await notifyUser(this.context, {
                 message: 'Processing your request...',
@@ -56,12 +77,12 @@ export class ExampleAgent extends BaseAgent {
             });
 
             // Determine if this is a file analysis request
-            if (input.toLowerCase().includes('analyze') && input.includes('.')) {
-                return await this.analyzeCodeFile(input, validatedOptions);
+            if (actualInput.toLowerCase().includes('analyze') && actualInput.includes('.')) {
+                return await this.analyzeCodeFile(actualInput, validatedOptions);
             }
 
             // For general questions, use LLM to provide assistance
-            return await this.answerQuestion(input, validatedOptions);
+            return await this.answerQuestion(actualInput, validatedOptions);
 
         } catch (error) {
             this.logger.error('Execution failed:', error);
@@ -106,10 +127,33 @@ export class ExampleAgent extends BaseAgent {
                 );
             }
 
-            const fileContent = fileResult.data as string;
+            // Extract content from the file result
+            let fileContent: string;
+            if (typeof fileResult.data === 'string') {
+                // Direct string content (from MCP tools)
+                fileContent = fileResult.data;
+            } else if (typeof fileResult.data === 'object' && fileResult.data && 'content' in fileResult.data) {
+                // Object with content property (from Deno file operations)
+                fileContent = fileResult.data.content as string;
+            } else {
+                return this.createResponse(
+                    false,
+                    `Unexpected file content format. Received: ${typeof fileResult.data}`,
+                );
+            }
 
-            // Use LLM to analyze the code with structured output
-            const analysisPrompt = `Analyze the following code and provide detailed feedback:
+            // Ensure content is a string
+            if (typeof fileContent !== 'string') {
+                return this.createResponse(
+                    false,
+                    `File content is not a string. Received: ${typeof fileContent}`,
+                );
+            }
+
+            // Try to use LLM for analysis, fall back to basic analysis if not available
+            try {
+                // Use LLM to analyze the code with structured output
+                const analysisPrompt = `Analyze the following code and provide detailed feedback:
 
 File: ${filePath}
 Content:
@@ -125,34 +169,58 @@ Please analyze this code for:
 
 Provide a structured analysis.`;
 
-            const analysis = await this.generateObject<CodeAnalysis>(
-                analysisPrompt,
-                CodeAnalysisSchema,
-                {
-                    temperature: 0.3, // Lower temperature for more consistent analysis
-                    systemPrompt: 'You are an expert code reviewer with deep knowledge of software engineering best practices.',
-                }
-            );
+                const analysis = await this.generateObject<CodeAnalysis>(
+                    analysisPrompt,
+                    CodeAnalysisSchema,
+                    {
+                        temperature: 0.3, // Lower temperature for more consistent analysis
+                        systemPrompt: 'You are an expert code reviewer with deep knowledge of software engineering best practices.',
+                    }
+                );
 
-            // Format the response
-            const formattedResponse = this.formatCodeAnalysis(filePath, analysis);
+                // Format the response
+                const formattedResponse = this.formatCodeAnalysis(filePath, analysis);
 
-            await notifyUser(this.context, {
-                message: `Code analysis complete for ${filePath}`,
-                type: 'success',
-            });
+                await notifyUser(this.context, {
+                    message: `Code analysis complete for ${filePath}`,
+                    type: 'success',
+                });
 
-            return this.createResponse(
-                true,
-                formattedResponse,
-                analysis,
-                undefined,
-                { 
-                    analysisType: 'codeFile',
-                    filePath,
-                    complexity: analysis.complexity,
-                }
-            );
+                return this.createResponse(
+                    true,
+                    formattedResponse,
+                    analysis,
+                    undefined,
+                    { 
+                        analysisType: 'codeFile',
+                        filePath,
+                        complexity: analysis.complexity,
+                    }
+                );
+
+            } catch (_llmError) {
+                // LLM not available, provide basic analysis
+                this.logger.info('LLM not available, providing basic file analysis');
+                
+                const basicAnalysis = this.performBasicFileAnalysis(filePath, fileContent);
+                
+                await notifyUser(this.context, {
+                    message: `Basic code analysis complete for ${filePath} (LLM not available)`,
+                    type: 'info',
+                });
+
+                return this.createResponse(
+                    true,
+                    basicAnalysis,
+                    undefined,
+                    undefined,
+                    { 
+                        analysisType: 'basicCodeFile',
+                        filePath,
+                        llmAvailable: false,
+                    }
+                );
+            }
 
         } catch (error) {
             this.logger.error(`File analysis failed for ${filePath}:`, error);
@@ -267,6 +335,133 @@ What are the best practices for React component composition?
 - MCP tools for enhanced functionality
 
 For more information about Nova agents, see the Nova CLI documentation.`);
+    }
+
+    /**
+     * Perform basic file analysis without LLM
+     */
+    private performBasicFileAnalysis(filePath: string, content: string): string {
+        // Ensure content is a string
+        if (typeof content !== 'string') {
+            return `# Basic Code Analysis: ${filePath}
+
+## Error
+Unable to analyze file: Content is not a string (received ${typeof content})
+
+## Troubleshooting
+- Check if the file exists and is readable
+- Verify file permissions
+- Try with a different file
+
+---
+*Analysis failed - ExampleAgent v${this.version}*`;
+        }
+
+        const lines = content.split('\n');
+        const lineCount = lines.length;
+        const nonEmptyLines = lines.filter(line => line.trim().length > 0).length;
+        const commentLines = lines.filter(line => {
+            const trimmed = line.trim();
+            return trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*') || trimmed.startsWith('#');
+        }).length;
+
+        // Detect language from file extension
+        const extension = filePath.split('.').pop()?.toLowerCase() || '';
+        const languageMap: Record<string, string> = {
+            'ts': 'TypeScript',
+            'js': 'JavaScript',
+            'tsx': 'TypeScript React',
+            'jsx': 'JavaScript React',
+            'py': 'Python',
+            'java': 'Java',
+            'cpp': 'C++',
+            'c': 'C',
+            'cs': 'C#',
+            'php': 'PHP',
+            'rb': 'Ruby',
+            'go': 'Go',
+            'rs': 'Rust',
+            'swift': 'Swift',
+            'kt': 'Kotlin',
+        };
+        const language = languageMap[extension] || 'Unknown';
+
+        // Basic complexity estimation
+        const complexityIndicators = [
+            /\bif\b/g, /\belse\b/g, /\bfor\b/g, /\bwhile\b/g, 
+            /\bswitch\b/g, /\bcase\b/g, /\btry\b/g, /\bcatch\b/g,
+            /\bfunction\b/g, /\bclass\b/g, /=>/g, /\?\s*:/g
+        ];
+        
+        let complexityScore = 0;
+        complexityIndicators.forEach(pattern => {
+            const matches = content.match(pattern);
+            complexityScore += matches ? matches.length : 0;
+        });
+
+        const complexity = complexityScore < 10 ? 'low' : 
+                          complexityScore < 25 ? 'medium' : 'high';
+
+        // Basic suggestions
+        const suggestions: string[] = [];
+        if (commentLines / nonEmptyLines < 0.1) {
+            suggestions.push('Consider adding more comments to improve code readability');
+        }
+        if (lineCount > 500) {
+            suggestions.push('File is quite large, consider breaking it into smaller modules');
+        }
+        if (complexityScore > 30) {
+            suggestions.push('High complexity detected, consider refactoring for better maintainability');
+        }
+        if (content.includes('console.log') && language.includes('JavaScript')) {
+            suggestions.push('Remove console.log statements before production');
+        }
+        if (content.includes('TODO') || content.includes('FIXME')) {
+            suggestions.push('Address TODO and FIXME comments');
+        }
+
+        // Basic issues detection
+        const issues: string[] = [];
+        if (content.includes('eval(')) {
+            issues.push('Use of eval() detected - security risk');
+        }
+        if (content.match(/var\s+/g) && language.includes('JavaScript')) {
+            issues.push('Use const/let instead of var for better scoping');
+        }
+        if (content.includes('== ') && !content.includes('=== ')) {
+            issues.push('Consider using strict equality (===) instead of loose equality (==)');
+        }
+
+        return `# Basic Code Analysis: ${filePath}
+
+## Summary
+${language} file with ${lineCount} lines (${nonEmptyLines} non-empty, ${commentLines} comments).
+Basic static analysis performed without LLM assistance.
+
+## Details
+- **Language:** ${language}
+- **Lines of Code:** ${lineCount}
+- **Non-empty Lines:** ${nonEmptyLines}
+- **Comment Lines:** ${commentLines}
+- **Estimated Complexity:** ${complexity}
+
+## Suggestions for Improvement
+${suggestions.length > 0 
+    ? suggestions.map(s => `- ${s}`).join('\n')
+    : '- No specific suggestions from basic analysis'
+}
+
+## Potential Issues
+${issues.length > 0 
+    ? issues.map(i => `- ${i}`).join('\n')
+    : '- No significant issues detected in basic analysis'
+}
+
+## Note
+This is a basic analysis without LLM assistance. For more detailed insights, please configure an LLM provider (OpenAI API key or Ollama).
+
+---
+*Basic analysis completed by ExampleAgent v${this.version}*`;
     }
 }
 

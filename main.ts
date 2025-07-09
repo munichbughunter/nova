@@ -11,6 +11,7 @@ import { configCommand } from './src/commands/config.ts';
 import { StatusService } from './src/services/status_service.ts';
 import { setupCommand } from './src/commands/setup.ts';
 import { mcpCommand } from './src/commands/mcp.ts';
+import { agentCommand } from './src/commands/agent.ts';
 // import { gitlabCommand } from './src/commands/gitlab.ts';
 /**
  * Initialize Nova CLI
@@ -22,13 +23,48 @@ export const program = new Command()
   .example('nova setup', 'Configure Nova')
   .example('nova config', 'Manage configuration')
   .example('nova mcp', 'MCP operations')
+  .example('nova agent "analyze src/main.ts"', 'Analyze code with AI agent')
+  .example('nova agent example help', 'Get help for specific agent')
+  .example('nova agent --interactive', 'Start interactive agent session')
   .default('help');
 
 // Register commands with subcommands directly (not lazy loaded)
 program
   // .command('gitlab', gitlabCommand)
   // .command('jira', jiraCommand)
-  // .command('agent', agentCommand)
+  .command('agent', new Command()
+    .description('AI agent operations')
+    .arguments('[...query:string]')
+    .option('-a, --agent <type:string>', 'Agent type to use', { default: 'example' })
+    .option('-i, --interactive', 'Run in interactive mode')
+    .option('-l, --list', 'List available agents')
+    .option('-v, --verbose', 'Enable verbose logging')
+    .action(async function (options, ...query) {
+      const args: string[] = [];
+      
+      // Handle special case for list command
+      if (query.length === 1 && query[0] === 'list') {
+        args.push('--list');
+      } else if (query && query.length > 0) {
+        args.push(query.join(' '));
+      }
+      
+      if (options.agent && options.agent !== 'example') {
+        args.push('--agent', options.agent);
+      }
+      if (options.interactive) {
+        args.push('--interactive');
+      }
+      if (options.list) {
+        args.push('--list');
+      }
+      if (options.verbose) {
+        args.push('--verbose');
+      }
+      
+      await agentCommand(args);
+    })
+  )
 
   .command('config', configCommand)
   // .command('dora', doraCommand)
