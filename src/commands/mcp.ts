@@ -7,6 +7,7 @@ import http from "node:http";
 import { z } from 'zod';
 import { configManager } from '../config/mod.ts';
 import { AIService } from '../services/ai_service.ts';
+import { ExternalMCPService } from '../services/external_mcp_service.ts';
 // import { ConfluenceService } from '../services/confluence_service.ts';
 // import { DatadogService } from '../services/datadog_service.ts';
 import { GitLabService } from '../services/gitlab_service.ts';
@@ -14,6 +15,7 @@ import { GitLabService } from '../services/gitlab_service.ts';
 import { MCPService } from '../services/mcp_service.ts';
 import { Logger } from '../utils/logger.ts';
 import { mcpSetupCommand } from './mcp_setup.ts';
+import { serverCommand } from './mcp_server_manager.ts';
 
 // Create server command
 export const mcpServerCommand = new Command()
@@ -44,6 +46,11 @@ export const mcpServerCommand = new Command()
 
             // Initialize all services
             logger.info('Initializing services...');
+            
+            // Initialize external MCP service and start configured servers
+            logger.info('Starting external MCP servers...');
+            const externalMCPService = ExternalMCPService.getInstance();
+            await externalMCPService.startAllServers();
             
             // Initialize AI service
             const aiService = new AIService(config);
@@ -94,7 +101,7 @@ export const mcpServerCommand = new Command()
             registerResources(server, config, logger);
             logger.info('Registering MCP tools...');
             // Register all MCP tools from the MCP service with the context
-            const tools = mcpContext.mcpService.getToolsForContext("ide");
+            const tools = await mcpContext.mcpService.getToolsForContext("ide");
 
             // Add tools to the MCP server
             for (const tool of tools) {
@@ -466,17 +473,21 @@ export const mcpServerCommand = new Command()
             logger.passThrough('log', '  nova mcp <command>\n');
             logger.passThrough('log', 'Available Commands:');
             logger.passThrough('log', '  nova mcp setup         - Set up MCP configuration');
-            logger.passThrough('log', '  nova mcp server        - Start the MCP server\n');
+            logger.passThrough('log', '  nova mcp server        - Start the MCP server');
+            logger.passThrough('log', '  nova mcp servers       - Manage external MCP servers\n');
             logger.passThrough('log', 'Examples:');
             logger.passThrough('log', colors.dim('  # Set up MCP in current repository'));
             logger.passThrough('log', colors.dim('  nova mcp setup'));
             logger.passThrough('log', colors.dim('  # Start the MCP server'));
             logger.passThrough('log', colors.dim('  nova mcp server'));
+            logger.passThrough('log', colors.dim('  # Add a new external MCP server'));
+            logger.passThrough('log', colors.dim('  nova mcp servers add --template github'));
             logger.passThrough('log', colors.dim('  # Start with debug logging'));
             logger.passThrough('log', colors.dim('  NOVA_DEBUG=true nova mcp server\n'));
         })
         .command('setup', mcpSetupCommand)
-        .command('server', mcpServerCommand);
+        .command('server', mcpServerCommand)
+        .command('servers', serverCommand);
 
 /**
  * Register resources with the MCP server
@@ -662,4 +673,4 @@ function handleFileResource(logger: Logger) {
             throw error;
         }
     };
-}      
+}

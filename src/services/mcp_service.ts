@@ -4,6 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { Server } from 'node:http';
 import { dirname } from 'node:path';
 import type { Config } from '../config/types.ts';
+import { ExternalMCPService } from './external_mcp_service.ts';
 import {
     // ConfluenceServiceType,
     // DatadogServiceType,
@@ -734,7 +735,13 @@ public async executeTool(
         const toolName = typeof toolNameOrTool === 'string' 
             ? toolNameOrTool 
             : toolNameOrTool.name;
-        // Find the tool by name in the switch statement
+
+        // Check if this is an external MCP server tool
+        if (await this.isExternalTool(toolName)) {
+            return await this.executeExternalTool(toolName, params);
+        }
+
+        // Find the tool by name in the switch statement for internal tools
         switch (toolName) {
             case 'file_read':
                 return await this.executeFileRead(params);
@@ -854,7 +861,7 @@ private async executeFileRead(params: Record<string, unknown>): Promise<MCPToolR
     }
 }
 
-private async executeFileWrite(params: Record<string, unknown>): Promise<MCPToolResult> {
+    private async executeFileWrite(params: Record<string, unknown>): Promise<MCPToolResult> {
     const { file, content, encoding = 'utf8', append = false } = params;
     
     if (!file || content === undefined) {
@@ -1890,20 +1897,40 @@ private async executeJavaScriptExecutor(
 }
 
 /**
- * Get tools based on context
+ * Get tools based on context, including external MCP server tools
  * @param context The context to filter tools for ('ide' or 'cli')
  * @returns Filtered array of tool functions
  */
-public getToolsForContext(context: 'ide' | 'cli'): MCPToolFunction[] {
-  const allTools = Array.from(this.tools.values());
-  
-  if (context === 'ide') {
-    // Exclude file operation tools in IDE context
-    return allTools.filter(tool => !MCPService.IDE_EXCLUDED_TOOLS.has(tool.function.name));
-  }
-  
-  // Return all tools for CLI context
-  return allTools;
+public async getToolsForContext(context: 'ide' | 'cli'): Promise<MCPToolFunction[]> {
+    const internalTools = this.getInternalToolsForContext(context);
+    
+    // Get tools from external MCP servers
+    try {
+        const externalMCPService = ExternalMCPService.getInstance();
+        const externalTools = await externalMCPService.getExternalTools(context);
+        
+        // Combine internal and external tools
+        return [...internalTools, ...externalTools];
+    } catch (error) {
+        this.logger.warn('Failed to get external tools:', error);
+        return internalTools;
+    }
+}
+
+/**
+ * Get internal tools for a specific context
+ */
+private getInternalToolsForContext(context: 'ide' | 'cli'): MCPToolFunction[] {
+    const allTools = Array.from(this.tools.values());
+    
+    if (context === 'ide') {
+        // For IDE context, exclude certain tools
+        return allTools.filter(tool => 
+            !MCPService.IDE_EXCLUDED_TOOLS.has(tool.function.name)
+        );
+    }
+    
+    return allTools;
 }
 
 public getTools(): MCPToolFunction[] {
@@ -2028,4 +2055,53 @@ public async startServer(options: { stdio: boolean; sse: boolean; port: number; 
 
     return activeServers;
   }
+
+  /**
+     * Check if a tool is from an external MCP server
+     */
+    private async isExternalTool(toolName: string): Promise<boolean> {
+        try {
+            const externalMCPService = ExternalMCPService.getInstance();
+            const externalTools = await externalMCPService.getExternalTools('cli');
+            
+            return externalTools.some(tool => tool.function.name === toolName);
+        } catch (error) {
+            this.logger.warn('Failed to check external tools:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Execute a tool on an external MCP server
+     */
+    private async executeExternalTool(toolName: string, params: Record<string, unknown>): Promise<MCPToolResult> {
+        try {
+            const externalMCPService = ExternalMCPService.getInstance();
+            const externalTools = await externalMCPService.getExternalTools('cli');
+            
+            // Find the tool with metadata
+            const tool = externalTools.find(t => t.function.name === toolName);
+            if (!tool || !tool.metadata || !tool.metadata.serverId || !tool.metadata.originalName) {
+                return {
+                    success: false,
+                    error: `External tool '${toolName}' not found or missing metadata`,
+                };
+            }
+
+            return await externalMCPService.executeExternalTool(
+                toolName, 
+                params, 
+                {
+                    serverId: tool.metadata.serverId,
+                    originalName: tool.metadata.originalName,
+                }
+            );
+        } catch (error) {
+            this.logger.error(`Failed to execute external tool '${toolName}':`, error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+            };
+        }
+    }
 }

@@ -60,6 +60,11 @@ export interface MCPToolFunction {
             required?: string[];
         };
     };
+    metadata?: {
+        serverId?: string;
+        originalName?: string;
+        [key: string]: unknown;
+    };
 }
 
 /**

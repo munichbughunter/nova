@@ -1,14 +1,14 @@
 import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
 import {
-    AccessLevel,
-    CommitSchema,
+    AccessLevel as _AccessLevel,
+    CommitSchema as _CommitSchema,
     EnvironmentSchema,
     Gitlab,
-    IssueSchema,
-    MemberSchema,
-    MergeRequestSchema,
-    PipelineSchema,
+    IssueSchema as _IssueSchema,
+    MemberSchema as _MemberSchema,
+    MergeRequestSchema as _MergeRequestSchema,
+    PipelineSchema as _PipelineSchema,
     ProjectSchema,
 } from '@gitbeaker/rest';
 import { Config } from '../config/mod.ts';
@@ -574,6 +574,29 @@ export class GitLabService {
         'web_url' in project &&
         'last_activity_at' in project &&
         'namespace' in project;
+    }
+
+    /**
+     * Convert a raw project object to ProjectSchema format
+     */
+    private convertToProjectSchema(project: Record<string, unknown>): ProjectSchema {
+        // Handle potential camelCase to snake_case conversion
+        return {
+            id: project.id as number,
+            name: project.name as string,
+            path: project.path as string,
+            path_with_namespace: project.pathWithNamespace as string || project.path_with_namespace as string,
+            web_url: project.webUrl as string || project.web_url as string,
+            last_activity_at: project.lastActivityAt as string || project.last_activity_at as string,
+            namespace: project.namespace as Record<string, unknown>,
+            description: project.description as string || null,
+            default_branch: project.defaultBranch as string || project.default_branch as string || 'main',
+            visibility: project.visibility as string || 'private',
+            created_at: project.createdAt as string || project.created_at as string,
+            updated_at: project.updatedAt as string || project.updated_at as string,
+            // Add other required fields with reasonable defaults
+            ...project
+        } as ProjectSchema;
     }
 
     /**
@@ -2326,8 +2349,6 @@ export class GitLabService {
 
             const data = await response.json() as { changes: RestChange[] };
             
-            this.logger.debug(`Retrieved ${data.changes.length} changes for merge request #${mrIid}`);
-            
             return data.changes.map((change) => ({
                 old_path: change.old_path,
                 new_path: change.new_path,
@@ -2346,7 +2367,7 @@ export class GitLabService {
     }
 
     /**
-     * List all discussions for a merge request
+     * List discussions for a merge request
      * @param projectPath Project path (namespace/project_name)
      * @param mrIid Merge request internal ID
      * @returns Array of merge request discussions
