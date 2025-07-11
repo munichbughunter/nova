@@ -16,14 +16,14 @@ tbd
 
 ## Table of Contents
 
-[Features](#features)
-[Prerequisites](#prerequisites)
-[Installation](#installation)
-[Usage](#usage)
-[Agents](#agents)
-[Configuration](#configuration)
-[Shell Completions](#shell-completions)
-[Contributing](#contributing)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Agents](#agents)
+- [Configuration](#configuration)
+- [Shell Completions](#shell-completions)
+- [Contributing](#contributing)
 
 ### Features
 
