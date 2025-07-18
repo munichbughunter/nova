@@ -29,6 +29,15 @@ export const ConfigSchema = z.object({
         token: z.string().min(1),
         project_id: z.string().min(1).optional().nullable(),
     }),
+    github: z.object({
+        token: z.string().min(1).optional(),
+        apiUrl: z.string().url().default('https://api.github.com'),
+    }).optional(),
+    review: z.object({
+        autoPostComments: z.boolean().default(true),
+        severityThreshold: z.enum(['low', 'medium', 'high']).default('medium'),
+        maxFilesPerReview: z.number().min(1).max(1000).default(50),
+    }).optional(),
     datadog: z.object({
         api_key: z.string().min(1),
         app_key: z.string().min(1),
@@ -98,6 +107,19 @@ export interface AIConfig {
     azure?: AzureAIConfig;
     ollama?: OllamaConfig;
     copilot?: CopilotConfig;
+}
+
+// GitHub configuration
+export interface GitHubConfig {
+    token?: string;
+    apiUrl: string;
+}
+
+// Review configuration
+export interface ReviewConfig {
+    autoPostComments: boolean;
+    severityThreshold: 'low' | 'medium' | 'high';
+    maxFilesPerReview: number;
 }
 
 // Datadog configuration

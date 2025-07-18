@@ -333,8 +333,13 @@ export interface GitHubFile {
 export interface GitHubReviewComment {
     body: string;
     path: string;
-    line: number;
+    commit_id: string;
+    position?: number;  // Position in the diff (required for line comments)
+    line?: number;      // Line number in the file (deprecated, use position)
+    start_line?: number;
+    start_side?: 'LEFT' | 'RIGHT';
     side?: 'LEFT' | 'RIGHT';
+    subject_type?: 'line' | 'file';
 }
 
 /**
@@ -403,3 +408,37 @@ export const ReviewConfigSchema = z.object({
  * Type inference for ReviewConfigSchema
  */
 export type ReviewConfig = z.infer<typeof ReviewConfigSchema>;
+
+/**
+ * Error handling types for review operations
+ */
+
+/**
+ * Enumeration of specific error types for the review system
+ */
+export enum ReviewErrorType {
+    REPOSITORY_NOT_DETECTED = 'REPOSITORY_NOT_DETECTED',
+    AUTHENTICATION_FAILED = 'AUTHENTICATION_FAILED',
+    API_RATE_LIMITED = 'API_RATE_LIMITED',
+    FILE_NOT_FOUND = 'FILE_NOT_FOUND',
+    ANALYSIS_FAILED = 'ANALYSIS_FAILED',
+    COMMENT_POST_FAILED = 'COMMENT_POST_FAILED',
+    NETWORK_ERROR = 'NETWORK_ERROR',
+    PERMISSION_DENIED = 'PERMISSION_DENIED',
+    SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+    TIMEOUT_ERROR = 'TIMEOUT_ERROR',
+    INVALID_CONFIGURATION = 'INVALID_CONFIGURATION',
+    GIT_OPERATION_FAILED = 'GIT_OPERATION_FAILED',
+    LLM_PROVIDER_ERROR = 'LLM_PROVIDER_ERROR',
+}
+
+/**
+ * Configuration for retry operations
+ */
+export interface RetryConfig {
+    maxAttempts: number;
+    baseDelayMs: number;
+    maxDelayMs: number;
+    backoffMultiplier: number;
+    jitterMs?: number;
+}

@@ -200,6 +200,11 @@ Available Commands
 
 Agent Commands
 
+nova agent enhanced-code-review-agent review <files>  # Review specific files
+nova agent enhanced-code-review-agent review          # Review changed files
+nova agent enhanced-code-review-agent review pr       # Review pull requests
+nova agent enhanced-code-review-agent help            # Show help and usage
+
 nova agent eng         # Engineering Agent for code review and analysis
 nova agent eng review  # Review code changes in a file or directory
 nova agent eng review-mr  # Review current merge request
@@ -245,6 +250,39 @@ For more options, use --help with any command
 
 
 Agents
+
+Enhanced Code Review Agent
+The Enhanced Code Review Agent provides comprehensive automated code analysis with three distinct review modes:
+
+**Review Modes:**
+- **File Review**: Analyze specific files with detailed feedback
+- **Change Detection**: Automatically review changed files in Git repository
+- **Pull Request Review**: Review PRs/MRs with automated comment posting
+
+**Key Features:**
+- Code quality grading (A-F scale)
+- Test coverage assessment
+- Security vulnerability detection
+- Performance optimization suggestions
+- GitLab and GitHub integration
+- Parallel processing for large codebases
+- Intelligent caching for improved performance
+- **Advanced Error Handling**: Robust error recovery with intelligent data transformation
+- **Modular Architecture**: Domain-specific service organization for better maintainability
+- **Type-Safe Validation**: Runtime type validation with automatic error recovery
+- **Intelligent Response Processing**: Handles LLM response format variations gracefully
+
+**Usage Examples:**
+```bash
+# Review specific files
+nova agent enhanced-code-review-agent review src/main.ts
+
+# Review all changed files
+nova agent enhanced-code-review-agent review
+
+# Review pull requests
+nova agent enhanced-code-review-agent review pr
+```
 
 Project Manager Agent
 The Project Manager agent helps you maintain project oversight and coordination:
@@ -348,6 +386,35 @@ Best practices recommendations
 Security vulnerability detection
 Performance optimization suggestions
 Clean code principles enforcement
+
+## Enhanced Error Handling & Architecture
+
+Nova's Enhanced Code Review Agent features a robust, modular architecture designed for reliability and maintainability:
+
+### Intelligent Error Recovery
+- **Automatic Data Transformation**: Handles LLM response format variations (e.g., string "75%" → number 75)
+- **Graceful Degradation**: Falls back to rule-based analysis when LLM providers fail
+- **Retry Logic**: Exponential backoff for API failures with configurable limits
+- **Type-Safe Validation**: Runtime type checking with intelligent error recovery
+
+### Modular Service Architecture
+- **Domain-Specific Organization**: Services grouped by responsibility (analysis, LLM, repository, error-handling)
+- **Separation of Concerns**: Clear boundaries between validation, transformation, and analysis
+- **Extensible Design**: Easy to add new LLM providers or repository integrations
+- **Comprehensive Testing**: Unit, integration, and end-to-end test coverage
+
+### Performance Optimizations
+- **Intelligent Caching**: Results cached based on file content hash with configurable TTL
+- **Parallel Processing**: Multiple files analyzed concurrently for improved performance
+- **Memory Management**: Efficient cache management with size limits and cleanup
+- **Streaming Support**: Large diffs processed in chunks to minimize memory usage
+
+### Troubleshooting Support
+For common issues and debugging:
+- Enable debug mode: `NOVA_DEBUG=true nova agent enhanced-code-review-agent review`
+- Check configuration: `nova config validate`
+- View detailed logs: `NOVA_LOG_LEVEL=debug nova agent enhanced-code-review-agent review`
+- See [Troubleshooting Guide](docs/troubleshooting/enhanced-code-review-agent.md) for detailed solutions
 
 Contributing
 We welcome contributions! Please see our Contributing Guide for details.

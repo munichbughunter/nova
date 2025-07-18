@@ -13,6 +13,7 @@ This module provides a modular, extensible architecture for creating intelligent
 - **Provide Tool Wrappers**: Ready-to-use helpers for file operations and user interaction
 - **Support Fallbacks**: Graceful degradation when LLMs are unavailable
 - **Log Interactions**: Comprehensive logging and service injection support
+- **Code Review Capabilities**: Enhanced code review with GitLab/GitHub integration
 
 ## Architecture
 
@@ -322,6 +323,207 @@ const mockContext: AgentContext = {
 
 const agent = new MyAgent(mockContext);
 const response = await agent.execute("test input");
+```
+
+## Enhanced Code Review Agent
+
+The Enhanced Code Review Agent extends the base agent infrastructure to provide comprehensive code review capabilities with three distinct modes:
+
+### Review Modes
+
+#### 1. File Review Mode
+Review specific files with detailed analysis:
+
+```bash
+# Review a single file
+nova agent enhanced-code-review-agent review src/main.ts
+
+# Review multiple files
+nova agent enhanced-code-review-agent review src/main.ts src/utils.ts
+
+# Alternative syntax (review is implied for file paths)
+nova agent enhanced-code-review-agent src/main.ts
+```
+
+#### 2. Change Detection Mode
+Automatically detect and review changed files in your Git repository:
+
+```bash
+# Review all changed files
+nova agent enhanced-code-review-agent review
+
+# Alternative syntax
+nova agent enhanced-code-review-agent review changes
+```
+
+#### 3. Pull Request Review Mode
+Review pull requests from GitLab or GitHub with automated comment posting:
+
+```bash
+# Review pull requests (auto-detects GitLab/GitHub)
+nova agent enhanced-code-review-agent review pr
+
+# Review specific PR by ID
+nova agent enhanced-code-review-agent review pr 123
+```
+
+### Review Output
+
+The agent provides structured review results in a CLI table format:
+
+```
+┌─────────────────────┬───────┬──────────┬──────────────┬────────┬─────────┐
+│ File                │ Grade │ Coverage │ Tests Present│ Value  │ State   │
+├─────────────────────┼───────┼──────────┼──────────────┼────────┼─────────┤
+│ src/main.ts         │ A     │ 85%      │ ✅           │ high   │ pass    │
+│ src/utils.ts        │ B     │ 70%      │ ✅           │ medium │ warning │
+│ src/config.ts       │ C     │ 45%      │ ❌           │ low    │ fail    │
+└─────────────────────┴───────┴──────────┴──────────────┴────────┴─────────┘
+```
+
+### Configuration
+
+Configure the Enhanced Code Review Agent in your Nova config:
+
+```typescript
+// config.json
+{
+  "github": {
+    "token": "ghp_your_github_token",
+    "apiUrl": "https://api.github.com"
+  },
+  "review": {
+    "autoPostComments": true,
+    "severityThreshold": "medium",
+    "maxFilesPerReview": 50
+  }
+}
+```
+
+#### GitHub Integration Setup
+
+1. **Generate a GitHub Personal Access Token**:
+   - Go to GitHub Settings → Developer settings → Personal access tokens
+   - Generate a new token with `repo` and `pull_requests` scopes
+   - Add the token to your Nova configuration
+
+2. **Configure API URL** (optional):
+   - For GitHub Enterprise, set a custom `apiUrl`
+   - Default is `https://api.github.com` for GitHub.com
+
+#### Review Configuration Options
+
+- **`autoPostComments`** (boolean, default: `true`): Automatically post review comments to PRs
+- **`severityThreshold`** (string, default: `"medium"`): Minimum severity level for issues to report
+- **`maxFilesPerReview`** (number, default: `50`): Maximum number of files to review in a single operation
+
+### Features
+
+#### Comprehensive Analysis
+- **Code Quality Grading**: A-F grading system based on code quality metrics
+- **Test Coverage Assessment**: Estimates test coverage and identifies untested code
+- **Security Analysis**: Detects potential security vulnerabilities
+- **Performance Review**: Identifies performance optimization opportunities
+- **Best Practices**: Checks adherence to coding standards and clean code principles
+
+#### Repository Integration
+- **Automatic Detection**: Detects GitLab vs GitHub repositories automatically
+- **Pull Request Integration**: Fetches PRs and posts review comments directly
+- **Git Integration**: Analyzes only changed files for efficient reviews
+- **Comment Posting**: Posts structured review comments with line-specific feedback
+
+#### Performance Optimizations
+- **Parallel Processing**: Analyzes multiple files concurrently
+- **Intelligent Caching**: Caches analysis results for unchanged files
+- **Streaming Support**: Handles large diffs efficiently
+- **Rate Limiting**: Respects API rate limits with exponential backoff
+
+### Error Handling
+
+The agent includes comprehensive error handling:
+
+```typescript
+// Automatic retry with exponential backoff
+// Graceful degradation when services are unavailable
+// Clear error messages with actionable solutions
+// Fallback to local analysis when API calls fail
+```
+
+### Usage Examples
+
+#### Basic File Review
+```bash
+# Review TypeScript files
+nova agent enhanced-code-review-agent review src/**/*.ts
+
+# Review with help
+nova agent enhanced-code-review-agent help
+```
+
+#### Change Detection Workflow
+```bash
+# Make changes to your code
+git add .
+git commit -m "Add new feature"
+
+# Review the changes
+nova agent enhanced-code-review-agent review
+```
+
+#### Pull Request Workflow
+```bash
+# Create a pull request on GitHub/GitLab
+# Then review it locally
+nova agent enhanced-code-review-agent review pr
+
+# The agent will:
+# 1. Detect your repository type (GitHub/GitLab)
+# 2. Fetch available pull requests
+# 3. Let you select which PR to review
+# 4. Analyze the PR diff
+# 5. Post review comments automatically
+# 6. Display results locally
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+**Authentication Errors**:
+```bash
+# Error: GitHub authentication failed
+# Solution: Check your GitHub token in the config
+nova config set github.token "your_token_here"
+```
+
+**Repository Not Detected**:
+```bash
+# Error: Unable to detect repository type
+# Solution: Ensure you're in a Git repository with a remote
+git remote -v
+git remote add origin https://github.com/user/repo.git
+```
+
+**API Rate Limits**:
+```bash
+# Error: API rate limit exceeded
+# Solution: The agent will automatically retry with backoff
+# Or wait for the rate limit to reset
+```
+
+**File Not Found**:
+```bash
+# Error: File not found
+# Solution: Check file paths and permissions
+ls -la src/main.ts
+```
+
+#### Debug Mode
+
+Enable debug logging for troubleshooting:
+
+```bash
+NOVA_DEBUG=true nova agent enhanced-code-review-agent review src/main.ts
 ```
 
 ## Integration with Nova CLI

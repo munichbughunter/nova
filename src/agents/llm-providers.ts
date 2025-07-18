@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { ToolCall, ToolFunction } from '../types/tool_types.ts';
 import type { Logger } from '../utils/logger.ts';
 import type { Config } from '../config/types.ts';
+import { LLMResponseProcessor } from '../services/llm/llm-response-processor.ts';
 
 /**
  * Base LLM Provider interface
@@ -44,11 +45,13 @@ export class OllamaProvider implements LLMProvider {
     private model: string;
     private baseUrl: string;
     private logger: Logger;
+    private responseProcessor: LLMResponseProcessor;
 
     constructor(config: Config['ai'], logger: Logger) {
         this.model = config?.ollama?.model || 'llama3';
         this.baseUrl = config?.ollama?.api_url || 'http://localhost:11434';
         this.logger = logger.child('OllamaProvider');
+        this.responseProcessor = new LLMResponseProcessor(logger);
     }
 
     async isAvailable(): Promise<boolean> {
@@ -130,6 +133,8 @@ Important:
 - Do not include markdown code blocks
 - Do not include any explanations
 - Make sure all required fields are included
+- For coverage field, provide a number between 0-100 (not a string like "75%")
+- For testsPresent field, provide true or false (not a string)
 
 JSON Response:`;
         
@@ -142,42 +147,66 @@ JSON Response:`;
 
             this.logger.debug('Raw LLM response:', response.substring(0, 200));
 
-            // Clean and extract JSON from response
-            let jsonStr = response.trim();
+            // Create processing context for enhanced error tracking
+            const context = {
+                provider: this.name,
+                model: this.model,
+                prompt: options.prompt,
+                attemptNumber: 1,
+                timestamp: new Date()
+            };
+
+            // Use the enhanced response processor with context
+            const processingResult = await this.responseProcessor.processResponse(
+                response, 
+                options.schema, 
+                context
+            );
             
-            // Remove markdown code blocks if present
-            jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-            
-            // Try to find JSON object in the response
-            const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                jsonStr = jsonMatch[0];
+            if (processingResult.success && processingResult.data) {
+                // Log processing metrics
+                this.logger.debug('Response processing completed', {
+                    processingTime: processingResult.processingTime,
+                    originalLength: processingResult.originalResponseLength,
+                    cleanedLength: processingResult.cleanedResponseLength,
+                    transformationsApplied: processingResult.transformationsApplied
+                });
+                
+                // Log any warnings from the processing
+                if (processingResult.warnings.length > 0) {
+                    this.logger.info('Response processing warnings:', processingResult.warnings);
+                }
+                
+                return processingResult.data;
+            } else {
+                // Processing failed, log detailed error information
+                this.logger.error('Response processing failed', {
+                    errors: processingResult.errors.map(e => e.message),
+                    warnings: processingResult.warnings,
+                    fallbackUsed: processingResult.fallbackUsed,
+                    processingTime: processingResult.processingTime
+                });
+                
+                const error = processingResult.errors[0] || new Error('Unknown processing error');
+                throw error;
             }
-            
-            // Attempt to parse and validate
-            let parsed;
-            try {
-                parsed = JSON.parse(jsonStr);
-            } catch (parseError) {
-                this.logger.error('JSON parse failed, response was:', jsonStr);
-                throw new Error(`Invalid JSON response from LLM: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
-            }
-            
-            // Normalize common enum values that LLMs might capitalize
-            parsed = this.normalizeEnumValues(parsed);
-            
-            const validated = options.schema.parse(parsed);
-            return validated;
             
         } catch (error) {
-            this.logger.error('Failed to generate structured object:', error);
+            this.logger.error('Failed to generate structured object:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                model: this.model,
+                promptLength: options.prompt.length
+            });
             
-            // If structured generation fails, provide a fallback error response
-            if (error instanceof Error && error.message.includes('ZodError')) {
-                this.logger.warn('Structured output validation failed, LLM response format was incorrect');
+            // Enhanced error context for debugging
+            if (error instanceof Error && error.message.includes('Validation failed')) {
+                this.logger.warn('Structured output validation failed - LLM response format was incorrect', {
+                    provider: this.name,
+                    model: this.model
+                });
             }
             
-            throw new Error(`Failed to generate structured object: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new Error(`Failed to generate structured object with ${this.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -277,6 +306,7 @@ export class OpenAIProvider implements LLMProvider {
     private apiKey: string;
     private baseUrl: string;
     private logger: Logger;
+    private responseProcessor: LLMResponseProcessor;
 
     constructor(config: Config['ai'], logger: Logger) {
         const openaiConfig = config?.openai;
@@ -288,6 +318,7 @@ export class OpenAIProvider implements LLMProvider {
         this.apiKey = openaiConfig.api_key;
         this.baseUrl = openaiConfig.api_url || 'https://api.openai.com/v1';
         this.logger = logger.child('OpenAIProvider');
+        this.responseProcessor = new LLMResponseProcessor(logger);
     }
 
     async isAvailable(): Promise<boolean> {
@@ -342,7 +373,7 @@ export class OpenAIProvider implements LLMProvider {
 
     async generateObject<T>(options: GenerateObjectOptions<T>): Promise<T> {
         const systemPrompt = options.systemPrompt || 
-            'You must respond with valid JSON that matches the required schema. Do not include any other text or formatting.';
+            'You must respond with valid JSON that matches the required schema. Do not include any other text or formatting. For coverage field, provide a number between 0-100 (not a string like "75%"). For testsPresent field, provide true or false (not a string).';
         
         try {
             const response = await this.generate(options.prompt, {
@@ -350,13 +381,67 @@ export class OpenAIProvider implements LLMProvider {
                 systemPrompt,
             });
 
-            const parsed = JSON.parse(response);
-            const validated = options.schema.parse(parsed);
+            this.logger.debug('Raw LLM response:', response.substring(0, 200));
+
+            // Create processing context for enhanced error tracking
+            const context = {
+                provider: this.name,
+                model: this.model,
+                prompt: options.prompt,
+                attemptNumber: 1,
+                timestamp: new Date()
+            };
+
+            // Use the enhanced response processor with context
+            const processingResult = await this.responseProcessor.processResponse(
+                response, 
+                options.schema, 
+                context
+            );
             
-            return validated;
+            if (processingResult.success && processingResult.data) {
+                // Log processing metrics
+                this.logger.debug('Response processing completed', {
+                    processingTime: processingResult.processingTime,
+                    originalLength: processingResult.originalResponseLength,
+                    cleanedLength: processingResult.cleanedResponseLength,
+                    transformationsApplied: processingResult.transformationsApplied
+                });
+                
+                // Log any warnings from the processing
+                if (processingResult.warnings.length > 0) {
+                    this.logger.info('Response processing warnings:', processingResult.warnings);
+                }
+                
+                return processingResult.data;
+            } else {
+                // Processing failed, log detailed error information
+                this.logger.error('Response processing failed', {
+                    errors: processingResult.errors.map(e => e.message),
+                    warnings: processingResult.warnings,
+                    fallbackUsed: processingResult.fallbackUsed,
+                    processingTime: processingResult.processingTime
+                });
+                
+                const error = processingResult.errors[0] || new Error('Unknown processing error');
+                throw error;
+            }
         } catch (error) {
-            this.logger.error('Failed to generate structured object:', error);
-            throw new Error(`Failed to generate structured object: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            this.logger.error('Failed to generate structured object:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                model: this.model,
+                promptLength: options.prompt.length
+            });
+            
+            // Enhanced error context for debugging
+            if (error instanceof Error && error.message.includes('Validation failed')) {
+                this.logger.warn('Structured output validation failed - LLM response format was incorrect', {
+                    provider: this.name,
+                    model: this.model
+                });
+            }
+            
+            throw new Error(`Failed to generate structured object with ${this.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 

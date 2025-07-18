@@ -11,6 +11,7 @@ import { configManager } from "../config/mod.ts";
 import type { AgentContext } from "../agents/types.ts";
 import type { LLMProvider, ToolFunction } from "../types/tool_types.ts";
 import { createExampleAgent } from "../agents/example-agent.ts";
+import { createEnhancedCodeReviewAgent } from "../agents/enhanced-code-review-agent.ts";
 import { MCPService } from "../services/mcp_service.ts";
 
 const logger = new Logger("agent-command");
@@ -19,8 +20,21 @@ const logger = new Logger("agent-command");
  * Check if a string is a valid agent name
  */
 function isValidAgentName(name: string): boolean {
-    const validAgents = ['example', 'dev', 'development'];
+    const validAgents = ['example', 'dev', 'development', 'enhanced', 'review', 'code-review'];
     return validAgents.includes(name.toLowerCase());
+}
+
+/**
+ * Check if a string is a review command
+ */
+export function isReviewCommand(input: string): boolean {
+    const reviewPatterns = [
+        /^review\s/i,
+        /^review$/i,
+        /^code-review\s/i,
+        /^code-review$/i,
+    ];
+    return reviewPatterns.some(pattern => pattern.test(input.trim()));
 }
 
 interface AgentCommandOptions {
@@ -67,6 +81,13 @@ export async function agentCommand(args: string[]): Promise<void> {
         const agentName = parsedArgs._[0] as string;
         const query = parsedArgs._.slice(1).join(" ");
         await runSingleQuery(query, { agent: agentName });
+        return;
+    }
+
+    // Handle special case: nova agent review <subcommand> (auto-route to enhanced agent)
+    if (parsedArgs._.length >= 1 && isReviewCommand(parsedArgs._.join(" "))) {
+        const query = parsedArgs._.join(" ");
+        await runSingleQuery(query, { agent: "enhanced" });
         return;
     }
 
@@ -244,8 +265,13 @@ async function createAgent(agentType: string) {
         case "development":
             return createExampleAgent(context);
         
+        case "enhanced":
+        case "review":
+        case "code-review":
+            return createEnhancedCodeReviewAgent(context);
+        
         default:
-            throw new Error(`Unknown agent type: ${agentType}. Available agents: example`);
+            throw new Error(`Unknown agent type: ${agentType}. Available agents: example, enhanced`);
     }
 }
 
@@ -260,6 +286,7 @@ USAGE:
     nova agent [OPTIONS] [QUERY]
     nova agent <AGENT_NAME> [QUERY]
     nova agent <AGENT_NAME> help
+    nova agent review [SUBCOMMAND]
 
 OPTIONS:
     -a, --agent <TYPE>     Agent type to use (default: example)
@@ -278,18 +305,32 @@ EXAMPLES:
     # Use specific agent with query
     nova agent example "What are React best practices?"
     
+    # Enhanced code review examples
+    nova agent review src/main.ts                    # Review specific file
+    nova agent review src/*.ts src/*.js              # Review multiple files
+    nova agent review                                # Review changed files
+    nova agent review changes                        # Review changed files (explicit)
+    nova agent review pr                             # Review pull request
+    nova agent review pr 123                        # Review specific PR/MR
+    
+    # Alternative enhanced agent usage
+    nova agent enhanced "review src/components/"
+    nova agent code-review "review pr"
+    
     # Get help for specific agent
     nova agent example help
+    nova agent enhanced help
     
     # Run in interactive mode
     nova agent --interactive
-    nova agent example --interactive
+    nova agent enhanced --interactive
     
     # List available agents
     nova agent --list
 
 AGENTS:
     example    Development assistant for code analysis and Q&A
+    enhanced   Enhanced code review agent with comprehensive analysis
 
 For agent-specific help, use: nova agent <agent-name> help
 `);
@@ -311,6 +352,38 @@ function showAvailableAgents(): void {
    • Improvement suggestions and issue detection
    • Support for multiple programming languages
 
-Usage: nova agent --agent example "your query here"
+   Usage Examples:
+   nova agent example "How do I implement error handling in TypeScript?"
+   nova agent example "analyze src/components/Header.tsx"
+
+📋 enhanced (aliases: review, code-review)
+   Enhanced code review agent with comprehensive analysis capabilities
+   
+   Capabilities:
+   • Specific file review with detailed feedback and grading (A-F)
+   • Automatic change detection and review of modified files
+   • Pull request/merge request review with automated comment posting
+   • Security, performance, and style issue detection
+   • Test coverage assessment and business value evaluation
+   • CLI table formatting with color-coded results
+   • Line-specific issue reporting with actionable suggestions
+   • GitLab and GitHub integration
+
+   Review Modes:
+   1. File Review Mode - Analyze specific files
+      nova agent review src/main.ts
+      nova agent review src/*.ts src/*.js
+      
+   2. Changes Review Mode - Review modified files automatically
+      nova agent review
+      nova agent review changes
+      
+   3. Pull Request Review Mode - Review PRs/MRs with automated feedback
+      nova agent review pr
+      nova agent review pr 123
+
+   Alternative Usage:
+   nova agent enhanced "review src/components/"
+   nova agent code-review "review pr"
 `);
 }

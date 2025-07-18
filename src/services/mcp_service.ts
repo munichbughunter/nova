@@ -16,7 +16,7 @@ import {
     MCPToolResult,
 } from '../types/tool_types.ts';
 import { Logger } from '../utils/logger.ts';
-import { AIService } from './ai_service.ts';
+import { AIService } from './llm/ai_service.ts';
 
 // Browser tool types
 type AtomicMethod =

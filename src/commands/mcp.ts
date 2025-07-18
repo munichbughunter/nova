@@ -6,10 +6,10 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import http from "node:http";
 import { z } from 'zod';
 import { configManager } from '../config/mod.ts';
-import { AIService } from '../services/ai_service.ts';
+import { AIService } from '../services/llm/ai_service.ts';
 // import { ConfluenceService } from '../services/confluence_service.ts';
 // import { DatadogService } from '../services/datadog_service.ts';
-import { GitLabService } from '../services/gitlab_service.ts';
+import { GitLabService } from '../services/repository/gitlab_service.ts';
 // import { JiraService } from '../services/jira_service.ts';
 import { MCPService } from '../services/mcp_service.ts';
 import { Logger } from '../utils/logger.ts';

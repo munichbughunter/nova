@@ -40,8 +40,8 @@ export class ConfigManager {
      * Load configuration from all sources in priority order
      */
     public async loadConfig(): Promise<Config> {
-        // Reset cache if AI-related env vars are present
-        const aiEnvVars = [
+        // Reset cache if relevant env vars are present
+        const envVars = [
             'OPENAI_API_KEY',
             'OPENAI_URL',
             'OPENAI_API_VERSION',
@@ -49,10 +49,15 @@ export class ConfigManager {
             'AZURE_OPENAI_API_ENDPOINT',
             'AZURE_OPENAI_API_VERSION',
             'AZURE_OPENAI_DEPLOYMENT_NAME',
+            'GITHUB_TOKEN',
+            'GITHUB_API_URL',
+            'NOVA_REVIEW_AUTO_POST_COMMENTS',
+            'NOVA_REVIEW_SEVERITY_THRESHOLD',
+            'NOVA_REVIEW_MAX_FILES',
         ];
 
-        const hasAiEnvVars = aiEnvVars.some(key => Deno.env.get(key) !== undefined);
-        if (hasAiEnvVars) {
+        const hasEnvVars = envVars.some(key => Deno.env.get(key) !== undefined);
+        if (hasEnvVars) {
             this.config = null;
         }
 
@@ -106,6 +111,28 @@ export class ConfigManager {
             };
         }
 
+        // GitHub config
+        const githubToken = Deno.env.get('GITHUB_TOKEN');
+        const githubApiUrl = Deno.env.get('GITHUB_API_URL');
+        if (githubToken || githubApiUrl) {
+            envConfig.github = {
+                token: githubToken,
+                apiUrl: githubApiUrl ?? 'https://api.github.com',
+            };
+        }
+
+        // Review config
+        const autoPostComments = Deno.env.get('NOVA_REVIEW_AUTO_POST_COMMENTS');
+        const severityThreshold = Deno.env.get('NOVA_REVIEW_SEVERITY_THRESHOLD');
+        const maxFilesPerReview = Deno.env.get('NOVA_REVIEW_MAX_FILES');
+        if (autoPostComments || severityThreshold || maxFilesPerReview) {
+            envConfig.review = {
+                autoPostComments: autoPostComments === 'true' || autoPostComments === undefined,
+                severityThreshold: (severityThreshold as 'low' | 'medium' | 'high') ?? 'medium',
+                maxFilesPerReview: maxFilesPerReview ? parseInt(maxFilesPerReview, 10) : 50,
+            };
+        }
+
         // AI config  
         const openaiKey = Deno.env.get('OPENAI_API_KEY');
         const openaiUrl = Deno.env.get('OPENAI_URL');
@@ -143,6 +170,7 @@ export class ConfigManager {
         // Create a display version for logging
         const displayConfig = JSON.parse(JSON.stringify(envConfig));
         if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
+        if (displayConfig.github?.token) displayConfig.github.token = '***';
         if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
         if (displayConfig.atlassian?.confluence_token) displayConfig.atlassian.confluence_token = '***';
         if (displayConfig.ai?.openai?.api_key) displayConfig.ai.openai.api_key = '***';
@@ -167,6 +195,7 @@ export class ConfigManager {
                 // Create a completely separate copy for display
                 const displayConfig = JSON.parse(JSON.stringify(originalConfig));
                 if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
+                if (displayConfig.github?.token) displayConfig.github.token = '***';
                 if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
                 if (displayConfig.atlassian?.confluence_token) {
                     displayConfig.atlassian.confluence_token = '***';
@@ -214,6 +243,12 @@ export class ConfigManager {
                     ...(project_id !== undefined && { project_id }),
                 };
             }
+            if (curr.github) {
+                merged.github = { ...merged.github, ...curr.github };
+            }
+            if (curr.review) {
+                merged.review = { ...merged.review, ...curr.review };
+            }
             if (curr.ai) {
                 merged.ai = { ...merged.ai, ...curr.ai };
             }
@@ -257,6 +292,7 @@ export class ConfigManager {
             // Create a separate copy for display/logging
             const displayConfig = JSON.parse(JSON.stringify(config));
             if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
+            if (displayConfig.github?.token) displayConfig.github.token = '***';
             if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
             if (displayConfig.atlassian?.confluence_token) {
                 displayConfig.atlassian.confluence_token = '***';
@@ -285,7 +321,7 @@ export class ConfigManager {
         const results: Record<string, boolean> = {};
 
         // Skip tests if config is empty or has no values set
-        if (!config || (!config.gitlab?.url && !config.ai)) {
+        if (!config || (!config.gitlab?.url && !config.ai && !config.github?.token)) {
             return results;
         }
 
@@ -309,6 +345,32 @@ export class ConfigManager {
                 results.gitlab = false;
             }
         }
+
+        // Test GitHub connection
+        if (config.github?.token) {
+            try {
+                const url = `${config.github.apiUrl}/user`;
+                const githubResponse = await fetch(url, {
+                    headers: { 
+                        'Authorization': `Bearer ${config.github.token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'User-Agent': 'Nova-CLI'
+                    },
+                });
+
+                if (!githubResponse.ok) {
+                    const _errorText = await githubResponse.text();
+                    results.github = false;
+                } else {
+                    const userData = await githubResponse.json();
+                    results.github = true;
+                    results.github_username = userData.login;
+                }
+            } catch (_error) {
+                results.github = false;
+            }
+        }
+
         return results;
     }
 }
