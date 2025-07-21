@@ -4,7 +4,7 @@ import type {
     CodeIssue,
     AgentContext 
 } from '../../agents/types.ts';
-import { ReviewAnalysisSchema } from '../../agents/types.ts';
+import { FlexibleReviewAnalysisSchema } from './validation/schemas.ts';
 import type { Logger } from '../../utils/logger.ts';
 import { PerformanceCache } from '../performance_cache.ts';
 import { ParallelProcessor, type ParallelTask } from '../parallel_processor.ts';
@@ -163,7 +163,7 @@ export class CodeAnalysisService {
             // Process the response using the new LLMResponseProcessor with ValidationService
             const processingResult = await this.responseProcessor.processResponse(
                 rawResponse,
-                ReviewAnalysisSchema,
+                FlexibleReviewAnalysisSchema,
                 {
                     provider: this.context.llmProvider!.constructor.name,
                     model: 'unknown', // LLMProvider interface doesn't have model property

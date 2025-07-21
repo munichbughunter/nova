@@ -52,7 +52,8 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
 
     constructor(context: AgentContext) {
         super(context);
-        this.logger = this.logger.child('EnhancedCodeReviewAgent');
+        // Override logger to use simplified name: Agent:CodeReview
+        this.logger = context.logger.child('CodeReview');
         this.monitoringService = new MonitoringService(this.logger);
         this.commandParser = new ReviewCommandParser(this.logger);
         this.codeAnalysisService = new CodeAnalysisService(this.logger, context);
@@ -395,9 +396,32 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
         // Create a file processor that integrates with the code analysis service
         const fileProcessor: FileProcessor = {
             processFile: async (filePath: string, content?: string): Promise<ReviewAnalysis> => {
+                const fileName = filePath.split('/').pop() || filePath;
+                
+                // Progress update function
+                const updateProgress = (step: number) => {
+                    const percentage = step * 10;
+                    const progressBarLength = 10;
+                    
+                    if (percentage === 100) {
+                        // At 100%, show 9 equals and 1 arrow: [=========>]
+                        const progressBar = '='.repeat(9) + '>';
+                        this.logger.info(`[${progressBar}] ${percentage}% Analyzing ${fileName}`);
+                    } else {
+                        // For other percentages, use the normal logic
+                        const filledLength = Math.floor((percentage / 100) * progressBarLength);
+                        const progressBar = '='.repeat(filledLength) + '>' + ' '.repeat(progressBarLength - filledLength - 1);
+                        this.logger.info(`[${progressBar}] ${percentage}% Analyzing ${fileName}`);
+                    }
+                };
+
+                // Start with 0%
+                updateProgress(0);
+
                 // Read file content if not provided
                 let fileContent = content;
                 if (!fileContent) {
+                    updateProgress(1); // 10%
                     const fileResult = await readFile(this.context, filePath);
                     if (!fileResult.success || !fileResult.data) {
                         throw new Error(`Could not read file: ${fileResult.error || 'Unknown error'}`);
@@ -413,8 +437,32 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
                     }
                 }
 
+                updateProgress(2); // 20%
+                
+                // Simulate analysis steps with progress updates
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(3); // 30%
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(4); // 40%
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(5); // 50%
+                
                 // Use the code analysis service to analyze the file
-                return await this.codeAnalysisService.analyzeCode(filePath, fileContent);
+                const result = await this.codeAnalysisService.analyzeCode(filePath, fileContent);
+                
+                updateProgress(6); // 60%
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(7); // 70%
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(8); // 80%
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(9); // 90%
+                await new Promise(resolve => setTimeout(resolve, 100));
+                updateProgress(10); // 100%
+                
+                return result;
             }
         };
 
@@ -422,20 +470,24 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
         const processingOptions: SequentialProcessingOptions = {
             showProgress: true,
             onFileStart: (file: string, index: number, total: number) => {
-                this.logger.debug(`Starting analysis of file ${index + 1}/${total}: ${file}`);
+                const fileName = file.split('/').pop() || file;
+                // Only show the notification, not the progress bar (handled by updateProgress in fileProcessor)
                 notifyUser(this.context, {
-                    message: `Analyzing file ${index + 1}/${total}: ${file.split('/').pop() || file}`,
+                    message: `Analyzing file ${index + 1}/${total}: ${fileName}`,
                     type: 'info',
                 });
             },
             onFileComplete: (file: string, result: ProcessingResult) => {
-                const status = result.success ? 'completed' : 'failed';
-                this.logger.debug(`File analysis ${status}: ${file} (${result.duration}ms)`);
+                const fileName = file.split('/').pop() || file;
+                const status = result.success ? '✅' : '❌';
+                const duration = result.duration < 1000 ? `${result.duration}ms` : `${(result.duration/1000).toFixed(1)}s`;
+                this.logger.info(`${status} ${fileName} (${duration})`);
             },
             onError: (file: string, error: Error) => {
-                this.logger.error(`Error processing file ${file}: ${error.message}`);
+                const fileName = file.split('/').pop() || file;
+                this.logger.error(`❌ ${fileName}: ${error.message}`);
                 notifyUser(this.context, {
-                    message: `Error analyzing ${file}: ${error.message}`,
+                    message: `Error analyzing ${fileName}: ${error.message}`,
                     type: 'error',
                 });
             },

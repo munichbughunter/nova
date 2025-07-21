@@ -507,7 +507,7 @@ async function runSingleQuery(query: string, options: AgentCommandOptions): Prom
 async function createAgent(agentType: string) {
     const config = await configManager.loadConfig();
     const mcpService = MCPService.getInstance(config);
-    const logger = new Logger(`agent-${agentType}`);
+    const logger = new Logger('Agent');
     
     // Create LLM provider from configuration
     const { createLLMProvider } = await import('../agents/llm-factory.ts');
