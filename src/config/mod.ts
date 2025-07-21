@@ -1,6 +1,7 @@
 import { exists } from 'std/fs/exists.ts';
 import { Logger } from '../utils/logger.ts';
 import { Config, ConfigSchema } from './types.ts';
+import { sequentialProcessingConfigManager } from './sequential-processing-config.ts';
 
 export type { Config } from './types.ts';
 
@@ -75,10 +76,14 @@ export class ConfigManager {
         // 3. Merge configurations with environment variables taking precedence
         const mergedConfig = this.mergeConfigs(fileConfig, envConfig); // fileConfig first, then envConfig to override
 
-        // 4. Validate the configuration
+        // 4. Load sequential processing configuration
+        const sequentialConfig = await sequentialProcessingConfigManager.loadConfig();
+        mergedConfig.sequentialProcessing = sequentialConfig;
+
+        // 5. Validate the configuration
         const validatedConfig = this.validateConfig(mergedConfig);
 
-        // 5. Ensure AI configuration is properly structured
+        // 6. Ensure AI configuration is properly structured
         if (validatedConfig.ai) {
             // Set default provider if not set
             if (!validatedConfig.ai.default_provider) {
@@ -257,6 +262,9 @@ export class ConfigManager {
             }
             if (curr.datadog) {
                 merged.datadog = { ...curr.datadog };
+            }
+            if (curr.sequentialProcessing) {
+                merged.sequentialProcessing = { ...curr.sequentialProcessing };
             }
 
             return merged;

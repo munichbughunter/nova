@@ -12,6 +12,7 @@ import type {
     AgentExecuteOptions,
     ReviewCommand, 
     ReviewResult,
+    ReviewAnalysis,
     DiffComment,
     PullRequest,
     DiffData 
@@ -25,6 +26,14 @@ import { ErrorHandlingService } from '../services/error-handling/error-handler.s
 import { ValidationService } from '../services/analysis/validation/validation.service.ts';
 import { LLMResponseProcessor } from '../services/llm/llm-response-processor.ts';
 import { MonitoringService } from '../services/monitoring/monitoring.service.ts';
+import { 
+    SequentialFileProcessor, 
+    ProcessingModeSelector, 
+    ProcessingMode,
+    type ProcessingResult,
+    type FileProcessor,
+    type SequentialProcessingOptions
+} from '../services/sequential_processor.ts';
 
 /**
  * Enhanced code review agent that extends the example agent with code review capabilities
@@ -38,6 +47,8 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
     private validationService: ValidationService;
     private responseProcessor: LLMResponseProcessor;
     private monitoringService: MonitoringService;
+    private sequentialProcessor: SequentialFileProcessor;
+    private processingModeSelector: ProcessingModeSelector;
 
     constructor(context: AgentContext) {
         super(context);
@@ -50,6 +61,8 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
         this.errorHandler = new ErrorHandlingService(this.logger);
         this.validationService = new ValidationService(this.logger, this.monitoringService);
         this.responseProcessor = new LLMResponseProcessor(this.logger);
+        this.sequentialProcessor = new SequentialFileProcessor(this.logger);
+        this.processingModeSelector = new ProcessingModeSelector(this.logger);
     }
 
     /**
@@ -280,80 +293,36 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
                 type: 'info',
             });
 
-            // Read all files first
-            const fileContents: Array<{ filePath: string; content: string }> = [];
-            for (const filePath of files) {
-                try {
-                    this.logger.debug(`Reading file: ${filePath}`);
-                    
-                    // Read the file content with error handling and retry
-                    const fileContent = await this.executeWithErrorHandling(
-                        async () => {
-                            const fileResult = await readFile(this.context, filePath);
-                            if (!fileResult.success || !fileResult.data) {
-                                throw new Error(`Could not read file: ${fileResult.error || 'Unknown error'}. Check that the file exists and you have read permissions: ${filePath}`);
-                            }
+            // Determine processing mode based on command type
+            const reviewCommand = {
+                type: 'files' as const,
+                targets: files,
+                options: options.context || {}
+            };
 
-                            // Extract content from the file result
-                            let content: string;
-                            if (typeof fileResult.data === 'string') {
-                                content = fileResult.data;
-                            } else if (typeof fileResult.data === 'object' && fileResult.data && 'content' in fileResult.data) {
-                                content = fileResult.data.content as string;
-                            } else {
-                                throw new Error(`Unexpected file content format for ${filePath}. The file content format is not supported for analysis`);
-                            }
-
-                            // Ensure content is a string
-                            if (typeof content !== 'string') {
-                                throw new Error(`File content is not a string for ${filePath}. Only text files can be analyzed for code review`);
-                            }
-
-                            return content;
-                        },
-                        { operation: 'readFile', filePath },
-                        { enableRetry: true, maxAttempts: 3 }
-                    );
-                    
-                    fileContents.push({ filePath, content: fileContent });
-                } catch (fileError) {
-                    this.logger.error(`Error reading file: ${filePath}`, { 
-                        error: fileError instanceof Error ? fileError.message : 'Unknown error'
-                    });
-                    // Still add to list with empty content to maintain order
-                    fileContents.push({ filePath, content: '' });
-                }
-            }
-
-            // Analyze files in parallel with caching
-            this.logger.info(`Starting parallel analysis of ${fileContents.length} files`);
-            const analysisResults = await this.codeAnalysisService.analyzeMultipleFiles(
-                fileContents,
-                (completed, total) => {
-                    if (total > 1) {
-                        notifyUser(this.context, {
-                            message: `Analyzed ${completed}/${total} files...`,
-                            type: 'info',
-                        });
-                    }
+            const processingMode = this.processingModeSelector.determineProcessingModeAdvanced(
+                reviewCommand,
+                files.length,
+                {
+                    forceSequential: options.context?.forceSequential as boolean,
+                    forceParallel: options.context?.forceParallel as boolean,
+                    sequentialThreshold: options.context?.sequentialThreshold as number
                 }
             );
 
-            // Transform results
-            const results: ReviewResult[] = analysisResults.map(result => {
-                if (result.error) {
-                    return this.createErrorResult(result.filePath, result.error.message);
-                }
-                
-                return {
-                    file: result.filePath,
-                    ...result.result,
-                };
-            });
+            this.logger.info(`Using ${processingMode} processing mode for ${files.length} files`);
+
+            // Process files based on selected mode
+            let results: ReviewResult[];
+            if (processingMode === ProcessingMode.SEQUENTIAL) {
+                results = await this.processFilesSequentially(files, options);
+            } else {
+                results = await this.processFilesInParallel(files, options);
+            }
 
             // Log cache statistics
             const cacheStats = this.codeAnalysisService.getCacheStats();
-            this.logger.info(`Analysis completed. Cache stats:`, cacheStats);
+            this.logger.info(`Analysis completed using ${processingMode} mode. Cache stats:`, cacheStats);
 
             // Format results as a table
             const table = this.tableFormatter.formatReviewResults(results);
@@ -372,7 +341,7 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
             const responseContent = `# Code Review Results\n\n${table}${summary}\n\n${details}`;
 
             await notifyUser(this.context, {
-                message: `Code review completed for ${results.length} file${results.length === 1 ? '' : 's'}`,
+                message: `Code review completed for ${results.length} file${results.length === 1 ? '' : 's'} using ${processingMode} processing`,
                 type: 'success',
             });
 
@@ -388,11 +357,12 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
             return this.createResponse(
                 true,
                 responseContent,
-                { results, summary: this.calculateSummaryStats(results) },
+                { results, summary: this.calculateSummaryStats(results), processingMode },
                 undefined,
                 { 
                     analysisType: 'fileReview',
                     filesAnalyzed: results.length,
+                    processingMode,
                     executionTime: Date.now(),
                 }
             );
@@ -414,6 +384,168 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
                 error instanceof Error ? error.message : 'Unknown error'
             );
         }
+    }
+
+    /**
+     * Process files sequentially with progress tracking
+     */
+    private async processFilesSequentially(files: string[], options: AgentExecuteOptions): Promise<ReviewResult[]> {
+        this.logger.info(`Processing ${files.length} files sequentially`);
+
+        // Create a file processor that integrates with the code analysis service
+        const fileProcessor: FileProcessor = {
+            processFile: async (filePath: string, content?: string): Promise<ReviewAnalysis> => {
+                // Read file content if not provided
+                let fileContent = content;
+                if (!fileContent) {
+                    const fileResult = await readFile(this.context, filePath);
+                    if (!fileResult.success || !fileResult.data) {
+                        throw new Error(`Could not read file: ${fileResult.error || 'Unknown error'}`);
+                    }
+
+                    // Extract content from the file result
+                    if (typeof fileResult.data === 'string') {
+                        fileContent = fileResult.data;
+                    } else if (typeof fileResult.data === 'object' && fileResult.data && 'content' in fileResult.data) {
+                        fileContent = fileResult.data.content as string;
+                    } else {
+                        throw new Error(`Unexpected file content format for ${filePath}`);
+                    }
+                }
+
+                // Use the code analysis service to analyze the file
+                return await this.codeAnalysisService.analyzeCode(filePath, fileContent);
+            }
+        };
+
+        // Set up sequential processing options with progress tracking
+        const processingOptions: SequentialProcessingOptions = {
+            showProgress: true,
+            onFileStart: (file: string, index: number, total: number) => {
+                this.logger.debug(`Starting analysis of file ${index + 1}/${total}: ${file}`);
+                notifyUser(this.context, {
+                    message: `Analyzing file ${index + 1}/${total}: ${file.split('/').pop() || file}`,
+                    type: 'info',
+                });
+            },
+            onFileComplete: (file: string, result: ProcessingResult) => {
+                const status = result.success ? 'completed' : 'failed';
+                this.logger.debug(`File analysis ${status}: ${file} (${result.duration}ms)`);
+            },
+            onError: (file: string, error: Error) => {
+                this.logger.error(`Error processing file ${file}: ${error.message}`);
+                notifyUser(this.context, {
+                    message: `Error analyzing ${file}: ${error.message}`,
+                    type: 'error',
+                });
+            },
+            continueOnError: true,
+            maxErrors: 10
+        };
+
+        // Process files sequentially
+        const processingResults = await this.sequentialProcessor.processFiles(
+            files,
+            fileProcessor,
+            processingOptions
+        );
+
+        // Transform processing results to review results
+        const results: ReviewResult[] = processingResults.map(result => {
+            if (result.error) {
+                return this.createErrorResult(result.file, result.error.message);
+            }
+            
+            return {
+                file: result.file,
+                ...result.result!,
+            };
+        });
+
+        // Log processing statistics
+        const stats = this.sequentialProcessor.getStats(processingResults);
+        this.logger.info(`Sequential processing stats:`, stats);
+
+        return results;
+    }
+
+    /**
+     * Process files in parallel (existing behavior)
+     */
+    private async processFilesInParallel(files: string[], options: AgentExecuteOptions): Promise<ReviewResult[]> {
+        this.logger.info(`Processing ${files.length} files in parallel`);
+
+        // Read all files first
+        const fileContents: Array<{ filePath: string; content: string }> = [];
+        for (const filePath of files) {
+            try {
+                this.logger.debug(`Reading file: ${filePath}`);
+                
+                // Read the file content with error handling and retry
+                const fileContent = await this.executeWithErrorHandling(
+                    async () => {
+                        const fileResult = await readFile(this.context, filePath);
+                        if (!fileResult.success || !fileResult.data) {
+                            throw new Error(`Could not read file: ${fileResult.error || 'Unknown error'}. Check that the file exists and you have read permissions: ${filePath}`);
+                        }
+
+                        // Extract content from the file result
+                        let content: string;
+                        if (typeof fileResult.data === 'string') {
+                            content = fileResult.data;
+                        } else if (typeof fileResult.data === 'object' && fileResult.data && 'content' in fileResult.data) {
+                            content = fileResult.data.content as string;
+                        } else {
+                            throw new Error(`Unexpected file content format for ${filePath}. The file content format is not supported for analysis`);
+                        }
+
+                        // Ensure content is a string
+                        if (typeof content !== 'string') {
+                            throw new Error(`File content is not a string for ${filePath}. Only text files can be analyzed for code review`);
+                        }
+
+                        return content;
+                    },
+                    { operation: 'readFile', filePath },
+                    { enableRetry: true, maxAttempts: 3 }
+                );
+                
+                fileContents.push({ filePath, content: fileContent });
+            } catch (fileError) {
+                this.logger.error(`Error reading file: ${filePath}`, { 
+                    error: fileError instanceof Error ? fileError.message : 'Unknown error'
+                });
+                // Still add to list with empty content to maintain order
+                fileContents.push({ filePath, content: '' });
+            }
+        }
+
+        // Analyze files in parallel with caching
+        const analysisResults = await this.codeAnalysisService.analyzeMultipleFiles(
+            fileContents,
+            (completed, total) => {
+                if (total > 1) {
+                    notifyUser(this.context, {
+                        message: `Analyzed ${completed}/${total} files...`,
+                        type: 'info',
+                    });
+                }
+            }
+        );
+
+        // Transform results
+        const results: ReviewResult[] = analysisResults.map(result => {
+            if (result.error) {
+                return this.createErrorResult(result.filePath, result.error.message);
+            }
+            
+            return {
+                file: result.filePath,
+                ...result.result,
+            };
+        });
+
+        return results;
     }
 
     /**
@@ -546,31 +678,56 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
                 }
             }
 
-            // Analyze files in parallel with caching
-            this.logger.info(`Starting parallel analysis of ${fileContents.length} changed files`);
-            const analysisResults = await this.codeAnalysisService.analyzeMultipleFiles(
-                fileContents,
-                (completed, total) => {
-                    if (total > 1) {
-                        notifyUser(this.context, {
-                            message: `Analyzed ${completed}/${total} changed files...`,
-                            type: 'info',
-                        });
-                    }
+            // Determine processing mode for changes review
+            const reviewCommand = {
+                type: 'changes' as const,
+                targets: reviewableFiles,
+                options: options.context || {}
+            };
+
+            const processingMode = this.processingModeSelector.determineProcessingModeAdvanced(
+                reviewCommand,
+                reviewableFiles.length,
+                {
+                    forceSequential: options.context?.forceSequential as boolean,
+                    forceParallel: options.context?.forceParallel as boolean,
+                    sequentialThreshold: options.context?.sequentialThreshold as number
                 }
             );
 
-            // Transform results
-            const results: ReviewResult[] = analysisResults.map(result => {
-                if (result.error) {
-                    return this.createErrorResult(result.filePath, result.error.message);
-                }
-                
-                return {
-                    file: result.filePath,
-                    ...result.result,
-                };
-            });
+            this.logger.info(`Using ${processingMode} processing mode for ${reviewableFiles.length} changed files`);
+
+            // Process files based on selected mode
+            let results: ReviewResult[];
+            if (processingMode === ProcessingMode.SEQUENTIAL) {
+                results = await this.processFilesSequentially(reviewableFiles, options);
+            } else {
+                // Analyze files in parallel with caching (existing behavior)
+                this.logger.info(`Starting parallel analysis of ${fileContents.length} changed files`);
+                const analysisResults = await this.codeAnalysisService.analyzeMultipleFiles(
+                    fileContents,
+                    (completed, total) => {
+                        if (total > 1) {
+                            notifyUser(this.context, {
+                                message: `Analyzed ${completed}/${total} changed files...`,
+                                type: 'info',
+                            });
+                        }
+                    }
+                );
+
+                // Transform results
+                results = analysisResults.map(result => {
+                    if (result.error) {
+                        return this.createErrorResult(result.filePath, result.error.message);
+                    }
+                    
+                    return {
+                        file: result.filePath,
+                        ...result.result,
+                    };
+                });
+            }
 
             // Log cache statistics
             const cacheStats = this.codeAnalysisService.getCacheStats();
@@ -599,7 +756,7 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
             const responseContent = `# Change Detection Review\n\n${table}${summary}${changedFilesList}\n\n${details}`;
 
             await notifyUser(this.context, {
-                message: `Change detection review completed for ${results.length} file${results.length === 1 ? '' : 's'}`,
+                message: `Change detection review completed for ${results.length} file${results.length === 1 ? '' : 's'} using ${processingMode} processing`,
                 type: 'success',
             });
 
@@ -626,6 +783,7 @@ export class EnhancedCodeReviewAgent extends ExampleAgent {
                     filesAnalyzed: results.length,
                     changedFilesCount: changedFiles.length,
                     reviewableFilesCount: reviewableFiles.length,
+                    processingMode,
                     executionTime: Date.now(),
                 }
             );

@@ -13,8 +13,282 @@ import type { LLMProvider, ToolFunction } from "../types/tool_types.ts";
 import { createExampleAgent } from "../agents/example-agent.ts";
 import { createEnhancedCodeReviewAgent } from "../agents/enhanced-code-review-agent.ts";
 import { MCPService } from "../services/mcp_service.ts";
+import { EnhancedCLIHandler } from "../services/enhanced-cli-handler.ts";
+import type { EnhancedCLIOptions } from "../types/enhanced-cli.types.ts";
 
 const logger = new Logger("agent-command");
+
+/**
+ * Check if command line arguments contain enhanced CLI options
+ */
+function hasEnhancedOptions(args: string[]): boolean {
+    const enhancedFlags = [
+        '--dry-run', '-d',
+        '--json-report', '-j',
+        '--group-by-directory', '-g',
+        '--output-format', '-o',
+        '--sequential', '-s',
+        '--show-progress', '-p',
+        '--show-eta',
+        '--show-throughput',
+        '--max-errors',
+        '--continue-on-error',
+        '--file-ordering'
+    ];
+
+    return args.some(arg => 
+        enhancedFlags.some(flag => arg.startsWith(flag))
+    );
+}
+
+/**
+ * Handle enhanced review command with new CLI options
+ */
+async function handleEnhancedReviewCommand(args: string[]): Promise<void> {
+    const cliHandler = new EnhancedCLIHandler(logger);
+    
+    try {
+        // Parse enhanced arguments
+        const result = cliHandler.parseEnhancedArgs(args);
+        
+        // Handle validation errors
+        if (result.errors.length > 0) {
+            console.log("❌ Command validation errors:");
+            result.errors.forEach(error => console.log(`  • ${error}`));
+            
+            if (result.options.help) {
+                showEnhancedHelp(cliHandler);
+            }
+            return;
+        }
+
+        // Show warnings if any
+        if (result.warnings.length > 0) {
+            console.log("⚠️  Warnings:");
+            result.warnings.forEach(warning => console.log(`  • ${warning}`));
+            console.log();
+        }
+
+        // Handle help flag
+        if (result.options.help) {
+            showEnhancedHelp(cliHandler);
+            return;
+        }
+
+        // Handle list flag
+        if (result.options.list) {
+            showAvailableAgents();
+            return;
+        }
+
+        // Handle dry-run mode
+        if (result.options.dryRun && result.command) {
+            await handleDryRunMode(result.command, result.options);
+            return;
+        }
+
+        // Execute enhanced review command
+        if (result.command) {
+            await executeEnhancedReviewCommand(result.command, result.options);
+        } else {
+            console.log("❌ No valid review command found");
+            console.log("Use 'nova agent --help' for usage information");
+        }
+
+    } catch (error) {
+        logger.error("Enhanced review command failed:", error);
+        console.log(`❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+        Deno.exit(1);
+    }
+}
+
+/**
+ * Show enhanced help information
+ */
+function showEnhancedHelp(cliHandler: EnhancedCLIHandler): void {
+    const baseHelp = `
+🤖 Nova Agent Enhanced Review Command
+
+USAGE:
+    nova agent review [OPTIONS] [FILES...]
+    nova agent review [OPTIONS] changes
+    nova agent review [OPTIONS] pr [PR_ID]
+
+BASIC OPTIONS:
+    -a, --agent <TYPE>     Agent type to use (default: enhanced)
+    -i, --interactive      Run in interactive mode
+    -l, --list             List available agents
+    -h, --help             Show this help message
+    -v, --verbose          Enable verbose logging
+
+BASIC EXAMPLES:
+    # Review specific files
+    nova agent review src/main.ts src/utils.ts
+    
+    # Review all changed files
+    nova agent review changes
+    
+    # Review pull request
+    nova agent review pr 123
+`;
+
+    console.log(baseHelp);
+    console.log(cliHandler.generateEnhancedHelp());
+}
+
+/**
+ * Handle dry-run mode
+ */
+async function handleDryRunMode(command: any, options: EnhancedCLIOptions): Promise<void> {
+    console.log("🔍 Dry Run Mode - Analysis Plan");
+    console.log("═".repeat(50));
+    
+    // Create agent to access dry-run functionality
+    const agent = await createEnhancedAgent();
+    
+    // Convert enhanced command to query string for agent
+    const query = buildQueryFromCommand(command);
+    
+    console.log(`📋 Command: ${query}`);
+    console.log(`📊 Output Format: ${options.outputFormat}`);
+    console.log(`📁 Group by Directory: ${options.groupByDirectory ? 'Yes' : 'No'}`);
+    console.log(`🔄 Sequential Processing: ${options.sequential ? 'Yes' : 'No'}`);
+    
+    if (options.jsonReport) {
+        console.log(`📄 JSON Report: ${options.jsonReport}`);
+    }
+    
+    if (command.files && command.files.length > 0) {
+        console.log(`\n📂 Files to analyze (${command.files.length}):`);
+        command.files.forEach((file: string, index: number) => {
+            console.log(`  ${index + 1}. ${file}`);
+        });
+    }
+    
+    console.log("\n✅ Dry run complete. Use without --dry-run to execute.");
+}
+
+/**
+ * Execute enhanced review command
+ */
+async function executeEnhancedReviewCommand(command: any, options: EnhancedCLIOptions): Promise<void> {
+    console.log(`🤖 Running enhanced review with ${options.agent || 'enhanced'} agent...\n`);
+    
+    // Create enhanced agent
+    const agent = await createEnhancedAgent();
+    
+    // Convert enhanced command to query string for agent
+    const query = buildQueryFromCommand(command);
+    
+    // Execute the review
+    const response = await agent.execute(query);
+    
+    // Handle response based on output format
+    await handleEnhancedResponse(response, options);
+}
+
+/**
+ * Create enhanced agent instance
+ */
+async function createEnhancedAgent() {
+    return await createAgent("enhanced");
+}
+
+/**
+ * Build query string from enhanced command
+ */
+function buildQueryFromCommand(command: any): string {
+    switch (command.mode) {
+        case 'file':
+            return `review ${command.files?.join(' ') || ''}`;
+        case 'changes':
+            return 'review changes';
+        case 'pr':
+            return command.prId ? `review pr ${command.prId}` : 'review pr';
+        default:
+            return 'review';
+    }
+}
+
+/**
+ * Handle enhanced response based on output format
+ */
+async function handleEnhancedResponse(response: any, options: EnhancedCLIOptions): Promise<void> {
+    // Always show console output unless format is 'json' only
+    if (options.outputFormat !== 'json') {
+        if (response.success) {
+            console.log("✅ Response:");
+            console.log(response.content);
+            
+            if (response.metadata?.analysisType) {
+                console.log(`\n📊 Analysis Type: ${response.metadata.analysisType}`);
+            }
+            
+            if (response.data) {
+                console.log("\n📋 Structured Data Available");
+            }
+        } else {
+            console.log("❌ Error:");
+            console.log(response.content);
+            if (response.error) {
+                console.log(`Details: ${response.error}`);
+            }
+        }
+    }
+
+    // Generate JSON report if requested
+    if (options.jsonReport || options.outputFormat === 'json' || options.outputFormat === 'both') {
+        await generateJSONReport(response, options);
+    }
+
+    // Exit with error code if response failed
+    if (!response.success) {
+        Deno.exit(1);
+    }
+}
+
+/**
+ * Generate JSON report
+ */
+async function generateJSONReport(response: any, options: EnhancedCLIOptions): Promise<void> {
+    try {
+        const report = {
+            metadata: {
+                timestamp: new Date().toISOString(),
+                version: "1.0.0",
+                outputFormat: options.outputFormat,
+                options: {
+                    dryRun: options.dryRun,
+                    groupByDirectory: options.groupByDirectory,
+                    sequential: options.sequential,
+                    showProgress: options.showProgress
+                }
+            },
+            response: {
+                success: response.success,
+                content: response.content,
+                error: response.error,
+                metadata: response.metadata,
+                data: response.data
+            }
+        };
+
+        const jsonContent = JSON.stringify(report, null, 2);
+
+        if (options.jsonReport) {
+            // Save to file
+            await Deno.writeTextFile(options.jsonReport, jsonContent);
+            console.log(`📄 JSON report saved to: ${options.jsonReport}`);
+        } else if (options.outputFormat === 'json') {
+            // Output to console
+            console.log(jsonContent);
+        }
+
+    } catch (error) {
+        logger.error("Failed to generate JSON report:", error);
+        console.log(`❌ Failed to generate JSON report: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+}
 
 /**
  * Check if a string is a valid agent name
@@ -49,6 +323,12 @@ interface AgentCommandOptions {
  * Main agent command handler
  */
 export async function agentCommand(args: string[]): Promise<void> {
+    // Check if this is an enhanced review command with new CLI options
+    if (hasEnhancedOptions(args)) {
+        await handleEnhancedReviewCommand(args);
+        return;
+    }
+
     const parsedArgs = parseArgs(args, {
         string: ["agent"],
         boolean: ["interactive", "help", "list", "verbose"],
@@ -286,7 +566,7 @@ USAGE:
     nova agent [OPTIONS] [QUERY]
     nova agent <AGENT_NAME> [QUERY]
     nova agent <AGENT_NAME> help
-    nova agent review [SUBCOMMAND]
+    nova agent review [ENHANCED_OPTIONS] [SUBCOMMAND]
 
 OPTIONS:
     -a, --agent <TYPE>     Agent type to use (default: example)
@@ -295,14 +575,22 @@ OPTIONS:
     -h, --help             Show this help message
     -v, --verbose          Enable verbose logging
 
+ENHANCED REVIEW OPTIONS:
+    -d, --dry-run          Show analysis plan without executing
+    -j, --json-report <path>  Generate JSON report at specified path
+    -g, --group-by-directory  Group files by directory in output
+    -o, --output-format <fmt> Output format: console, json, or both
+    -s, --sequential       Process files sequentially (default: true)
+    -p, --show-progress    Show progress indicator (default: true)
+    --show-eta             Show estimated time remaining
+    --show-throughput      Show processing throughput
+    --max-errors <num>     Maximum errors before stopping (default: 10)
+    --continue-on-error    Continue processing after errors (default: true)
+    --file-ordering <order> File processing order: alphabetical, size, modified, natural
+
 EXAMPLES:
-    # Ask a single question with default agent
+    # Basic usage
     nova agent "How do I implement error handling in TypeScript?"
-    
-    # Analyze a code file with default agent
-    nova agent "analyze src/components/Header.tsx"
-    
-    # Use specific agent with query
     nova agent example "What are React best practices?"
     
     # Enhanced code review examples
@@ -312,6 +600,12 @@ EXAMPLES:
     nova agent review changes                        # Review changed files (explicit)
     nova agent review pr                             # Review pull request
     nova agent review pr 123                        # Review specific PR/MR
+    
+    # Enhanced options examples
+    nova agent review --dry-run src/*.ts            # Show analysis plan
+    nova agent review --json-report report.json src/ # Generate JSON report
+    nova agent review --group-by-directory src/**/*.ts # Group by directory
+    nova agent review --output-format both --show-eta src/ # Multiple options
     
     # Alternative enhanced agent usage
     nova agent enhanced "review src/components/"
@@ -332,6 +626,7 @@ AGENTS:
     example    Development assistant for code analysis and Q&A
     enhanced   Enhanced code review agent with comprehensive analysis
 
+For enhanced review options help, use: nova agent review --help
 For agent-specific help, use: nova agent <agent-name> help
 `);
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SequentialProcessingConfigSchema } from './sequential-processing.types.ts';
 
 // AI-related types
 export const OpenAIModels = [
@@ -72,6 +73,7 @@ export const ConfigSchema = z.object({
         enabled: z.boolean()
     }).optional(),
     }).optional(),
+    sequentialProcessing: SequentialProcessingConfigSchema.optional(),
 }).strict();
 
 export type Config = z.infer<typeof ConfigSchema>;
