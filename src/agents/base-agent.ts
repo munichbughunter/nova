@@ -18,7 +18,7 @@ export abstract class BaseAgent implements Agent {
     public readonly name: string;
     public readonly description: string;
     public readonly version: string;
-    
+
     protected context: AgentContext;
     protected logger: Logger;
     protected config: AgentConfig;
@@ -33,7 +33,7 @@ export abstract class BaseAgent implements Agent {
         this.config = config;
         this.context = context;
         this.logger = context.logger.child(`Agent:${this.name}`);
-        
+
         this.logger.debug(`Initialized agent: ${this.name} v${this.version}`);
     }
 
@@ -86,7 +86,7 @@ export abstract class BaseAgent implements Agent {
         } catch (error) {
             const executionTime = Date.now() - startTime;
             this.logger.error(`Tool ${toolName} failed after ${executionTime}ms:`, error);
-            
+
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -163,11 +163,11 @@ export abstract class BaseAgent implements Agent {
 
         try {
             const messages = [];
-            
+
             if (options.systemPrompt) {
                 messages.push({ role: 'system', content: options.systemPrompt });
             }
-            
+
             messages.push({ role: 'user', content: prompt });
 
             const result = await this.context.llmProvider.chat(messages, options.tools);
@@ -256,7 +256,7 @@ export abstract class BaseAgent implements Agent {
         operationName = 'operation',
     ): Promise<T> {
         const timeoutMs = timeout || 30000; // Default 30 seconds
-        
+
         const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => {
                 reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));

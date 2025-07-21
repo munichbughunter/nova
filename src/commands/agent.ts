@@ -36,7 +36,7 @@ function hasEnhancedOptions(args: string[]): boolean {
         '--file-ordering'
     ];
 
-    return args.some(arg => 
+    return args.some(arg =>
         enhancedFlags.some(flag => arg.startsWith(flag))
     );
 }
@@ -46,16 +46,16 @@ function hasEnhancedOptions(args: string[]): boolean {
  */
 async function handleEnhancedReviewCommand(args: string[]): Promise<void> {
     const cliHandler = new EnhancedCLIHandler(logger);
-    
+
     try {
         // Parse enhanced arguments
         const result = cliHandler.parseEnhancedArgs(args);
-        
+
         // Handle validation errors
         if (result.errors.length > 0) {
             console.log("❌ Command validation errors:");
             result.errors.forEach(error => console.log(`  • ${error}`));
-            
+
             if (result.options.help) {
                 showEnhancedHelp(cliHandler);
             }
@@ -142,29 +142,29 @@ BASIC EXAMPLES:
 async function handleDryRunMode(command: any, options: EnhancedCLIOptions): Promise<void> {
     console.log("🔍 Dry Run Mode - Analysis Plan");
     console.log("═".repeat(50));
-    
+
     // Create agent to access dry-run functionality
     const agent = await createEnhancedAgent();
-    
+
     // Convert enhanced command to query string for agent
     const query = buildQueryFromCommand(command);
-    
+
     console.log(`📋 Command: ${query}`);
     console.log(`📊 Output Format: ${options.outputFormat}`);
     console.log(`📁 Group by Directory: ${options.groupByDirectory ? 'Yes' : 'No'}`);
     console.log(`🔄 Sequential Processing: ${options.sequential ? 'Yes' : 'No'}`);
-    
+
     if (options.jsonReport) {
         console.log(`📄 JSON Report: ${options.jsonReport}`);
     }
-    
+
     if (command.files && command.files.length > 0) {
         console.log(`\n📂 Files to analyze (${command.files.length}):`);
         command.files.forEach((file: string, index: number) => {
             console.log(`  ${index + 1}. ${file}`);
         });
     }
-    
+
     console.log("\n✅ Dry run complete. Use without --dry-run to execute.");
 }
 
@@ -173,16 +173,16 @@ async function handleDryRunMode(command: any, options: EnhancedCLIOptions): Prom
  */
 async function executeEnhancedReviewCommand(command: any, options: EnhancedCLIOptions): Promise<void> {
     console.log(`🤖 Running enhanced review with ${options.agent || 'enhanced'} agent...\n`);
-    
+
     // Create enhanced agent
     const agent = await createEnhancedAgent();
-    
+
     // Convert enhanced command to query string for agent
     const query = buildQueryFromCommand(command);
-    
+
     // Execute the review
     const response = await agent.execute(query);
-    
+
     // Handle response based on output format
     await handleEnhancedResponse(response, options);
 }
@@ -217,13 +217,13 @@ async function handleEnhancedResponse(response: any, options: EnhancedCLIOptions
     // Always show console output unless format is 'json' only
     if (options.outputFormat !== 'json') {
         if (response.success) {
-            console.log("✅ Response:");
+            console.log("\n✅ Response:\n");
             console.log(response.content);
-            
+
             if (response.metadata?.analysisType) {
                 console.log(`\n📊 Analysis Type: ${response.metadata.analysisType}`);
             }
-            
+
             if (response.data) {
                 console.log("\n📋 Structured Data Available");
             }
@@ -334,7 +334,7 @@ export async function agentCommand(args: string[]): Promise<void> {
         boolean: ["interactive", "help", "list", "verbose"],
         alias: {
             a: "agent",
-            i: "interactive", 
+            i: "interactive",
             h: "help",
             l: "list",
             v: "verbose"
@@ -429,10 +429,10 @@ async function runInteractiveMode(options: AgentCommandOptions): Promise<void> {
     console.log("Type 'exit' to quit, 'help' for agent help\n");
 
     const agent = await createAgent(options.agent!);
-    
+
     while (true) {
         const input = prompt("💬 Your question: ");
-        
+
         if (!input) {
             continue;
         }
@@ -449,13 +449,13 @@ async function runInteractiveMode(options: AgentCommandOptions): Promise<void> {
         }
 
         console.log("🔄 Processing...\n");
-        
+
         const response = await agent.execute(input);
-        
+
         if (response.success) {
-            console.log("✅ Response:");
+            console.log("\n✅ Response:\n");
             console.log(response.content);
-            
+
             if (response.metadata?.analysisType) {
                 console.log(`\n📊 Analysis Type: ${response.metadata.analysisType}`);
             }
@@ -466,7 +466,7 @@ async function runInteractiveMode(options: AgentCommandOptions): Promise<void> {
                 console.log(`Details: ${response.error}`);
             }
         }
-        
+
         console.log("\n" + "─".repeat(50) + "\n");
     }
 }
@@ -476,18 +476,18 @@ async function runInteractiveMode(options: AgentCommandOptions): Promise<void> {
  */
 async function runSingleQuery(query: string, options: AgentCommandOptions): Promise<void> {
     console.log(`🤖 Running query with ${options.agent} agent...\n`);
-    
+
     const agent = await createAgent(options.agent!);
     const response = await agent.execute(query);
-    
+
     if (response.success) {
-        console.log("✅ Response:");
+        console.log("\n✅ Response:\n");
         console.log(response.content);
-        
+
         if (response.metadata?.analysisType) {
             console.log(`\n📊 Analysis Type: ${response.metadata.analysisType}`);
         }
-        
+
         if (response.data) {
             console.log("\n📋 Structured Data Available");
         }
@@ -508,11 +508,11 @@ async function createAgent(agentType: string) {
     const config = await configManager.loadConfig();
     const mcpService = MCPService.getInstance(config);
     const logger = new Logger('Agent');
-    
+
     // Create LLM provider from configuration
     const { createLLMProvider } = await import('../agents/llm-factory.ts');
     const agentLLMProvider = await createLLMProvider(config, logger);
-    
+
     // Adapter to convert agent LLMProvider to tool_types LLMProvider interface
     const llmProvider: LLMProvider = {
         name: agentLLMProvider.name,
@@ -527,10 +527,10 @@ async function createAgent(agentType: string) {
                 schema: schema as z.ZodType<T>,
             });
         },
-        chat: (messages: Array<{ role: string; content: string }>, tools?: ToolFunction[]) => 
+        chat: (messages: Array<{ role: string; content: string }>, tools?: ToolFunction[]) =>
             agentLLMProvider.chat(messages, { tools }),
     };
-    
+
     const context: AgentContext = {
         config,
         mcpService,
@@ -544,12 +544,12 @@ async function createAgent(agentType: string) {
         case "dev":
         case "development":
             return createExampleAgent(context);
-        
+
         case "enhanced":
         case "review":
         case "code-review":
             return createEnhancedCodeReviewAgent(context);
-        
+
         default:
             throw new Error(`Unknown agent type: ${agentType}. Available agents: example, enhanced`);
     }

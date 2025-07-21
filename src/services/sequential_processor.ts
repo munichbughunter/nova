@@ -239,15 +239,15 @@ export class ProcessingModeSelector {
     determineProcessingMode(command: ReviewCommand): ProcessingMode {
         this.logger.debug(`Determining processing mode for command type: ${command.type}`);
 
-        // Sequential processing for local file analysis
-        if (command.type === 'files' || command.type === 'directory') {
-            this.logger.debug('Selected sequential processing for file/directory analysis');
+        // Sequential processing for local file analysis and changes analysis
+        if (command.type === 'files' || command.type === 'directory' || command.type === 'changes') {
+            this.logger.debug('Selected sequential processing for file/directory/changes analysis');
             return ProcessingMode.SEQUENTIAL;
         }
 
-        // Parallel processing for PR and changes analysis
-        if (command.type === 'pr' || command.type === 'changes') {
-            this.logger.debug('Selected parallel processing for PR/changes analysis');
+        // Parallel processing for PR analysis only
+        if (command.type === 'pr') {
+            this.logger.debug('Selected parallel processing for PR analysis');
             return ProcessingMode.PARALLEL;
         }
 
@@ -279,20 +279,13 @@ export class ProcessingModeSelector {
             return ProcessingMode.PARALLEL;
         }
 
-        // Use threshold-based decision for file analysis
-        const threshold = options?.sequentialThreshold ?? 10;
-        
-        if (command.type === 'files' || command.type === 'directory') {
-            if (fileCount <= threshold) {
-                this.logger.debug(`Using sequential processing for ${fileCount} files (threshold: ${threshold})`);
-                return ProcessingMode.SEQUENTIAL;
-            } else {
-                this.logger.debug(`Using parallel processing for ${fileCount} files (above threshold: ${threshold})`);
-                return ProcessingMode.PARALLEL;
-            }
+        // Always use sequential processing for file analysis and changes analysis
+        if (command.type === 'files' || command.type === 'directory' || command.type === 'changes') {
+            this.logger.debug(`Using sequential processing for ${fileCount} files (always sequential)`);
+            return ProcessingMode.SEQUENTIAL;
         }
 
-        // Default behavior for other command types
+        // Default behavior for other command types (PR analysis)
         return this.determineProcessingMode(command);
     }
 }

@@ -4,7 +4,7 @@ import type {
     CodeIssue,
     AgentContext 
 } from '../../agents/types.ts';
-import { FlexibleReviewAnalysisSchema } from './validation/schemas.ts';
+import { FlexibleReviewAnalysisSchema, type FlexibleReviewAnalysis } from './validation/schemas.ts';
 import type { Logger } from '../../utils/logger.ts';
 import { PerformanceCache } from '../performance_cache.ts';
 import { ParallelProcessor, type ParallelTask } from '../parallel_processor.ts';
@@ -189,7 +189,7 @@ export class CodeAnalysisService {
                     });
                 }
                 
-                return processingResult.data;
+                return this.convertToReviewAnalysis(processingResult.data as FlexibleReviewAnalysis);
             } else {
                 // Processing failed, log errors and fall back
                 this.logger.warn('LLM response processing failed, falling back to rule-based analysis', {
@@ -207,6 +207,56 @@ export class CodeAnalysisService {
             });
             return await this.performRuleBasedAnalysis(filePath, content);
         }
+    }
+
+    /**
+     * Convert FlexibleReviewAnalysis to ReviewAnalysis
+     */
+    private convertToReviewAnalysis(flexibleAnalysis: FlexibleReviewAnalysis): ReviewAnalysis {
+        // Ensure grade is a valid enum value
+        const validGrades = ['A', 'B', 'C', 'D', 'F'] as const;
+        const grade = validGrades.includes(flexibleAnalysis.grade as any) 
+            ? flexibleAnalysis.grade as 'A' | 'B' | 'C' | 'D' | 'F'
+            : 'C' as const;
+
+        // Ensure value is a valid enum value
+        const validValues = ['high', 'medium', 'low'] as const;
+        const value = validValues.includes(flexibleAnalysis.value as any)
+            ? flexibleAnalysis.value as 'high' | 'medium' | 'low'
+            : 'medium' as const;
+
+        // Ensure state is a valid enum value
+        const validStates = ['pass', 'warning', 'fail'] as const;
+        const state = validStates.includes(flexibleAnalysis.state as any)
+            ? flexibleAnalysis.state as 'pass' | 'warning' | 'fail'
+            : 'warning' as const;
+
+        // Convert issues to the expected format
+        const issues = flexibleAnalysis.issues.map(issue => ({
+            line: typeof issue.line === 'number' ? issue.line : parseInt(String(issue.line), 10) || 1,
+            severity: (['low', 'medium', 'high'].includes(issue.severity) 
+                ? issue.severity 
+                : 'medium') as 'low' | 'medium' | 'high',
+            type: (['security', 'performance', 'style', 'bug'].includes(issue.type)
+                ? issue.type
+                : 'style') as 'security' | 'performance' | 'style' | 'bug',
+            message: issue.message || 'No message provided',
+        }));
+
+        return {
+            grade,
+            coverage: typeof flexibleAnalysis.coverage === 'number' 
+                ? flexibleAnalysis.coverage 
+                : 0,
+            testsPresent: Boolean(flexibleAnalysis.testsPresent),
+            value,
+            state,
+            issues,
+            suggestions: Array.isArray(flexibleAnalysis.suggestions) 
+                ? flexibleAnalysis.suggestions 
+                : [],
+            summary: flexibleAnalysis.summary || 'Analysis completed',
+        };
     }
 
     /**
