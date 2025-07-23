@@ -2,6 +2,7 @@ import { exists } from 'std/fs/exists.ts';
 import { Logger } from '../utils/logger.ts';
 import { Config, ConfigSchema } from './types.ts';
 import { sequentialProcessingConfigManager } from './sequential-processing-config.ts';
+import { loadConfig as loadGatewayConfigFromFile, FullGatewayConfig, watchConfig } from './gateway-config.ts';
 
 export type { Config } from './types.ts';
 
@@ -68,13 +69,15 @@ export class ConfigManager {
 
         // 1. Load environment variables
         const envConfig = this.loadEnvConfig();
-        // INFO: debug remove envConfig AI for now
-        // envConfig.ai = undefined;
 
         // 2. Load config file if it exists
         const fileConfig = await this.loadFileConfig();
-        // 3. Merge configurations with environment variables taking precedence
-        const mergedConfig = this.mergeConfigs(fileConfig, envConfig); // fileConfig first, then envConfig to override
+
+        // 3. Load gateway config
+        const gatewayConfig = await this.loadGatewayConfig();
+
+        // 4. Merge configurations with environment variables taking precedence
+        const mergedConfig = this.mergeConfigs(fileConfig, envConfig, { gatewayConfig });
 
         // 4. Load sequential processing configuration
         const sequentialConfig = await sequentialProcessingConfigManager.loadConfig();
@@ -94,6 +97,16 @@ export class ConfigManager {
         }
 
         this.config = validatedConfig;
+
+        // Start watching gateway config for changes
+        const gatewayConfigPath = `${this.configDir}/gateway.json`;
+        if (await exists(gatewayConfigPath)) {
+            watchConfig(gatewayConfigPath, (newConfig) => {
+                this.config = { ...this.config, gatewayConfig: newConfig } as Config;
+                this.logger.info('Gateway config hot-reloaded.');
+            });
+        }
+
         return validatedConfig; 
     }
 
@@ -223,52 +236,45 @@ export class ConfigManager {
         }
     }
 
+    private async loadGatewayConfig(): Promise<FullGatewayConfig | undefined> {
+        const gatewayConfigPath = `${this.configDir}/gateway.json`;
+        try {
+            if (await exists(gatewayConfigPath)) {
+                const config = await loadGatewayConfigFromFile(gatewayConfigPath);
+                return config;
+            }
+            return undefined;
+        } catch (error) {
+            this.logger.debug('Error loading gateway config file:', error);
+            throw new Error(`Failed to load gateway config file: ${error}`);
+        }
+    }
+
     /**
      * Merge configurations from different sources
      */
     private mergeConfigs(
-        ...configs: Partial<Config>[]
+        fileConfig: Partial<Config>,
+        envConfig: Partial<Config>,
+        additionalConfig: { gatewayConfig?: FullGatewayConfig }
     ): Partial<Config> {
-        // Start with empty config as the accumulator (not default values)
-        const defaultConfig: Config = {
-            gitlab: { url: '', token: '', project_id: null },
-        };
+        const merged: Partial<Config> = { ...fileConfig };
 
-        return configs.reduce((acc, curr) => {
-            // Create a deep copy to avoid modifying the original objects
-            const merged = JSON.parse(JSON.stringify(acc));
+        // Merge envConfig, overriding fileConfig where present
+        if (envConfig.gitlab) merged.gitlab = { ...merged.gitlab, ...envConfig.gitlab };
+        if (envConfig.github) merged.github = { ...merged.github, ...envConfig.github };
+        if (envConfig.review) merged.review = { ...merged.review, ...envConfig.review };
+        if (envConfig.ai) merged.ai = { ...merged.ai, ...envConfig.ai };
+        if (envConfig.atlassian) merged.atlassian = { ...merged.atlassian, ...envConfig.atlassian };
+        if (envConfig.datadog) merged.datadog = { ...merged.datadog, ...envConfig.datadog };
+        if (envConfig.sequentialProcessing) merged.sequentialProcessing = { ...merged.sequentialProcessing, ...envConfig.sequentialProcessing };
 
-            // Type-safe merging of each config section
-            if (curr.gitlab) {
-                const { url, token, project_id } = curr.gitlab;
-                merged.gitlab = { 
-                    ...merged.gitlab,
-                    ...(url !== undefined && { url }),
-                    ...(token !== undefined && { token }),
-                    ...(project_id !== undefined && { project_id }),
-                };
-            }
-            if (curr.github) {
-                merged.github = { ...merged.github, ...curr.github };
-            }
-            if (curr.review) {
-                merged.review = { ...merged.review, ...curr.review };
-            }
-            if (curr.ai) {
-                merged.ai = { ...merged.ai, ...curr.ai };
-            }
-            if (curr.atlassian) {
-                merged.atlassian = { ...curr.atlassian };
-            }
-            if (curr.datadog) {
-                merged.datadog = { ...curr.datadog };
-            }
-            if (curr.sequentialProcessing) {
-                merged.sequentialProcessing = { ...curr.sequentialProcessing };
-            }
+        // Add gatewayConfig from additionalConfig
+        if (additionalConfig && additionalConfig.gatewayConfig) {
+            merged.gatewayConfig = additionalConfig.gatewayConfig;
+        }
 
-            return merged;
-        }, defaultConfig);
+        return merged;
     }
 
     /**
@@ -310,6 +316,13 @@ export class ConfigManager {
 
             // Save the original validated config
             await Deno.writeTextFile(this.configPath, JSON.stringify(config, null, 2));
+
+            // Save gateway config to a separate file
+            if (config.gatewayConfig) {
+                const gatewayConfigPath = `${this.configDir}/gateway.json`;
+                await Deno.writeTextFile(gatewayConfigPath, JSON.stringify(config.gatewayConfig, null, 2));
+            }
+
             this.config = null; // Reset cached config
         } catch (error) {
             if (error instanceof Error) {
