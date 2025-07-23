@@ -17,6 +17,8 @@ import {
 } from '../types/tool_types.ts';
 import { Logger } from '../utils/logger.ts';
 import { AIService } from './llm/ai_service.ts';
+import { GatewayService } from './gateway_service.ts';
+import { GatewayServiceType } from '../types/tool_types.ts';
 
 // Browser tool types
 type AtomicMethod =
@@ -59,6 +61,7 @@ export class MCPService {
     private logger: Logger;
     private tools: Map<string, MCPToolFunction>;
     private activeServers: Server[] = [];
+    private gatewayService: GatewayService;
 
   // Define tool categories
     private static readonly IDE_EXCLUDED_TOOLS = new Set([
@@ -100,6 +103,7 @@ export class MCPService {
         this.config = config;
         this.logger = new Logger('MCPService');
         this.tools = new Map();
+        this.gatewayService = new GatewayService(); // Initialize GatewayService
         this.initializeTools();
     }
 
@@ -719,6 +723,11 @@ export class MCPService {
     tools.forEach((tool) => {
         this.tools.set(tool.function.name, tool);
     });
+
+    // Add gateway tools
+    this.gatewayService.getTools().forEach((tool) => {
+        this.tools.set(tool.function.name, tool);
+    });
 }
 
 /**
@@ -788,6 +797,9 @@ public async executeTool(
             // case 'dora_metrics':
             //     return await this.executeDoraMetrics(params, context);
             default:
+                if (toolName.startsWith('f1e_')) {
+                    return await this.executeGatewayTool(toolName, params);
+                }
                 return {
                     success: false,
                     error: `Tool ${toolName} implementation not found`,
@@ -800,6 +812,10 @@ public async executeTool(
             error: `Failed to execute tool: ${error instanceof Error ? error.message : String(error)}`
         };
     }
+}
+
+private async executeGatewayTool(toolName: string, params: Record<string, unknown>): Promise<MCPToolResult> {
+    return this.gatewayService.executeTool(toolName, params);
 }
 
 private async executeFileRead(params: Record<string, unknown>): Promise<MCPToolResult> {
