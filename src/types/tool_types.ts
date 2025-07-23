@@ -16,6 +16,7 @@ declare class GitLabService {}
 declare class JiraService {}
 declare class ConfluenceService {}
 declare class DatadogService {}
+declare class GatewayService {}
 
 /**
  * Context passed to MCP tools during execution
@@ -29,6 +30,7 @@ export interface MCPToolContext {
     jira?: JiraService;
     confluence?: ConfluenceService;
     datadog?: DatadogService;
+    gateway?: GatewayService;
     [key: string]: unknown;
 }
 
@@ -185,6 +187,15 @@ export interface DoraServiceType {
 }
 
 /**
+ * Gateway service interface
+ */
+export interface GatewayServiceType {
+    getTools(): MCPToolFunction[];
+    executeTool(toolName: string, params: Record<string, unknown>): Promise<MCPToolResult>;
+    [key: string]: unknown;
+}
+
+/**
  * MCP service interface
  */
 export interface MCPServiceType {
@@ -203,4 +214,5 @@ export interface ExtendedToolContext extends MCPToolContext {
     confluence?: ConfluenceServiceType;
     datadog?: DatadogServiceType;
     dora?: DoraServiceType;
+    gateway?: GatewayServiceType;
 }
