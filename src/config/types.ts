@@ -24,12 +24,15 @@ export interface Message {
 }
 
 // Configuration schema using Zod for validation
+import { FullGatewayConfigSchema } from './gateway-config.ts';
+
 export const ConfigSchema = z.object({
     gitlab: z.object({
         url: z.string().url(),
         token: z.string().min(1),
         project_id: z.string().min(1).optional().nullable(),
     }),
+    gatewayConfig: FullGatewayConfigSchema.optional(),
     github: z.object({
         token: z.string().min(1).optional(),
         apiUrl: z.string().url().default('https://api.github.com'),
@@ -129,4 +132,25 @@ export interface DatadogConfig {
     api_key: string;
     app_key: string;
     site: string;
+}
+
+export interface GatewayConfig {
+    port: number;
+    hostname?: string;
+    enableHttps: boolean;
+    tlsCertPath?: string;
+    tlsKeyPath?: string;
+}
+
+export interface ProviderConfig {
+    name: string;
+    type: 'openai' | 'azure' | 'ollama' | 'copilot';
+    config: OpenAIConfig | AzureAIConfig | OllamaConfig | CopilotConfig;
+}
+
+export interface TransportConfig {
+    type: 'http' | 'grpc';
+    host: string;
+    port: number;
+    timeout: number;
 }
