@@ -256,8 +256,8 @@ The Project Manager agent helps you maintain project oversight and coordination:
 - Project health monitoring
 - Integration with common project management tools
 
-Engineering Agent
-The Engineering Agent assists with technical tasks:
+Dev Agent
+The Dev Agent assists with technical tasks:
 
 - Code generation and review
 - Bug fixing and debugging
@@ -370,7 +370,6 @@ includes:
 - Clean code principles enforcement
 
 ### Shell Completions
-
 Use the development alias with shell completions. Nova supports shell completions for commands and arguments. Once
 configured, you can enter a nova command followed by the TAB key. To enable them:
 
