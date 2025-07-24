@@ -1,121 +1,112 @@
-# nova
 # VISON!!!
+--- 
 
-# nova-cli
-## Nova
+# Nova
 
-Nova is an intelligent CLI tool that enhances project management and development workflows through
-AI-powered agents. It seamlessly integrates with your development process, providing automated
-assistance for project management, code development, and infrastructure management. All the commands
-will be wrapped inside a MCP Server.
+Nova is an intelligent CLI tool that enhances project management and development workflows through AI-powered agents.
+It integrates seamlessly with your development process, providing automated assistance for project management,
+code development. All commands are wrapped inside an MCP Server.
 
-Quick Install
+## Quick Install
 
 tbd
 
-Table of Contents
+## Table of Contents
 
-Features
-Prerequisites
-Installation
-Usage
-Agents
-Configuration
-Contributing
-Shell Completions
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Agents](#agents)
+- [Configuration](#configuration)
+- [Shell Completions](#shell-completions)
+- [Contributing](#contributing)
 
-
-Features
-
+### Features
 
 🤖 AI-powered code review and analysis
 
-Code review for files and merge requests
-Integration with GitHub Copilot
-Support for multiple LLM providers (OpenAI, Azure, Ollama)
-
-
+- Code review for files and merge requests
+- Integration with GitHub Copilot
+- Support for multiple LLM providers (OpenAI, Azure, Ollama)
 
 📊 Comprehensive DevOps Insights
 
-DORA metrics integration with GitLab and Jira
-Engineering metrics dashboard
-Project health monitoring
-Team performance analytics
-
-
+- DORA metrics integration with GitLab and Jira
+- Engineering metrics dashboard
+- Project health monitoring
+- Team performance analytics
 
 🔄 Seamless Service Integration
 
-GitLab project management
-Jira issue tracking
-Confluence documentation
-Datadog monitoring
-
-
+- GitLab project management
+- Jira issue tracking
+- Confluence documentation
+- Datadog monitoring
 
 📝 Documentation and Knowledge Management
 
-Confluence space management
-Documentation search and navigation
-API documentation support
-Technical documentation generation
-
-
+- Confluence space management
+- Documentation search and navigation
+- API documentation support
+- Technical documentation generation
 
 🔧 Robust Configuration Management
 
-Interactive setup wizard
-Environment-based configuration
-Multiple authentication methods
-Service connection testing
+- Interactive setup wizard
+- Environment-based configuration
+- Service connection testing
 
+### Prerequisites
 
+- Deno 2.2.11 or newer (https://docs.deno.com/runtime/getting_started/installation/)
+- GitHub CLI (https://github.com/cli/cli?tab=readme-ov-file#installation)
+- GitHub account with authentication (https://github.com/signup)
+- GitHub Copilot CLI extension (https://github.com/github/gh-copilot?tab=readme-ov-file#quickstart)
+- GitLab/GitHub Personal Access Token with API scope:
+    - GitHub
+      guide: [Creating fine-grained personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens?apiVersion=2022-11-28&versionId=free-pro-team%40latest#creating-a-fine-grained-personal-access-token)
+    - GitLab
+      guide: [Create a personal access token](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
 
+## Installation
 
-Prerequisites
+Install the GitHub CLI and authenticate:
+On macOS, using [Homebrew](https://brew.sh/):
 
-
-Deno 2.2.11 or higher
-
-GitHub CLI installed
-GitHub account with authentication
-
-Github Copilot CLI extension installed
-GitLab/GitHub account with API access
-GitLab/GitHub Personal Access Token with api scope
-
-
-Installation
-
-Install the GitHub CLI:
-
-
-brew install gh
-
-Authenticate with GitHub:
-
-
-gh auth login
+```shell
+$ brew install gh
+# follow the CLI instructions to login
+$ gh auth login
+```
 
 Install the GitHub Copilot CLI extension:
 
+```shell
+$ gh extension install github/gh-copilot
+```
 
-gh extension install github/gh-copilot
-To Let copilot run commands on your behalf, you need to add the following to your .zshrc or
-.bashrc:
+To let GitHub Copilot run commands on your behalf, add the following line to your .zshrc or .bashrc:
 
+```shell
+# for Zsh
 echo 'eval "$(gh copilot alias -- zsh)"' >> ~/.zshrc
+# for bash
+echo 'eval "$(gh copilot alias -- bash)"' >> ~/.bashrc
+```
 
 Install Nova:
 
-
+```shell
 deno install -A -f ....
+```
 
 Run the setup assistant:
 
-
+```shell
 nova setup
+```
+
 The setup assistant will help you configure:
 
 GitHub authentication
@@ -123,43 +114,38 @@ GitLab authentication and API access
 OpenAI API credentials
 Default project settings
 
+## Development
 
-Development
-For development, you can:
+To set up the development environment, you can set aliases and shell completions:
 
-Set up the development environment:
-
-
-# This will set up aliases and completions
+```shell
 deno task setup-dev
 source ~/.zshrc
-
-Use the development alias with completions:
-
-
-nova agent dev[TAB]  # Shows available commands
-nova agent dev review[TAB]  # Shows files
+```
 
 Or use the development task directly:
 
-
-deno task dev agent dev review src/
+```shell
+deno task dev agent eng review src/
+```
 
 For development with file watching:
 
-
+```shell
 deno task dev --watch
+```
 
-Snapshot Testing
-Nova should use snapshot testing for commands to ensure output stability and catch UI regressions.
+### Snapshot Testing
+
+Nova uses snapshot testing for commands to ensure output stability and catch UI bugs caused by regressions.
 Snapshots capture command output for future comparison.
 
 Creating Snapshot Tests
 
-Create a test file with the .snapshot.test.ts extension:
+Create a test file with a `.snapshot.test.ts` extension:
 
-
-import { snapshotTest } from '@cliffy/testing';
+```typescript
+import {snapshotTest} from '@cliffy/testing';
 
 await snapshotTest({
   name: 'My Test',
@@ -171,169 +157,160 @@ await snapshotTest({
   },
 });
 
+```
+
 Generate or update snapshots:
 
-
+```shell
 deno test -A --no-check path/to/your.snapshot.test.ts -- --update
+```
 
 Run tests to validate against snapshots:
 
-
+```shell
 deno test -A path/to/your.snapshot.test.ts
+```
+
 Snapshots are stored in __snapshots__ directories and should be committed to version control.
 
-Installation
-To install the production version:
+## Installation
 
-# Install from source
+Install the production version:
+
+### directly from source
+
+```shell
 deno task install
+```
 
-# Or install from release
-brew install nova
+### or from a release
 
-Usage
+```shell
+brew install tbd
+```
+
+## Usage
+
 Basic usage:
 
-nova
+```shell
+USAGE
+  nova <command> <subcommand> [options]
 
-Available Commands
+COMMANDS
+  agent                # Agent-related commands
+  gitlab               # GitLab-related commands
+  jira                 # Jira-related commands
+  confluence           # Confluence-related commands
+  datadog              # Datadog-related commands
+  dora                 # Dora-related commands
 
-Agent Commands
+AGENT COMMANDS
+  agent dev            # Engineering Agent for code review and analysis
+  agent dev review     # Review code changes in a file or directory
+  agent dev review-mr  # Review current merge request
+  
+GITLAB COMMANDS
+  gitlab projects      # List GitLab projects
+  gitlab dashboard     # Show engineering metrics dashboard
+  
+JIRA COMMANDS
+  jira projects        # List Jira projects
+  jira issues          # List issues for a project
+  jira dashboard       # Show project metrics dashboard
+  jira open            # Open issue in browser
 
-nova agent enhanced-code-review-agent review <files>  # Review specific files
-nova agent enhanced-code-review-agent review          # Review changed files
-nova agent enhanced-code-review-agent review pr       # Review pull requests
-nova agent enhanced-code-review-agent help            # Show help and usage
+CONFLUENCE COMMANDS
+  confluence spaces    # List Confluence spaces
+  confluence pages     # List pages in a space
+  confluence search    # Search Confluence content
+  confluence dashboard # Show space dashboard
+  confluence page      # Show details about a specific page
+  
+DATADOG COMMANDS
+  datadog teams        # List and search Datadog teams
+  datadog dashboards   # List Datadog dashboards
 
-nova agent eng         # Engineering Agent for code review and analysis
-nova agent eng review  # Review code changes in a file or directory
-nova agent eng review-mr  # Review current merge request
+DORA COMMANDS
+  dora metrics         # Show DORA metrics for linked Jira and GitLab projects
+```
 
-GitLab Commands
+Most commands support additional options. Use `--help` with any command to see more information
 
-nova gitlab projects    # List GitLab projects
-nova gitlab dashboard   # Show engineering metrics dashboard
-
-Jira Commands
-
-nova jira projects    # List Jira projects
-nova jira issues      # List issues for a project
-nova jira dashboard   # Show project metrics dashboard
-nova jira open        # Open issue in browser
-
-Confluence Commands
-
-nova confluence spaces    # List Confluence spaces
-nova confluence pages    # List pages in a space
-nova confluence search   # Search Confluence content
-nova confluence dashboard # Show space dashboard
-nova confluence page     # Show details about a specific page
-
-Datadog Commands
-
-nova datadog teams      # List and search Datadog teams
-nova datadog dashboards # List Datadog dashboards
-
-DORA Metrics Commands
-
-nova dora metrics      # Show DORA metrics for linked Jira and GitLab projects
-
-Most commands support additional options:
-
-
+```shell
 -f, --format: Output format (text/json)
 
 -r, --recent: Use most recent project/space
 
 --refresh: Force refresh cached data
-For more options, use --help with any command
-
-
-Agents
-
-Enhanced Code Review Agent
-The Enhanced Code Review Agent provides comprehensive automated code analysis with three distinct review modes:
-
-**Review Modes:**
-- **File Review**: Analyze specific files with detailed feedback
-- **Change Detection**: Automatically review changed files in Git repository
-- **Pull Request Review**: Review PRs/MRs with automated comment posting
-
-**Key Features:**
-- Code quality grading (A-F scale)
-- Test coverage assessment
-- Security vulnerability detection
-- Performance optimization suggestions
-- GitLab and GitHub integration
-- Parallel processing for large codebases
-- Intelligent caching for improved performance
-- **Advanced Error Handling**: Robust error recovery with intelligent data transformation
-- **Modular Architecture**: Domain-specific service organization for better maintainability
-- **Type-Safe Validation**: Runtime type validation with automatic error recovery
-- **Intelligent Response Processing**: Handles LLM response format variations gracefully
-
-**Usage Examples:**
-```bash
-# Review specific files
-nova agent enhanced-code-review-agent review src/main.ts
-
-# Review all changed files
-nova agent enhanced-code-review-agent review
-
-# Review pull requests
-nova agent enhanced-code-review-agent review pr
 ```
+
+## Agents
 
 Project Manager Agent
 The Project Manager agent helps you maintain project oversight and coordination:
 
-Sprint status tracking and updates
-Ticket management and prioritization
-Team coordination and resource allocation
-Project health monitoring
-Integration with common project management tools
-
+- Sprint status tracking and updates
+- Ticket management and prioritization
+- Team coordination and resource allocation
+- Project health monitoring
+- Integration with common project management tools
 
 Engineering Agent
 The Engineering Agent assists with technical tasks:
 
-Code generation and review
-Bug fixing and debugging
-Code refactoring suggestions
-Performance optimization
-Technical documentation
-Integration with Github Copilot
+- Code generation and review
+- Bug fixing and debugging
+- Code refactoring suggestions
+- Performance optimization
+- Technical documentation
+- Integration with GitHub Copilot
 
+## Configuration
 
-Configuration
 Nova can be configured through the interactive setup, environment variables, or configuration file.
 
-Quick Setup
+## Quick Setup
 
-# Interactive setup
+### Interactive setup
+
+```shell
 nova setup
+```
 
-Environment Variables
+### Environment Variables
+
 Core environment variables:
 
-# GitLab Configuration
+#### GitLab Configuration
+
+```shell
 GITLAB_TOKEN=your-gitlab-token
 GITLAB_URL=your-gitlab-url
+```
 
-# OpenAI Configuration
+#### OpenAI Configuration
+
+```shell
 OPENAI_API_KEY=your-openai-key
 OPENAI_URL=your-openai-url
 OPENAI_API_VERSION=2024-10-01-preview
+```
 
-# Create .env file with your configuration
+#### Create .env file with your configuration
+
+```shell
 nova config init > .env
 
-# Load environment variables from .env
+# load environment variables
 source .env
+```
 
-Configuration File
+### Configuration File
+
 Alternatively, use a nova.config.json file:
 
+```json
 {
   "github": {
     "organization": "your-org",
@@ -350,88 +327,74 @@ Alternatively, use a nova.config.json file:
     "api_version": "2024-10-01-preview"
   }
 }
+```
 
-Configuration Priority
+### Configuration Priority
+
 Nova uses the following priority order for configuration:
 
-Command line arguments
-Environment variables
-Configuration file (nova.config.json)
-Default values
+1. Command line arguments
+2. Environment variables
+3. Configuration file (nova.config.json)
+4. Default values
 
+### Verifying Configuration
 
-Verifying Configuration
 To verify your configuration:
 
-# Check current configuration
+#### Check current configuration
+
+```shell
 nova
+```
 
+## CI/CD Integration
 
-CI/CD Integration
 nova integrates with GitLab CI/CD to provide:
 
-Automated merge request scoring
-AI-powered code review assistance
-Documentation generation
-Quality checks
-Performance analysis
+- Automated merge request scoring
+- AI-powered code review assistance
+- Documentation generation
+- Quality checks
+- Performance analysis
 
+### AI Code Review
 
-AI Code Review
 The AI code review feature automatically analyzes merge requests and provides detailed feedback. It
 includes:
 
-Code quality assessment
-Best practices recommendations
-Security vulnerability detection
-Performance optimization suggestions
-Clean code principles enforcement
+- Code quality assessment
+- Best practices recommendations
+- Security vulnerability detection
+- Performance optimization suggestions
+- Clean code principles enforcement
 
-## Enhanced Error Handling & Architecture
+### Shell Completions
 
-Nova's Enhanced Code Review Agent features a robust, modular architecture designed for reliability and maintainability:
+Use the development alias with shell completions. Nova supports shell completions for commands and arguments. Once
+configured, you can enter a nova command followed by the TAB key. To enable them:
 
-### Intelligent Error Recovery
-- **Automatic Data Transformation**: Handles LLM response format variations (e.g., string "75%" → number 75)
-- **Graceful Degradation**: Falls back to rule-based analysis when LLM providers fail
-- **Retry Logic**: Exponential backoff for API failures with configurable limits
-- **Type-Safe Validation**: Runtime type checking with intelligent error recovery
-
-### Modular Service Architecture
-- **Domain-Specific Organization**: Services grouped by responsibility (analysis, LLM, repository, error-handling)
-- **Separation of Concerns**: Clear boundaries between validation, transformation, and analysis
-- **Extensible Design**: Easy to add new LLM providers or repository integrations
-- **Comprehensive Testing**: Unit, integration, and end-to-end test coverage
-
-### Performance Optimizations
-- **Intelligent Caching**: Results cached based on file content hash with configurable TTL
-- **Parallel Processing**: Multiple files analyzed concurrently for improved performance
-- **Memory Management**: Efficient cache management with size limits and cleanup
-- **Streaming Support**: Large diffs processed in chunks to minimize memory usage
-
-### Troubleshooting Support
-For common issues and debugging:
-- Enable debug mode: `NOVA_DEBUG=true nova agent enhanced-code-review-agent review`
-- Check configuration: `nova config validate`
-- View detailed logs: `NOVA_LOG_LEVEL=debug nova agent enhanced-code-review-agent review`
-- See [Troubleshooting Guide](docs/troubleshooting/enhanced-code-review-agent.md) for detailed solutions
-
-Contributing
-We welcome contributions! Please see our Contributing Guide for details.
-
-Shell Completions
-Nova supports shell completions for commands and arguments. To enable:
-
-Zsh
-
+```shell
+# for Zsh
 deno completions zsh > ~/.zsh/_nova
 # Add to ~/.zshrc:
 fpath=(~/.zsh $fpath)
 autoload -Uz compinit
 compinit
 
-Bash
-
+# for Bash
 deno completions bash > ~/.bash_completion.d/nova.bash
 # Add to ~/.bashrc:
 source ~/.bash_completion.d/nova.bash
+```
+
+Use shell completion:
+
+```shell
+nova agent dev[TAB]         # Shows available commands
+nova agent dev review[TAB]  # Shows files
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide]() for details.
