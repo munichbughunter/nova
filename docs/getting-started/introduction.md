@@ -2,23 +2,23 @@
 
 !!! abstract "Overview"
     Nova is an intelligent CLI tool that enhances project management and development workflows. It provides:
-    - 🔄 Seamless integration with development platforms (Jira, GitLab, Confluence)
+    - 🔄 Seamless integration with development platforms (Jira, GitLab, GitHub, Confluence)
     - 🔑 Unified authentication and profile management
     - 📊 Project analytics and insights
-    - ☁️ Cloud infrastructure management
     - 📝 Documentation access and search
 
 ## Core Features
 
-=== "Platform Integration :link:"
-    !!! info "Unified Platform Access"
+!!! "Platform Integration
+    !!! info Unified Platform Access
         Nova centralizes access to your development platforms:
 
         - **Jira**: Project and issue tracking
         - **GitLab**: Repository and CI/CD management
+        - **GitHub**: Repository and CI/CD management
         - **Confluence**: Documentation management
 
-    ???+ example "Integration Usage"
+    !!!+ Example Integration Usage
         ```bash
         # View Jira dashboard
         nova jira dashboard
@@ -28,34 +28,10 @@
         
         # Search Confluence
         nova confluence search "query"
-        
         ```
 
-=== "Project Management :clipboard:"
-    !!! info "Development Workflow"
-        Streamline your development processes:
-
-        - Project metrics and insights
-        - Team performance tracking
-        - Issue tracking integration
-        - Documentation management
-        - AI-powered code analysis
-
-    ???+ example "Management Commands"
-        ```bash
-        # View project dashboard
-        nova dashboard
-
-        # Get project metrics
-        nova metrics
-
-        # Search across platforms
-        nova search "issue query"
-
-        ```
-
-=== "Analytics & Insights :chart_with_upwards_trend:"
-    !!! info "Project Metrics"
+!!! "+ Analytics and Insights :chart_with_upwards_trend:
+    !!! info Project Metrics
         Get insights across your development ecosystem:
 
         - Project health metrics
@@ -63,7 +39,7 @@
         - Documentation coverage
         - Activity tracking
 
-    ???+ example "Analytics Commands"
+    !!!+ Example Analytics Commands
         ```bash
         # View Jira metrics
         nova jira dashboard --days 30
@@ -74,8 +50,8 @@
 
 ## Getting Started
 
-!!! tip "Quick Start"
-    ToDo
+!!! tip Quick Start
+    For a standard installation: `brew tap ... to be done`
 
 ## Configuration
 
@@ -113,19 +89,10 @@
        # Search documentation
        nova confluence search "topic"
        ```
-    
-    3. Project Analytics:
-       ```bash
-       # Get project dashboard
-       nova dashboard
-       
-       # View team metrics
-       nova metrics --team
-       ```
 
 ## Support
 
-!!! question "Need Help?"
+!!! question Need Help?
     - Use `nova <command> --help` for command details
     - Check documentation at `/docs`
     - Enable shell completions for command hints

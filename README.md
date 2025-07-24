@@ -1,14 +1,11 @@
-# nova
-
 # VISON!!!
+--- 
 
-# nova-cli
-
-## Nova
+# Nova
 
 Nova is an intelligent CLI tool that enhances project management and development workflows through AI-powered agents.
 It integrates seamlessly with your development process, providing automated assistance for project management,
-code development, and infrastructure management. All commands are wrapped inside an MCP Server.
+code development. All commands are wrapped inside an MCP Server.
 
 ## Quick Install
 
@@ -58,7 +55,6 @@ tbd
 
 - Interactive setup wizard
 - Environment-based configuration
-- Multiple authentication methods
 - Service connection testing
 
 ### Prerequisites
@@ -190,7 +186,7 @@ deno task install
 ### or from a release
 
 ```shell
-brew install nova
+brew install tbd
 ```
 
 ## Usage
@@ -210,9 +206,9 @@ COMMANDS
   dora                 # Dora-related commands
 
 AGENT COMMANDS
-  agent eng            # Engineering Agent for code review and analysis
-  agent eng review     # Review code changes in a file or directory
-  agent eng review-mr  # Review current merge request
+  agent dev            # Engineering Agent for code review and analysis
+  agent dev review     # Review code changes in a file or directory
+  agent dev review-mr  # Review current merge request
   
 GITLAB COMMANDS
   gitlab projects      # List GitLab projects
@@ -260,8 +256,8 @@ The Project Manager agent helps you maintain project oversight and coordination:
 - Project health monitoring
 - Integration with common project management tools
 
-Engineering Agent
-The Engineering Agent assists with technical tasks:
+Dev Agent
+The Dev Agent assists with technical tasks:
 
 - Code generation and review
 - Bug fixing and debugging
@@ -374,7 +370,6 @@ includes:
 - Clean code principles enforcement
 
 ### Shell Completions
-
 Use the development alias with shell completions. Nova supports shell completions for commands and arguments. Once
 configured, you can enter a nova command followed by the TAB key. To enable them:
 
@@ -395,8 +390,8 @@ source ~/.bash_completion.d/nova.bash
 Use shell completion:
 
 ```shell
-nova agent eng[TAB]         # Shows available commands
-nova agent eng review[TAB]  # Shows files
+nova agent dev[TAB]         # Shows available commands
+nova agent dev review[TAB]  # Shows files
 ```
 
 ## Contributing

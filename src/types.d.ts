@@ -137,27 +137,77 @@ declare global {
     id?: string;
     iid: number;
     title: string;
-    description: string;
-    web_url: string;
-    source_branch: string;
-    target_branch: string;
     state: string;
+    web_url: string;
     created_at: string;
     updated_at: string;
-    author: GitLabUser;
-    reviewers: { nodes: GitLabUser[] };
-    approved: boolean;
-    approvedBy: { nodes: GitLabUser[] };
-    assignees?: { nodes: GitLabUser[] };
-    labels?: { nodes: Array<{ title: string }> };
-    discussions?: { nodes: GitLabDiscussion[] };
+    author: { username: string };
     changes: GitLabChange[];
-    project_id?: string;
-    diff_refs?: {
-      base_sha: string;
-      head_sha: string;
-      start_sha: string;
-    };
+    description?: string;
+    source_branch?: string;
+    target_branch?: string;
+    reviewers?: GitLabUser[] | { nodes: GitLabUser[] };
+    approved?: boolean;
+    approvedBy?: GitLabUser[] | { nodes: GitLabUser[] };
+    assignees?: GitLabUser[] | { nodes: GitLabUser[] };
+    labels?: string[] | { nodes: { title: string }[] };
+    diff_refs?: GitLabDiffRefs;
+    sourceBranch?: string; // Alternative naming sometimes used
+    targetBranch?: string; // Alternative naming sometimes used
+    project_id?: number;
+    merged_at?: string;
+    closed_at?: string;
+    merged_by?: GitLabUser;
+    closed_by?: GitLabUser;
+    user_notes_count?: number;
+    discussion_locked?: boolean;
+    milestone?: GitLabMilestone;
+    has_conflicts?: boolean;
+    blocking_discussions_resolved?: boolean;
+  }
+
+  interface GitLabUser {
+    id: number;
+    username: string;
+    name: string;
+    state?: string;
+    avatar_url?: string;
+    web_url?: string;
+  }
+
+  interface GitLabDiffRefs {
+    base_sha: string;
+    head_sha: string;
+    start_sha: string;
+  }
+
+  interface GitLabMilestone {
+    id: number;
+    iid: number;
+    title: string;
+    description?: string;
+    state: string;
+    due_date?: string;
+    start_date?: string;
+    web_url: string;
+  }
+
+  interface GitLabDiscussion {
+    id: string;
+    notes: GitLabNote[] | { nodes: GitLabNote[] };
+    individual_note: boolean;
+  }
+
+  interface GitLabNote {
+    id: string;
+    body: string;
+    author: GitLabUser;
+    created_at: string;
+    updated_at: string;
+    system: boolean;
+    resolvable: boolean;
+    resolved?: boolean;
+    resolved_by?: GitLabUser;
   }
 
   interface GitLabCodeQuality {
@@ -315,6 +365,24 @@ declare global {
     defaultBranch: string;
     environments: {
       nodes: GitLabEnvironment[];
+    };
+    project?: {
+      repository: {
+        tree: {
+          blobs: {
+            nodes: Array<{
+              name: string;
+              path: string;
+            }>;
+          };
+          trees: {
+            nodes: Array<{
+              name: string;
+              path: string;
+            }>;
+          };
+        };
+      };
     };
     hasFile: (filePath: string) => boolean;
   }
@@ -772,11 +840,6 @@ declare global {
     endCursor: string;
   }
 
-  interface GitLabUser {
-    name: string;
-    username: string;
-  }
-
   interface GitLabPipelineResponse {
     project: {
       pipelines: {
@@ -1190,8 +1253,6 @@ declare global {
     name: string;
     lastViewed: Date;
   }
-
-
 
   interface ConfluenceSpace {
     id: string;
@@ -1654,26 +1715,9 @@ declare global {
     parentId: string | null;
   }
 
-  interface GitLabDiscussion {
-    id: string;
-    notes: {
-      nodes: Array<{
-        id: string;
-        body: string;
-        author: GitLabUser;
-        created_at: string;
-        system: boolean;
-      }>;
-    };
-  }
+  // Note: GitLabDiscussion interface is defined above
 
-  interface GitLabNote {
-    id: string;
-    body: string;
-    author: GitLabUser;
-    created_at: string;
-    system: boolean;
-  }
+  // Note: main GitLabNote interface is already defined above
 
   interface GitLabMergeRequestBase {
     id: string;
@@ -1825,30 +1869,6 @@ declare global {
     function: {
       name: string;
       arguments: Record<string, unknown>;
-    };
-  }
-
-  interface GitLabDiffPosition {
-    base_sha: string;
-    start_sha: string;
-    head_sha: string;
-    old_path?: string;
-    new_path: string;
-    old_line?: number;
-    new_line?: number;
-    line_range?: {
-      start: {
-        line_code: string;
-        type: 'new' | 'old';
-        old_line?: number;
-        new_line?: number;
-      };
-      end: {
-        line_code: string;
-        type: 'new' | 'old';
-        old_line?: number;
-        new_line?: number;
-      };
     };
   }
 

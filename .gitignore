@@ -9,3 +9,8 @@ nova-cli
 .deno
 node_modules
 .DS_Store
+.cursor
+.github
+.kiro
+.vscode
+knowledge-base

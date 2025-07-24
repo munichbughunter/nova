@@ -96,9 +96,9 @@ export class UserCache {
    */
   private isFullProjectSchema(project: ProjectSchema | Record<string, unknown>): project is ProjectSchema {
     return 'path_with_namespace' in project && 
-    'web_url' in project && 
-    'last_activity_at' in project &&
-    'namespace' in project;
+           'web_url' in project && 
+           'last_activity_at' in project &&
+           'namespace' in project;
   }
 
   /**
@@ -112,9 +112,9 @@ export class UserCache {
                   (project.webUrl as string) || '';
     const archived = project.archived as boolean;
     const visibility = project.visibility as string;
-    const lastActivity = (project.last_activity_at as string) ||
-    (project.lastActivityAt as string) || 
-    new Date().toISOString();
+    const lastActivity = (project.last_activity_at as string) || 
+                         (project.lastActivityAt as string) || 
+                         new Date().toISOString();
     
     return {
       id: project.id as string | number,

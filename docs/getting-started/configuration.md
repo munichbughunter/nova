@@ -10,13 +10,13 @@ This guide covers different ways to configure Nova CLI for your development work
 
     ---
 
-    The easiest way to configure Nova CLI
+    The easiest way to configure nova CLI
     
     ```bash
     nova setup
     ```
     
-    [:octicons-arrow-right-24: Interactive Setup](#interactive-setup)
+    [➡️ Interactive Setup](#interactive-setup)
 
 - :gear: __Configuration File__
 
@@ -30,7 +30,7 @@ This guide covers different ways to configure Nova CLI for your development work
     }
     ```
     
-    [:octicons-arrow-right-24: File Configuration](#configuration-file)
+    [➡️ File Configuration](#configuration-file)
 
 - :package: __Environment Variables__
 
@@ -42,7 +42,7 @@ This guide covers different ways to configure Nova CLI for your development work
     export GITLAB_TOKEN="..."
     ```
     
-    [:octicons-arrow-right-24: Environment Variables](#environment-variables)
+    [➡️ Environment Variables](#environment-variables)
 
 </div>
 
@@ -74,21 +74,21 @@ Run the interactive setup wizard:
 nova setup
 ```
 
-=== "Basic Options"
+!!! note Basic Options
     | Option | Description |
     |--------|-------------|
     | `--force` | Force reconfiguration of all settings |
     | `--minimal` | Configure only essential settings |
     | `--skip-tests` | Skip connection tests |
 
-=== "Service-Specific Options"
+!!! note Service-Specific Options
     | Option | Description |
     |--------|-------------|
     | `--gitlab <token>` | Set GitLab token directly |
     | `--jira <token>` | Set Jira token directly |
     | `--ollama` | Configure Ollama LLM settings |
 
-=== "Example"
+!!! note Example
     ```bash
     # Configure with GitLab token and skip tests
     nova setup --gitlab glpat-XXXXXXXXXXXX --skip-tests
@@ -135,11 +135,11 @@ nova config set gitlab.token "your-new-token"
 
 ### Environment Variables
 
-Nova respects these environment variables:
+nova respects these environment variables:
 
 | Category | Variables | Example |
 |----------|-----------|---------|
-| **Core** | `NOVA_CONFIG_PATH`<br>`NOVA_DEBUG` | `export NOVA_CONFIG_PATH=~/.config/nova/config.json` |
+| **Core** | `NOVA_CONFIG_PATH`<br>`nova_DEBUG` | `export NOVA_CONFIG_PATH=~/.config/nova/config.json` |
 | **Atlassian** | `ATLASSIAN_TOKEN`<br>`JIRA_URL`<br>`CONFLUENCE_URL` | `export ATLASSIAN_TOKEN="your-token"` |
 | **GitLab** | `GITLAB_TOKEN`<br>`GITLAB_URL` | `export GITLAB_TOKEN="your-token"` |
 | **AI** | `OPENAI_API_KEY`<br>`OPENAI_MODEL` | `export OPENAI_API_KEY="your-key"` |
@@ -147,7 +147,7 @@ Nova respects these environment variables:
 !!! tip "Shell Configuration"
     Add frequently used variables to your `.bashrc` or `.zshrc` file:
     ```bash
-    # Nova configuration
+    # nova configuration
     export NOVA_DEBUG=true
     export GITLAB_URL="https://gitlab.company.com"
     ```
@@ -162,7 +162,7 @@ Nova respects these environment variables:
 
     Configure GitLab for project management
     
-    [:octicons-arrow-right-24: GitLab Setup](#gitlab)
+    [➡️ GitLab Setup](#gitlab)
 
 - :jira: __Atlassian__
 
@@ -170,7 +170,7 @@ Nova respects these environment variables:
 
     Configure Jira and Confluence
     
-    [:octicons-arrow-right-24: Atlassian Setup](#atlassian-jiraconfluence)
+    [➡️ Atlassian Setup](#atlassian-jiraconfluence)
 
 - :brain: __AI__
 
@@ -178,22 +178,22 @@ Nova respects these environment variables:
 
     Configure AI providers
     
-    [:octicons-arrow-right-24: AI Setup](#ai-providers)
+    [➡️ AI Setup](#ai-providers)
 
 </div>
 
 ### GitLab
 
-!!! note "Required Permissions"
+!!! note Required Permissions
     GitLab tokens need at minimum the `api` scope, and for CI/CD operations, the `read_repository` and `write_repository` scopes.
 
-=== "Step 1: Create Access Token"
+!!! note Step 1: Create Access Token
     1. Log in to GitLab
     2. Go to `User Settings` → `Access Tokens`
     3. Create a personal access token with at least the `api` scope
     4. Copy the generated token
 
-=== "Step 2: Configure Nova"
+!!! note Step 2: Configure Nova
     **Option A: Using the setup wizard**
     ```bash
     nova setup
@@ -212,7 +212,7 @@ Nova respects these environment variables:
     export GITLAB_URL="https://gitlab.example.com" # For self-hosted instances
     ```
 
-=== "Step 3: Test Connection"
+!!! note Step 3: Test Connection
     ```bash
     nova config test gitlab
     ```
@@ -224,16 +224,16 @@ Nova respects these environment variables:
 
 ### Atlassian (Jira/Confluence)
 
-!!! note "Credential Management"
+!!! note Credential Management
     Nova supports both API tokens and OAuth for Atlassian authentication.
 
-=== "Step 1: Generate API Token"
+!!! note Step 1: Generate API Token
     1. Log in to [Atlassian ID](https://id.atlassian.com/manage-profile/security/api-tokens)
     2. Click `Create API token`
     3. Name your token (e.g., "Nova CLI")
     4. Copy the generated token
 
-=== "Step 2: Configure Nova"
+!!! note Step 2: Configure nova
     **Option A: Using setup wizard**
     ```bash
     nova setup
@@ -256,7 +256,7 @@ Nova respects these environment variables:
     export CONFLUENCE_URL="https://your-domain.atlassian.net/wiki"
     ```
 
-=== "Step 3: Test Connection"
+!!! note Step 3: Test Connection
     ```bash
     nova config test jira
     nova config test confluence
@@ -272,7 +272,7 @@ Nova respects these environment variables:
 
 Nova supports various AI providers for intelligent features:
 
-=== "OpenAI"
+!!! note OpenAI
     **Configuration:**
     ```bash
     nova config set ai.provider "openai"
@@ -286,7 +286,7 @@ Nova supports various AI providers for intelligent features:
     export OPENAI_MODEL="gpt-4"
     ```
 
-=== "Azure OpenAI"
+!!! note Azure OpenAI
     **Configuration:**
     ```bash
     nova config set ai.provider "azure"
@@ -302,7 +302,7 @@ Nova supports various AI providers for intelligent features:
     export AZURE_OPENAI_DEPLOYMENT="your-deployment-name"
     ```
 
-=== "Ollama (Local)"
+!!! note Ollama (Local)
     **Configuration:**
     ```bash
     nova config set ai.provider "ollama"
@@ -398,7 +398,7 @@ nova --profile prod [command]
 
 ## Troubleshooting
 
-??? failure "Authentication Failures"
+!!! failure Authentication Failures
     **Problem**: "Could not authenticate with [service]"
     
     **Solutions**:
@@ -407,7 +407,7 @@ nova --profile prod [command]
     3. Ensure the token has the required permissions
     4. Try regenerating a new token
 
-??? failure "Configuration Not Found"
+!!! failure Configuration Not Found
     **Problem**: "Configuration file not found"
     
     **Solutions**:
@@ -415,7 +415,7 @@ nova --profile prod [command]
     2. Check the path specified in `NOVA_CONFIG_PATH`
     3. Create the config file manually at `~/.nova/config.json`
 
-??? failure "Environment Variable Precedence"
+!!! failure Environment Variable Precedence
     **Problem**: Environment variables not taking precedence
     
     **Solutions**:

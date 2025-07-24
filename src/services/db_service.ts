@@ -110,8 +110,6 @@ export class DatabaseService {
         )
       `);
 
-
-
       // Create Jira dashboard cache table
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS jira_dashboard_cache (
@@ -218,7 +216,7 @@ export class DatabaseService {
       const allProjects = this.getCachedProjectsList();
       const projects = rows.map((row) => {
         const project = allProjects?.projects.find((p) => p.path_with_namespace === row.full_path);
-        return project ? { ...project, last_activity_at: row.last_viewed } : null;
+        return project ? { ...project, name: row.name, last_activity_at: row.last_viewed } : null;
       }).filter(Boolean);
 
       return Promise.resolve(projects as ProjectSchema[]);
@@ -543,8 +541,6 @@ export class DatabaseService {
       this.logger.error('Error clearing Jira dashboard cache:', error);
     }
   }
-
-
 
   public getGitLabDashboard(projectPath: string): CachedDashboard | null {
     try {

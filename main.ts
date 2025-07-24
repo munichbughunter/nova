@@ -11,6 +11,7 @@ import { configCommand } from './src/commands/config.ts';
 import { StatusService } from './src/services/status_service.ts';
 import { setupCommand } from './src/commands/setup.ts';
 import { mcpCommand } from './src/commands/mcp.ts';
+import { agentCommand } from './src/commands/agent.ts';
 // import { gitlabCommand } from './src/commands/gitlab.ts';
 /**
  * Initialize Nova CLI
@@ -22,14 +23,16 @@ export const program = new Command()
   .example('nova setup', 'Configure Nova')
   .example('nova config', 'Manage configuration')
   .example('nova mcp', 'MCP operations')
+  .example('nova agent "analyze src/main.ts"', 'Analyze code with AI agent')
+  .example('nova agent example help', 'Get help for specific agent')
+  .example('nova agent --interactive', 'Start interactive agent session')
   .default('help');
 
 // Register commands with subcommands directly (not lazy loaded)
 program
-  // .command('gitlab', gitlabCommand)
-  // .command('jira', jiraCommand)
-  // .command('agent', agentCommand)
-
+ // .command('gitlab', gitlabCommand)
+ // .command('jira', jiraCommand)
+ .command('agent', agentCommand)
   .command('config', configCommand)
   // .command('dora', doraCommand)
   // .command('confluence', confluenceCommand)
