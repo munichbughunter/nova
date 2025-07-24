@@ -137,13 +137,13 @@ source ~/.zshrc
 Use the development alias with completions:
 
 
-nova agent eng[TAB]  # Shows available commands
-nova agent eng review[TAB]  # Shows files
+nova agent dev[TAB]  # Shows available commands
+nova agent dev review[TAB]  # Shows files
 
 Or use the development task directly:
 
 
-deno task dev agent eng review src/
+deno task dev agent dev review src/
 
 For development with file watching:
 

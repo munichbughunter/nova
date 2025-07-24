@@ -30,42 +30,9 @@ export const program = new Command()
 
 // Register commands with subcommands directly (not lazy loaded)
 program
-  // .command('gitlab', gitlabCommand)
-  // .command('jira', jiraCommand)
-  .command('agent', new Command()
-    .description('AI agent operations')
-    .arguments('[...query:string]')
-    .option('-a, --agent <type:string>', 'Agent type to use', { default: 'example' })
-    .option('-i, --interactive', 'Run in interactive mode')
-    .option('-l, --list', 'List available agents')
-    .option('-v, --verbose', 'Enable verbose logging')
-    .action(async function (options, ...query) {
-      const args: string[] = [];
-      
-      // Handle special case for list command
-      if (query.length === 1 && query[0] === 'list') {
-        args.push('--list');
-      } else if (query && query.length > 0) {
-        args.push(query.join(' '));
-      }
-      
-      if (options.agent && options.agent !== 'example') {
-        args.push('--agent', options.agent);
-      }
-      if (options.interactive) {
-        args.push('--interactive');
-      }
-      if (options.list) {
-        args.push('--list');
-      }
-      if (options.verbose) {
-        args.push('--verbose');
-      }
-      
-      await agentCommand(args);
-    })
-  )
-
+ // .command('gitlab', gitlabCommand)
+ // .command('jira', jiraCommand)
+ .command('agent', agentCommand)
   .command('config', configCommand)
   // .command('dora', doraCommand)
   // .command('confluence', confluenceCommand)

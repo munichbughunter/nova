@@ -1,399 +1,317 @@
-import { exists } from 'std/fs/exists.ts';
+import { exists } from '@std/fs/exists';
 import { Logger } from '../utils/logger.ts';
 import { Config, ConfigSchema } from './types.ts';
-import { sequentialProcessingConfigManager } from './sequential-processing-config.ts';
-import { loadConfig as loadGatewayConfigFromFile, FullGatewayConfig, watchConfig } from './gateway-config.ts';
 
 export type { Config } from './types.ts';
 
 export class ConfigManager {
-    private static instance: ConfigManager;
-    private config: Config | null = null;
-    private configDir = `${Deno.env.get('HOME')}/.nova`;
-    private configPath = `${this.configDir}/config.json`;
-    private debug = Deno.env.get('NOVA_DEBUG') === 'true';
-    private logger: Logger;
+  private static instance: ConfigManager;
+  private config: Config | null = null;
+  private configDir = `${Deno.env.get('HOME')}/.nova`;
+  private configPath = `${this.configDir}/config.json`;
+  private debug = Deno.env.get('nova_DEBUG') === 'true';
+  private logger: Logger;
 
-    private constructor() {
-        this.logger = new Logger('Config', this.debug);
+  private constructor() {
+    this.logger = new Logger('Config', this.debug);
+  }
+
+  public static getInstance(): ConfigManager {
+    if (!ConfigManager.instance) {
+      ConfigManager.instance = new ConfigManager();
+    }
+    return ConfigManager.instance;
+  }
+
+  /**
+   * Ensure config directory exists
+   */
+  private async ensureConfigDir(): Promise<void> {
+    try {
+      await Deno.mkdir(this.configDir, { recursive: true });
+    } catch (error) {
+      if (!(error instanceof Deno.errors.AlreadyExists)) {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Load configuration from all sources in priority order
+   */
+  public async loadConfig(): Promise<Config> {
+    // Reset cache if AI-related env vars are present
+    const aiEnvVars = [
+      'OPENAI_API_KEY',
+      'OPENAI_URL',
+      'OPENAI_API_VERSION',
+      'AZURE_OPENAI_API_KEY',
+      'AZURE_OPENAI_API_ENDPOINT',
+      'AZURE_OPENAI_API_VERSION',
+      'AZURE_OPENAI_DEPLOYMENT_NAME',
+    ];
+
+    const hasAiEnvVars = aiEnvVars.some(key => Deno.env.get(key) !== undefined);
+    if (hasAiEnvVars) {
+      this.config = null;
     }
 
-    public static getInstance(): ConfigManager {
-        if (!ConfigManager.instance) {
-        ConfigManager.instance = new ConfigManager();
-        }
-        return ConfigManager.instance;
+    if (this.config) return this.config;
+
+    await this.ensureConfigDir();
+
+    // 1. Load environment variables
+    const envConfig = this.loadEnvConfig();
+    // INFO: debug remove envConfig AI for now
+    // envConfig.ai = undefined;
+
+    // 2. Load config file if it exists
+    const fileConfig = await this.loadFileConfig();
+    // 3. Merge configurations with environment variables taking precedence
+    const mergedConfig = this.mergeConfigs(fileConfig, envConfig); // fileConfig first, then envConfig to override
+
+    // 4. Validate the configuration
+    const validatedConfig = this.validateConfig(mergedConfig);
+
+    // 5. Ensure AI configuration is properly structured
+    if (validatedConfig.ai) {
+      // Set default provider if not set
+      if (!validatedConfig.ai.default_provider) {
+        validatedConfig.ai.default_provider = validatedConfig.ai.azure ? 'azure' : 'openai';
+      }
+      // Ensure copilot is always present
+      validatedConfig.ai.copilot = validatedConfig.ai.copilot || { enabled: true };
     }
 
-    /**
-     * Ensure config directory exists
-     */
-    private async ensureConfigDir(): Promise<void> {
-        try {
-            await Deno.mkdir(this.configDir, { recursive: true });
-        } catch (error) {
-            if (!(error instanceof Deno.errors.AlreadyExists)) {
-                throw error;
-            }
-        }
+    this.config = validatedConfig;
+    return validatedConfig;
+  }
+
+  /**
+   * Load configuration from environment variables
+   */
+  private loadEnvConfig(): Partial<Config> {
+    const envConfig: Partial<Config> = {};
+
+    // GitLab config
+    const gitlabUrl = Deno.env.get('GITLAB_URL');
+    const gitlabToken = Deno.env.get('GITLAB_TOKEN');
+    if (gitlabUrl || gitlabToken) {
+      envConfig.gitlab = {
+        url: gitlabUrl ?? '',
+        token: gitlabToken ?? '',
+      };
     }
 
-    /**
-     * Load configuration from all sources in priority order
-     */
-    public async loadConfig(): Promise<Config> {
-        // Reset cache if relevant env vars are present
-        const envVars = [
-            'OPENAI_API_KEY',
-            'OPENAI_URL',
-            'OPENAI_API_VERSION',
-            'AZURE_OPENAI_API_KEY',
-            'AZURE_OPENAI_API_ENDPOINT',
-            'AZURE_OPENAI_API_VERSION',
-            'AZURE_OPENAI_DEPLOYMENT_NAME',
-            'GITHUB_TOKEN',
-            'GITHUB_API_URL',
-            'NOVA_REVIEW_AUTO_POST_COMMENTS',
-            'NOVA_REVIEW_SEVERITY_THRESHOLD',
-            'NOVA_REVIEW_MAX_FILES',
-        ];
+    // AI config  
+    const openaiKey = Deno.env.get('OPENAI_API_KEY');
+    const openaiUrl = Deno.env.get('OPENAI_URL');
+    const openaiVersion = Deno.env.get('OPENAI_API_VERSION');
+    const azureKey = Deno.env.get('AZURE_OPENAI_API_KEY');
+    const azureEndpoint = Deno.env.get('AZURE_OPENAI_API_ENDPOINT');
+    const azureVersion = Deno.env.get('AZURE_OPENAI_API_VERSION');
+    const azureDeployment = Deno.env.get('AZURE_OPENAI_DEPLOYMENT_NAME');
 
-        const hasEnvVars = envVars.some(key => Deno.env.get(key) !== undefined);
-        if (hasEnvVars) {
-            this.config = null;
-        }
-
-        if (this.config) return this.config;
-
-        await this.ensureConfigDir();
-
-        // 1. Load environment variables
-        const envConfig = this.loadEnvConfig();
-
-        // 2. Load config file if it exists
-        const fileConfig = await this.loadFileConfig();
-
-        // 3. Load gateway config
-        const gatewayConfig = await this.loadGatewayConfig();
-
-        // 4. Merge configurations with environment variables taking precedence
-        const mergedConfig = this.mergeConfigs(fileConfig, envConfig, { gatewayConfig });
-
-        // 4. Load sequential processing configuration
-        const sequentialConfig = await sequentialProcessingConfigManager.loadConfig();
-        mergedConfig.sequentialProcessing = sequentialConfig;
-
-        // 5. Validate the configuration
-        const validatedConfig = this.validateConfig(mergedConfig);
-
-        // 6. Ensure AI configuration is properly structured
-        if (validatedConfig.ai) {
-            // Set default provider if not set
-            if (!validatedConfig.ai.default_provider) {
-                validatedConfig.ai.default_provider = validatedConfig.ai.azure ? 'azure' : 'openai';
-            }
-            // Ensure copilot is always present
-            validatedConfig.ai.copilot = validatedConfig.ai.copilot || { enabled: true };
-        }
-
-        this.config = validatedConfig;
-
-        // Start watching gateway config for changes
-        const gatewayConfigPath = `${this.configDir}/gateway.json`;
-        if (await exists(gatewayConfigPath)) {
-            watchConfig(gatewayConfigPath, (newConfig) => {
-                this.config = { ...this.config, gatewayConfig: newConfig } as Config;
-                this.logger.info('Gateway config hot-reloaded.');
-            });
-        }
-
-        return validatedConfig; 
+    if (openaiKey || openaiUrl || openaiVersion || azureKey || azureEndpoint || azureVersion || azureDeployment) {
+      envConfig.ai = {
+        default_provider: azureKey ? 'azure' : 'openai',
+        ...(openaiKey && {
+          openai: {
+            api_key: openaiKey,
+            api_url: openaiUrl ?? 'https://api.openai.com/v1',
+            api_version: openaiVersion ?? '2024-02-15',
+            default_model: 'gpt-4',
+          }
+        }),
+        ...(azureKey && {
+          azure: {
+            api_key: azureKey,
+            api_url: azureEndpoint ?? '',
+            api_version: azureVersion ?? '2024-02-15',
+            deployment_name: azureDeployment ?? 'gpt-4',
+          }
+        }),
+        copilot: {
+          enabled: true,
+        },
+      };
     }
 
-    /**
-     * Load configuration from environment variables
-     */
-    private loadEnvConfig(): Partial<Config> {
-        const envConfig: Partial<Config> = {};
+    // Create a display version for logging
+    const displayConfig = JSON.parse(JSON.stringify(envConfig));
+    if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
+    if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
+    if (displayConfig.atlassian?.confluence_token) displayConfig.atlassian.confluence_token = '***';
+    if (displayConfig.ai?.openai?.api_key) displayConfig.ai.openai.api_key = '***';
+    if (displayConfig.ai?.azure?.api_key) displayConfig.ai.azure.api_key = '***';
+    if (displayConfig.datadog?.api_key) displayConfig.datadog.api_key = '***';
+    if (displayConfig.datadog?.app_key) displayConfig.datadog.app_key = '***';
 
+    this.logger.debug('Loaded env config:', displayConfig);
+    return envConfig; // Return the original config, not the display version
+  }
 
-        // GitLab config
-        const gitlabUrl = Deno.env.get('GITLAB_URL');
-        const gitlabToken = Deno.env.get('GITLAB_TOKEN');
-        const gitlabProjectId = Deno.env.get('GITLAB_PROJECT_ID');
-        if (gitlabUrl || gitlabToken || gitlabProjectId) {
-            envConfig.gitlab = {
-                url: gitlabUrl ?? '',
-                token: gitlabToken ?? '',
-                project_id: gitlabProjectId || null,
-            };
-        }
+  /**
+   * Load configuration from file
+   */
+  private async loadFileConfig(): Promise<Partial<Config>> {
+    try {
+      if (await exists(this.configPath)) {
+        const fileContent = await Deno.readTextFile(this.configPath);
+        // Parse the original config
+        const originalConfig = JSON.parse(fileContent);
 
-        // GitHub config
-        const githubToken = Deno.env.get('GITHUB_TOKEN');
-        const githubApiUrl = Deno.env.get('GITHUB_API_URL');
-        if (githubToken || githubApiUrl) {
-            envConfig.github = {
-                token: githubToken,
-                apiUrl: githubApiUrl ?? 'https://api.github.com',
-            };
-        }
-
-        // Review config
-        const autoPostComments = Deno.env.get('NOVA_REVIEW_AUTO_POST_COMMENTS');
-        const severityThreshold = Deno.env.get('NOVA_REVIEW_SEVERITY_THRESHOLD');
-        const maxFilesPerReview = Deno.env.get('NOVA_REVIEW_MAX_FILES');
-        if (autoPostComments || severityThreshold || maxFilesPerReview) {
-            envConfig.review = {
-                autoPostComments: autoPostComments === 'true' || autoPostComments === undefined,
-                severityThreshold: (severityThreshold as 'low' | 'medium' | 'high') ?? 'medium',
-                maxFilesPerReview: maxFilesPerReview ? parseInt(maxFilesPerReview, 10) : 50,
-            };
-        }
-
-        // AI config  
-        const openaiKey = Deno.env.get('OPENAI_API_KEY');
-        const openaiUrl = Deno.env.get('OPENAI_URL');
-        const openaiVersion = Deno.env.get('OPENAI_API_VERSION');
-        const azureKey = Deno.env.get('AZURE_OPENAI_API_KEY');
-        const azureEndpoint = Deno.env.get('AZURE_OPENAI_API_ENDPOINT');
-        const azureVersion = Deno.env.get('AZURE_OPENAI_API_VERSION');
-        const azureDeployment = Deno.env.get('AZURE_OPENAI_DEPLOYMENT_NAME');
-
-        if (openaiKey || openaiUrl || openaiVersion || azureKey || azureEndpoint || azureVersion || azureDeployment) {
-            envConfig.ai = {
-                default_provider: azureKey ? 'azure' : 'openai',
-                ...(openaiKey && {
-                    openai: {
-                        api_key: openaiKey,
-                        api_url: openaiUrl ?? 'https://api.openai.com/v1',
-                        api_version: openaiVersion ?? '2024-02-15',
-                        default_model: 'gpt-4',
-                    }
-                }),
-                ...(azureKey && {
-                    azure: {
-                        api_key: azureKey,
-                        api_url: azureEndpoint ?? '',
-                        api_version: azureVersion ?? '2024-02-15',
-                        deployment_name: azureDeployment ?? 'gpt-4',
-                    }
-                }),
-                copilot: {
-                    enabled: true,
-                },
-            };
-        }
-
-        // Create a display version for logging
-        const displayConfig = JSON.parse(JSON.stringify(envConfig));
+        // Create a completely separate copy for display
+        const displayConfig = JSON.parse(JSON.stringify(originalConfig));
         if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
-        if (displayConfig.github?.token) displayConfig.github.token = '***';
         if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
-        if (displayConfig.atlassian?.confluence_token) displayConfig.atlassian.confluence_token = '***';
+        if (displayConfig.atlassian?.confluence_token) {
+          displayConfig.atlassian.confluence_token = '***';
+        }
         if (displayConfig.ai?.openai?.api_key) displayConfig.ai.openai.api_key = '***';
         if (displayConfig.ai?.azure?.api_key) displayConfig.ai.azure.api_key = '***';
         if (displayConfig.datadog?.api_key) displayConfig.datadog.api_key = '***';
         if (displayConfig.datadog?.app_key) displayConfig.datadog.app_key = '***';
 
-        this.logger.debug('Loaded env config:', displayConfig);
-        return envConfig; // Return the original config, not the display version
+        this.logger.debug('Loaded config from file:', displayConfig);
+        return originalConfig; // Return the untouched original
+      }
+      // Return empty default config when no file exists
+      return {
+        gitlab: { url: '', token: '' },
+      };
+    } catch (error) {
+      this.logger.debug('Error loading config file:', error);
+      throw new Error(`Failed to load config file: ${error}`);
+    }
+  }
+
+  /**
+   * Merge configurations from different sources
+   */
+  private mergeConfigs(
+    ...configs: Partial<Config>[]
+  ): Partial<Config> {
+    // Start with empty config as the accumulator (not default values)
+    const defaultConfig: Config = {
+      gitlab: { url: '', token: '' },
+    };
+
+    return configs.reduce((acc, curr) => {
+      // Create a deep copy to avoid modifying the original objects
+      const merged = JSON.parse(JSON.stringify(acc));
+
+      // Type-safe merging of each config section
+      if (curr.gitlab) {
+        const { url, token } = curr.gitlab;
+        merged.gitlab = { 
+          ...merged.gitlab,
+          ...(url ? { url } : {}),
+          ...(token ? { token } : {}),
+        };
+      }
+      if (curr.ai) {
+        merged.ai = { ...merged.ai, ...curr.ai };
+      }
+      if (curr.atlassian) {
+        merged.atlassian = { ...curr.atlassian };
+      }
+      if (curr.datadog) {
+        merged.datadog = { ...curr.datadog };
+      }
+
+      return merged;
+    }, defaultConfig);
+  }
+
+  /**
+   * Validate configuration against schema
+   */
+  private validateConfig(
+    config: Partial<Config>
+  ): Config {
+    try {
+      // Validate with schema
+      const validConfig = ConfigSchema.parse(config);
+      return validConfig;
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        this.logger.debug('Validation error:', error.message);
+      }
+      // Instead of returning empty config, return the original config
+      return config as Config;
+    }
+  }
+
+  /**
+   * Save configuration to file
+   */
+  public async saveConfig(config: Config): Promise<void> {
+    await this.ensureConfigDir();
+
+    try {
+      // Create a separate copy for display/logging
+      const displayConfig = JSON.parse(JSON.stringify(config));
+      if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
+      if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
+      if (displayConfig.atlassian?.confluence_token) {
+        displayConfig.atlassian.confluence_token = '***';
+      }
+      if (displayConfig.ai?.openai?.api_key) displayConfig.ai.openai.api_key = '***';
+      if (displayConfig.ai?.azure?.api_key) displayConfig.ai.azure.api_key = '***';
+      if (displayConfig.datadog?.api_key) displayConfig.datadog.api_key = '***';
+      if (displayConfig.datadog?.app_key) displayConfig.datadog.app_key = '***';
+
+      this.logger.debug('Saving config:', displayConfig);
+
+      // Save the original validated config
+      await Deno.writeTextFile(this.configPath, JSON.stringify(config, null, 2));
+      this.config = null; // Reset cached config
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error('Error saving config:', error.message);
+      } else {
+        this.logger.error('An unknown error occurred while saving config');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Test all connections
+   */
+  public async testConnections(): Promise<Record<string, boolean>> {
+    const config = await this.loadConfig();
+    const results: Record<string, boolean> = {};
+
+    // Skip tests if config is empty or has no values set
+    if (!config || (!config.gitlab?.url && !config.ai)) {
+      return results;
     }
 
-    /**
-     * Load configuration from file
-     */
-    private async loadFileConfig(): Promise<Partial<Config>> {
-        try {
-            if (await exists(this.configPath)) {
-                const fileContent = await Deno.readTextFile(this.configPath);
-                // Parse the original config
-                const originalConfig = JSON.parse(fileContent);
+    // Test GitLab connection
+    if (config.gitlab?.url && config.gitlab?.token) {
+      try {
+        const url = `${config.gitlab.url}/api/v4/user`;
+        const gitlabResponse = await fetch(url, {
+          headers: { 'PRIVATE-TOKEN': config.gitlab.token },
+        });
 
-                // Create a completely separate copy for display
-                const displayConfig = JSON.parse(JSON.stringify(originalConfig));
-                if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
-                if (displayConfig.github?.token) displayConfig.github.token = '***';
-                if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
-                if (displayConfig.atlassian?.confluence_token) {
-                    displayConfig.atlassian.confluence_token = '***';
-                }
-                if (displayConfig.ai?.openai?.api_key) displayConfig.ai.openai.api_key = '***';
-                if (displayConfig.ai?.azure?.api_key) displayConfig.ai.azure.api_key = '***';
-                if (displayConfig.datadog?.api_key) displayConfig.datadog.api_key = '***';
-                if (displayConfig.datadog?.app_key) displayConfig.datadog.app_key = '***';
-
-                this.logger.debug('Loaded config from file:', displayConfig);
-                return originalConfig; // Return the untouched original
-            }
-            // Return empty default config when no file exists
-            return {
-                gitlab: { url: '', token: '', project_id: null }
-            };
-        } catch (error) {
-            this.logger.debug('Error loading config file:', error);
-            throw new Error(`Failed to load config file: ${error}`);
+        if (!gitlabResponse.ok) {
+          const _errorText = await gitlabResponse.text();
+          results.gitlab = false;
+        } else {
+          const userData = await gitlabResponse.json();
+          results.gitlab = true;
+          results.gitlab_username = userData.username;
         }
+      } catch (_error) {
+        results.gitlab = false;
+      }
     }
 
-    private async loadGatewayConfig(): Promise<FullGatewayConfig | undefined> {
-        const gatewayConfigPath = `${this.configDir}/gateway.json`;
-        try {
-            if (await exists(gatewayConfigPath)) {
-                const config = await loadGatewayConfigFromFile(gatewayConfigPath);
-                return config;
-            }
-            return undefined;
-        } catch (error) {
-            this.logger.debug('Error loading gateway config file:', error);
-            throw new Error(`Failed to load gateway config file: ${error}`);
-        }
-    }
-
-    /**
-     * Merge configurations from different sources
-     */
-    private mergeConfigs(
-        fileConfig: Partial<Config>,
-        envConfig: Partial<Config>,
-        additionalConfig: { gatewayConfig?: FullGatewayConfig }
-    ): Partial<Config> {
-        const merged: Partial<Config> = { ...fileConfig };
-
-        // Merge envConfig, overriding fileConfig where present
-        if (envConfig.gitlab) merged.gitlab = { ...merged.gitlab, ...envConfig.gitlab };
-        if (envConfig.github) merged.github = { ...merged.github, ...envConfig.github };
-        if (envConfig.review) merged.review = { ...merged.review, ...envConfig.review };
-        if (envConfig.ai) merged.ai = { ...merged.ai, ...envConfig.ai };
-        if (envConfig.atlassian) merged.atlassian = { ...merged.atlassian, ...envConfig.atlassian };
-        if (envConfig.datadog) merged.datadog = { ...merged.datadog, ...envConfig.datadog };
-        if (envConfig.sequentialProcessing) merged.sequentialProcessing = { ...merged.sequentialProcessing, ...envConfig.sequentialProcessing };
-
-        // Add gatewayConfig from additionalConfig
-        if (additionalConfig && additionalConfig.gatewayConfig) {
-            merged.gatewayConfig = additionalConfig.gatewayConfig;
-        }
-
-        return merged;
-    }
-
-    /**
-     * Validate configuration against schema
-     */
-    private validateConfig(
-        config: Partial<Config>
-    ): Config {
-        try {
-            // Validate with schema
-            const validConfig = ConfigSchema.parse(config);
-            return validConfig;
-        } catch (error: unknown) {
-            if (error instanceof Error) {
-                this.logger.debug('Validation error:', error.message);
-            }
-            // Instead of returning empty config, return the original config
-            return config as Config;
-        }
-    }
-
-    /**
-     * Save configuration to file
-     */
-    public async saveConfig(config: Config): Promise<void> {
-        await this.ensureConfigDir();
-
-        try {
-            // Create a separate copy for display/logging
-            const displayConfig = JSON.parse(JSON.stringify(config));
-            if (displayConfig.gitlab?.token) displayConfig.gitlab.token = '***';
-            if (displayConfig.github?.token) displayConfig.github.token = '***';
-            if (displayConfig.atlassian?.jira_token) displayConfig.atlassian.jira_token = '***';
-            if (displayConfig.atlassian?.confluence_token) {
-                displayConfig.atlassian.confluence_token = '***';
-            }
-
-            this.logger.debug('Saving config:', displayConfig);
-
-            // Save the original validated config
-            await Deno.writeTextFile(this.configPath, JSON.stringify(config, null, 2));
-
-            // Save gateway config to a separate file
-            if (config.gatewayConfig) {
-                const gatewayConfigPath = `${this.configDir}/gateway.json`;
-                await Deno.writeTextFile(gatewayConfigPath, JSON.stringify(config.gatewayConfig, null, 2));
-            }
-
-            this.config = null; // Reset cached config
-        } catch (error) {
-            if (error instanceof Error) {
-                this.logger.error('Error saving config:', error.message);
-            } else {
-                this.logger.error('An unknown error occurred while saving config');
-            }
-            throw error;
-        }
-    }
-
-    /**
-     * Test all connections
-     */
-    public async testConnections(): Promise<Record<string, boolean>> {
-        const config = await this.loadConfig();
-        const results: Record<string, boolean> = {};
-
-        // Skip tests if config is empty or has no values set
-        if (!config || (!config.gitlab?.url && !config.ai && !config.github?.token)) {
-            return results;
-        }
-
-        // Test GitLab connection
-        if (config.gitlab?.url && config.gitlab?.token) {
-            try {
-                const url = `${config.gitlab.url}/api/v4/user`;
-                const gitlabResponse = await fetch(url, {
-                    headers: { 'PRIVATE-TOKEN': config.gitlab.token },
-                });
-
-                if (!gitlabResponse.ok) {
-                    const _errorText = await gitlabResponse.text();
-                    results.gitlab = false;
-                } else {
-                    const userData = await gitlabResponse.json();
-                    results.gitlab = true;
-                    results.gitlab_username = userData.username;
-                }
-            } catch (_error) {
-                results.gitlab = false;
-            }
-        }
-
-        // Test GitHub connection
-        if (config.github?.token) {
-            try {
-                const url = `${config.github.apiUrl}/user`;
-                const githubResponse = await fetch(url, {
-                    headers: { 
-                        'Authorization': `Bearer ${config.github.token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'User-Agent': 'Nova-CLI'
-                    },
-                });
-
-                if (!githubResponse.ok) {
-                    const _errorText = await githubResponse.text();
-                    results.github = false;
-                } else {
-                    const userData = await githubResponse.json();
-                    results.github = true;
-                    results.github_username = userData.login;
-                }
-            } catch (_error) {
-                results.github = false;
-            }
-        }
-
-        return results;
-    }
+    return results;
+  }
 }
 
 export const configManager = ConfigManager.getInstance();
