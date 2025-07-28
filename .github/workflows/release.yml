@@ -143,10 +143,10 @@ jobs:
     needs: update-homebrew
     steps:
       - name: Send Discord Notification
-        uses: rjstone/discord-webhook-notify@v1
+        uses: tsickert/discord-webhook@v7.0.0
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          description: |
+          content: |
             🚀 **Nova Release: ${{ github.ref_name }}**
             
             A new version of Nova has been successfully released!
@@ -155,5 +155,4 @@ jobs:
             ```
             brew upgrade nova
             ```
-          footer: Nova Release Pipeline
           color: 3447003
