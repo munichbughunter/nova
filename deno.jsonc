@@ -12,6 +12,7 @@
     "llms-arena": "deno run --allow-read --allow-env --allow-write --allow-net src/scripts/llms_arena.ts"
   },
   "imports": {
+    "sqlite": "https://deno.land/x/sqlite@v3.9.1/mod.ts",
     "@std/testing": "jsr:@std/testing@^1.0.11",
     "@std/assert": "jsr:@std/assert@^1.0.13",
     "@std/fs": "jsr:@std/fs@^1.0.17",
