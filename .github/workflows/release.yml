@@ -137,23 +137,23 @@ jobs:
           git push
 
 
-  # notify-discord:
-  #   name: Send Discord Notification
-  #   runs-on: ubuntu-latest
-  #   needs: update-homebrew
-  #   steps:
-  #     - name: Send Discord Notification
-  #       uses: rjstone/discord-webhook-notify@v1
-  #       with:
-  #         webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-  #         description: |
-  #           🚀 **Nova Release: ${{ github.ref_name }}**
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    needs: update-homebrew
+    steps:
+      - name: Send Discord Notification
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          description: |
+            🚀 **Nova Release: ${{ github.ref_name }}**
             
-  #           A new version of Nova has been successfully released!
+            A new version of Nova has been successfully released!
 
-  #           **Installation/Update via Homebrew:**
-  #           ```
-  #           brew upgrade nova
-  #           ```
-  #         footer: Nova Release Pipeline
-  #         color: 3447003
+            **Installation/Update via Homebrew:**
+            ```
+            brew upgrade nova
+            ```
+          footer: Nova Release Pipeline
+          color: 3447003
