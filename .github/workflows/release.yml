@@ -80,7 +80,7 @@ jobs:
         uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: nova
-          tap-repository: munichbughunter/homebrew-nova
+          homebrew-tap: munichbughunter/homebrew-nova
           tag-name: ${{ github.ref_name }}
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
