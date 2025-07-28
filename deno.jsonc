@@ -44,7 +44,18 @@
     "lineWidth": 100,
     "indentWidth": 2,
     "semiColons": true,
-    "singleQuote": true
+    "singleQuote": true,
+    "exclude": [
+      ".vscode",
+      "deno.lock",
+      "scripts/",
+      ".github",
+      "docs/",
+      ".cursor/",
+      "examples/",
+      "*.md",
+      ".gitignore"
+    ]
   },
   "compilerOptions": {
     "strict": true,
