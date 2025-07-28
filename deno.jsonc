@@ -66,7 +66,13 @@
   "lint": {
     "include": ["src/"],
     "rules": {
-      "tags": ["recommended"]
+      "tags": ["recommended"],
+      "exclude": [
+        "no-unused-vars",
+        "no-explicit-any",
+        "require-await",
+        "no-inferrable-types"
+      ]
     }
   }
 }

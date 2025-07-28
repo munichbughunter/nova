@@ -22,10 +22,12 @@ jobs:
       - name: 3. Code formatting check
         run: deno fmt --check
 
-      - name: 4. Compile Nova
+      - name: 4. Linting check
+        run: deno lint
+
+      - name: 5. Compile Nova
         run: deno task compile
-      # - name: 4. Linting durchführen
-      #   run: deno lint
+      
 
       # - name: 5. Unit- & Integrationstests ausführen
       #   run: deno test -A --doc --coverage=coverage.lcov
