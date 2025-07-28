@@ -99,10 +99,32 @@ jobs:
 
       - name: Update Formula
         run: |
-          sed -i "s|<SHA_ARM>|${{ steps.sha.outputs.sha_arm }}|" Formula/nova.rb
-          sed -i "s|<SHA_AMD>|${{ steps.sha.outputs.sha_amd }}|" Formula/nova.rb
-          sed -i "s|<SHA_LINUX>|${{ steps.sha.outputs.sha_linux }}|" Formula/nova.rb
-          sed -i "s|version .*|version \"${{ github.ref_name }}\"|" Formula/nova.rb
+          cat > Formula/nova.rb << EOF
+          class Nova < Formula
+            desc "Nova CLI - Intelligent project management and development workflows"
+            homepage "https://github.com/munichbughunter/nova"
+            version "${{ github.ref_name }}"
+            
+            if OS.mac? && Hardware::CPU.arm?
+              url "https://github.com/munichbughunter/nova/releases/download/${{ github.ref_name }}/nova-macos-arm64"
+              sha256 "${{ steps.sha.outputs.sha_arm }}"
+            elsif OS.mac? && Hardware::CPU.intel?
+              url "https://github.com/munichbughunter/nova/releases/download/${{ github.ref_name }}/nova-macos-amd64"
+              sha256 "${{ steps.sha.outputs.sha_amd }}"
+            elsif OS.linux?
+              url "https://github.com/munichbughunter/nova/releases/download/${{ github.ref_name }}/nova-linux-amd64"
+              sha256 "${{ steps.sha.outputs.sha_linux }}"
+            end
+
+            def install
+              bin.install Dir["*"].first => "nova"
+            end
+
+            test do
+              system "#{bin}/nova", "--version"
+            end
+          end
+          EOF
 
       - name: Commit and push
         env:
