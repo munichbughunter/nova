@@ -146,13 +146,14 @@ jobs:
         uses: tsickert/discord-webhook@v7.0.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          content: |
-            🚀 **Nova Release: ${{ github.ref_name }}**
-            
+          embed-title: "🚀 Nova Release: ${{ github.ref_name }}"
+          embed-description: |
             A new version of Nova has been successfully released!
 
             **Installation/Update via Homebrew:**
             ```
-            brew upgrade nova
+            brew tap munichbughunter/nova
+            brew install munichbughunter/nova/nova
             ```
           embed-color: 3447003
+          embed-footer-text: "Nova Release Pipeline"
