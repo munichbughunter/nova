@@ -77,7 +77,7 @@ jobs:
     needs: create-github-release
     steps:
       - name: Update Homebrew Formula
-        uses: mislav/bump-homebrew-formula-action@v4
+        uses: mislav/bump-homebrew-formula-action@v3
         with:
           formula-name: nova
           tap-repository: munichbughunter/homebrew-nova
