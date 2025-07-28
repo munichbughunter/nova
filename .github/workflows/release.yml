@@ -145,7 +145,7 @@ jobs:
       - name: Send Discord Notification
         uses: tsickert/discord-webhook@v7.0.0
         with:
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
           content: |
             🚀 **Nova Release: ${{ github.ref_name }}**
             
@@ -155,4 +155,4 @@ jobs:
             ```
             brew upgrade nova
             ```
-          color: 3447003
+          embed-color: 3447003
