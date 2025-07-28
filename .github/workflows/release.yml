@@ -81,9 +81,10 @@ jobs:
         with:
           repository: munichbughunter/homebrew-nova
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          
+      - name: Download artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download artifacts
         run: |
           mkdir bin
           gh release download ${{ github.ref_name }} --repo munichbughunter/nova --pattern "nova-*"
@@ -104,6 +105,8 @@ jobs:
           sed -i "s|version .*|version \"${{ github.ref_name }}\"|" Formula/nova.rb
 
       - name: Commit and push
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
