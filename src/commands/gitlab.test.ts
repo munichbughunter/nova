@@ -9,7 +9,7 @@ import { gitlabCommand } from './gitlab.ts';
 
 // Define interfaces used in tests
 interface RecentProject {
-  path_with_namespace?: string; 
+  path_with_namespace?: string;
   name: string;
   lastViewed: Date;
   key: string;
@@ -17,9 +17,15 @@ interface RecentProject {
 
 // Create a minimal ProjectSchema for testing purposes
 type MinimalProjectSchema = Pick<
-  ProjectSchema, 
-  'id' | 'name' | 'path_with_namespace' | 'description' | 'web_url' | 
-  'visibility' | 'last_activity_at' | 'archived'
+  ProjectSchema,
+  | 'id'
+  | 'name'
+  | 'path_with_namespace'
+  | 'description'
+  | 'web_url'
+  | 'visibility'
+  | 'last_activity_at'
+  | 'archived'
 >;
 
 // Create a full ProjectSchema from a minimal one
@@ -124,7 +130,7 @@ interface GitLabMergeRequest {
   approvedBy: { nodes: Array<{ name: string; username: string }> };
   assignees?: { nodes: Array<{ name: string; username: string }> };
   labels?: { nodes: Array<{ title: string }> };
-  discussions?: { 
+  discussions?: {
     nodes: Array<{
       id: string;
       notes: {
@@ -258,7 +264,7 @@ const mockProjects: ProjectSchema[] = [
     visibility: 'private',
     last_activity_at: '2024-01-01T00:00:00Z',
     archived: false,
-  })
+  }),
 ];
 
 const mockConfig: Config = {
@@ -293,12 +299,13 @@ const mockRecentProjects: RecentProject[] = [{
   path_with_namespace: 'test/project',
   name: 'Test Project',
   lastViewed: new Date(),
-  key: 'test/project'
+  key: 'test/project',
 }];
 
 // For GitLabService.getRecentProjects, convert to ProjectSchema array
-const mockRecentProjectSchemas: ProjectSchema[] = 
-  mockRecentProjects.map(convertRecentToProjectSchema);
+const mockRecentProjectSchemas: ProjectSchema[] = mockRecentProjects.map(
+  convertRecentToProjectSchema,
+);
 
 const mockProjectMetrics: GitLabProjectMetrics = {
   project: createMockProjectSchema({
@@ -309,7 +316,7 @@ const mockProjectMetrics: GitLabProjectMetrics = {
     web_url: 'https://gitlab.com/test/project1',
     visibility: 'private',
     last_activity_at: new Date().toISOString(),
-    archived: false
+    archived: false,
   }),
   codeQuality: {
     grade: 'A',
@@ -329,7 +336,7 @@ const mockProjectMetrics: GitLabProjectMetrics = {
     deploymentFrequency: 0,
     defaultBranch: 'main',
     environments: {
-      nodes: []
+      nodes: [],
     },
     hasReadme: true,
     hasContributing: true,
@@ -360,12 +367,12 @@ const mockProjectMetrics: GitLabProjectMetrics = {
     hasEnvExample: true,
     hasTerraform: false,
     hasHelmfile: false,
-    hasCopilotInstructions: false
+    hasCopilotInstructions: false,
   },
   mergeRequests: {
     open: [] as GitLabMergeRequest[],
     merged: [] as GitLabMergeRequest[],
-    closed: [] as GitLabMergeRequest[]
+    closed: [] as GitLabMergeRequest[],
   },
   pipelineMetrics: {
     successRate: 100,
@@ -373,7 +380,7 @@ const mockProjectMetrics: GitLabProjectMetrics = {
     running: 0,
     succeeded: 10,
     failed: 0,
-    timeframe: '30 days'
+    timeframe: '30 days',
   },
   teamMetrics: {
     reviewParticipation: 0.8,
@@ -383,8 +390,8 @@ const mockProjectMetrics: GitLabProjectMetrics = {
     averageCommentsPerMR: 5,
     activeContributors: 5,
     totalCommits: 100,
-    topContributors: [] as ContributorStats[]
-  }
+    topContributors: [] as ContributorStats[],
+  },
 };
 
 // Mock DatabaseService
@@ -452,25 +459,28 @@ async function setupTest() {
   globalThis.fetch = (...args) => {
     // Mock GraphQL responses
     if (args[1]?.body && typeof args[1].body === 'string' && args[1].body.includes('query')) {
-      const mockResponse = new Response(JSON.stringify({
-        data: {
-          project: {
-            pipelineAnalytics: {
-              weekPipelinesTotals: [10],
-              weekPipelinesSuccessful: [9],
-              pipelineTimesValues: [300]
+      const mockResponse = new Response(
+        JSON.stringify({
+          data: {
+            project: {
+              pipelineAnalytics: {
+                weekPipelinesTotals: [10],
+                weekPipelinesSuccessful: [9],
+                pipelineTimesValues: [300],
+              },
+              mergeRequests: { nodes: [] },
+              teamMetrics: {
+                reviewParticipation: 0.8,
+                codeReviewTurnaround: 24,
+              },
             },
-            mergeRequests: { nodes: [] },
-            teamMetrics: {
-              reviewParticipation: 0.8,
-              codeReviewTurnaround: 24
-            }
-          }
-        }
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
       return Promise.resolve(mockResponse);
     }
 
@@ -509,7 +519,7 @@ function teardownTest() {
   // Restore original Deno.exit
   const originalExit = Deno.exit;
   Deno.exit = originalExit;
-  
+
   // Clear any remaining intervals that might be leaking
   const intervalIds = new Array(100).fill(0).map((_, i) => i + 1);
   intervalIds.forEach(clearInterval);
@@ -522,7 +532,11 @@ Deno.test('GitLab Command Tests', async (t) => {
     await t.step('should register all subcommands', () => {
       const commands = gitlabCommand.getCommands();
       assertEquals(commands.length, 3);
-      assertEquals(commands.map((cmd) => cmd.getName()).sort(), ['dashboard', 'project', 'projects']);
+      assertEquals(commands.map((cmd) => cmd.getName()).sort(), [
+        'dashboard',
+        'project',
+        'projects',
+      ]);
     });
 
     await t.step('should show help when no subcommand is provided', async () => {
@@ -587,13 +601,13 @@ Deno.test('GitLab Command Tests', async (t) => {
           .join('\\n');
 
         const jsonOutput = JSON.parse(jsonString);
-        
+
         // Check that the output is an array
-        assertEquals(Array.isArray(jsonOutput), true, "Output should be an array");
-        
+        assertEquals(Array.isArray(jsonOutput), true, 'Output should be an array');
+
         // Handle the case where the output is a nested array
         const projectData = Array.isArray(jsonOutput[0]) ? jsonOutput[0][0] : jsonOutput[0];
-        
+
         // Check only specific fields that we care about
         assertEquals(projectData.name, mockProjects[0].name);
         assertEquals(projectData.path_with_namespace, mockProjects[0].path_with_namespace);
@@ -793,7 +807,7 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getRecentProjectsStub = stub(
         GitLabService.prototype,
         'getRecentProjects',
-        () => Promise.resolve(mockRecentProjectSchemas)
+        () => Promise.resolve(mockRecentProjectSchemas),
       );
       const getProjectDetailsStub = stub(
         GitLabService.prototype,
@@ -803,7 +817,7 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getProjectMetricsStub = stub(
         GitLabService.prototype,
         'getProjectMetrics',
-        () => Promise.resolve(mockProjectMetrics as GitLabProjectMetrics)
+        () => Promise.resolve(mockProjectMetrics as GitLabProjectMetrics),
       );
 
       try {
@@ -837,7 +851,7 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getRecentProjectsStub = stub(
         GitLabService.prototype,
         'getRecentProjects',
-        () => Promise.resolve(mockRecentProjectSchemas)
+        () => Promise.resolve(mockRecentProjectSchemas),
       );
       const getProjectDetailsStub = stub(
         GitLabService.prototype,
@@ -847,7 +861,7 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getProjectMetricsStub = stub(
         GitLabService.prototype,
         'getProjectMetrics',
-        () => Promise.resolve(mockProjectMetrics)
+        () => Promise.resolve(mockProjectMetrics),
       );
 
       try {
@@ -898,7 +912,7 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getRecentProjectsStub = stub(
         GitLabService.prototype,
         'getRecentProjects',
-        () => Promise.resolve(mockRecentProjectSchemas)
+        () => Promise.resolve(mockRecentProjectSchemas),
       );
       const selectStub = stub(Select, 'prompt', () => Promise.resolve('test/project1'));
       const dbInstanceStub = stub(
@@ -961,12 +975,12 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getProjectMetricsStub = stub(
         GitLabService.prototype,
         'getProjectMetrics',
-        () => Promise.resolve(mockProjectMetrics)
+        () => Promise.resolve(mockProjectMetrics),
       );
       const getRecentProjectsStub = stub(
         GitLabService.prototype,
         'getRecentProjects',
-        () => Promise.resolve(mockRecentProjectSchemas)
+        () => Promise.resolve(mockRecentProjectSchemas),
       );
       const dbInstanceStub = stub(
         DatabaseService,
@@ -1016,12 +1030,12 @@ Deno.test('GitLab Command Tests', async (t) => {
       const getProjectMetricsStub = stub(
         GitLabService.prototype,
         'getProjectMetrics',
-        () => Promise.resolve(mockProjectMetrics)
+        () => Promise.resolve(mockProjectMetrics),
       );
       const getRecentProjectsStub = stub(
         GitLabService.prototype,
         'getRecentProjects',
-        () => Promise.resolve(mockRecentProjectSchemas)
+        () => Promise.resolve(mockRecentProjectSchemas),
       );
       const dbInstanceStub = stub(
         DatabaseService,

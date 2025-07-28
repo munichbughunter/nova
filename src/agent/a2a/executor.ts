@@ -15,7 +15,9 @@ export interface CommandExecutionResult {
   error?: string;
 }
 
-export async function executeShellCommand(options: CommandExecutionOptions): Promise<CommandExecutionResult> {
+export async function executeShellCommand(
+  options: CommandExecutionOptions,
+): Promise<CommandExecutionResult> {
   const { command, args = [], cwd, timeoutMs = 60000, env } = options;
   try {
     const cmd = new Deno.Command(command, {
@@ -27,8 +29,8 @@ export async function executeShellCommand(options: CommandExecutionOptions): Pro
     });
     const child = cmd.spawn();
     const timeout = setTimeout(() => {
-      try { 
-        child.kill('SIGTERM'); 
+      try {
+        child.kill('SIGTERM');
       } catch (error) {
         // Ignore errors when killing the process
         console.debug('Failed to kill process:', error);
@@ -49,4 +51,4 @@ export async function executeShellCommand(options: CommandExecutionOptions): Pro
       error: error instanceof Error ? error.message : String(error),
     };
   }
-} 
+}

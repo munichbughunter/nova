@@ -1,13 +1,15 @@
 # Git Command
 
-The `nova git` command provides enhanced Git functionality with AI assistance, streamlining your development workflow with intelligent commit messages, semantic releases, and repository analytics.
+The `nova git` command provides enhanced Git functionality with AI assistance, streamlining your
+development workflow with intelligent commit messages, semantic releases, and repository analytics.
 
-!!! info "Git Enhancement"
-    This command augments your existing Git workflow with AI-powered features for more effective version control and collaboration.
+!!! info "Git Enhancement" This command augments your existing Git workflow with AI-powered features
+for more effective version control and collaboration.
 
 ## Overview
 
-nova's Git integration adds intelligent capabilities to standard Git operations, helping developers create more meaningful commits, manage releases semantically, and visualize repository activity.
+nova's Git integration adds intelligent capabilities to standard Git operations, helping developers
+create more meaningful commits, manage releases semantically, and visualize repository activity.
 
 ```mermaid
 graph TD
@@ -80,12 +82,12 @@ Creates semantically meaningful commit messages by analyzing your changes with A
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `--all`, `-a` | Include all changes, not just staged changes |
+| Option            | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `--all`, `-a`     | Include all changes, not just staged changes              |
 | `--message`, `-m` | Provide a custom commit message instead of generating one |
-| `--silent`, `-s` | Run in silent mode with minimal output |
-| `--no-commit` | Preview the commit message without creating a commit |
+| `--silent`, `-s`  | Run in silent mode with minimal output                    |
+| `--no-commit`     | Preview the commit message without creating a commit      |
 
 #### Example Output
 
@@ -148,7 +150,8 @@ Manages semantic versioning and releases for your repository.
 nova git release setup
 ```
 
-Configures your repository for semantic release management by creating or updating a `nova.json` configuration file.
+Configures your repository for semantic release management by creating or updating a `nova.json`
+configuration file.
 
 Example output:
 
@@ -228,10 +231,10 @@ Release notes would be:
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `--dry-run` | Simulate release without making changes |
-| `--force` | Force a release even if no changes detected |
+| Option      | Description                                 |
+| ----------- | ------------------------------------------- |
+| `--dry-run` | Simulate release without making changes     |
+| `--force`   | Force a release even if no changes detected |
 
 ### Dashboard
 
@@ -239,7 +242,8 @@ Release notes would be:
 nova git dashboard
 ```
 
-Displays an interactive dashboard of your repository's current state, including branches, changes, and status.
+Displays an interactive dashboard of your repository's current state, including branches, changes,
+and status.
 
 Example output:
 
@@ -275,7 +279,8 @@ Legend:
 
 ## Release Configuration
 
-The `nova.json` file created by `nova git release setup` contains your semantic release configuration:
+The `nova.json` file created by `nova git release setup` contains your semantic release
+configuration:
 
 ```json
 {
@@ -302,14 +307,14 @@ The `nova.json` file created by `nova git release setup` contains your semantic 
 
 ### Configuration Options
 
-| Option | Description |
-|--------|-------------|
-| `branches.main` | Branch names considered as main/release branches |
-| `branches.prerelease` | Branch names considered as prerelease branches |
-| `tagPrefix` | Prefix used for version tags (e.g., "v" for v1.0.0) |
-| `changelog.enabled` | Whether to generate and update changelog |
-| `commitAnalyzer.preset` | Commit message convention to analyze |
-| `gitlab.enabled` | Whether to create GitLab releases |
+| Option                  | Description                                         |
+| ----------------------- | --------------------------------------------------- |
+| `branches.main`         | Branch names considered as main/release branches    |
+| `branches.prerelease`   | Branch names considered as prerelease branches      |
+| `tagPrefix`             | Prefix used for version tags (e.g., "v" for v1.0.0) |
+| `changelog.enabled`     | Whether to generate and update changelog            |
+| `commitAnalyzer.preset` | Commit message convention to analyze                |
+| `gitlab.enabled`        | Whether to create GitLab releases                   |
 
 ## Integration with Other Commands
 
@@ -386,20 +391,16 @@ sequenceDiagram
 
 ## Tips and Best Practices
 
-!!! tip Better Commit Messages
-    - Make small, focused commits for better AI analysis
-    - Use `--all` only when changes are related
-    - Review AI suggestions and edit if necessary
+!!! tip Better Commit Messages - Make small, focused commits for better AI analysis - Use `--all`
+only when changes are related - Review AI suggestions and edit if necessary
 
-!!! tip Effective Releases
-    - Follow [Conventional Commits](https://www.conventionalcommits.org/) format
-    - Use `feat:`, `fix:`, and `BREAKING CHANGE:` prefixes
-    - Test releases before applying with `--dry-run`
+!!! tip Effective Releases - Follow [Conventional Commits](https://www.conventionalcommits.org/)
+format - Use `feat:`, `fix:`, and `BREAKING CHANGE:` prefixes - Test releases before applying with
+`--dry-run`
 
 ## Troubleshooting
 
-!!! warning Common Issues
-    Solutions for common Git command problems.
+!!! warning Common Issues Solutions for common Git command problems.
 
 ### AI Commit Generation Failures
 
@@ -423,4 +424,4 @@ If releases fail:
 
 - [`nova gitlab`](gitlab.md) - GitLab integration
 - [`nova agent`](agent.md) - AI-powered development assistance
-- [`nova jira`](jira.md) - Create and link issues 
+- [`nova jira`](jira.md) - Create and link issues

@@ -1,5 +1,5 @@
 import { colors } from '@cliffy/ansi/colors';
-import { Temporal } from "npm:@js-temporal/polyfill";
+import { Temporal } from 'npm:@js-temporal/polyfill';
 import { logger } from './utils/logger.ts';
 // Theme definition
 export const theme = {
@@ -37,36 +37,36 @@ export const theme = {
     warning: '⚠️',
     error: '❌',
     info: 'ℹ️',
-    
+
     // Progress indicators
     bullet: '•',
     progress: '🔄',
     loading: '⌛️',
-    
+
     // Setup and configuration
     setup: '🛠',
     config: '⚙️',
     new: '🆕',
     update: '🔄',
     configured: '✨',
-    
+
     // Actions
     check: '🔍',
     run: '🚀',
     download: '📥',
-    
+
     // Metrics and analysis
     metrics: '📊',
     quality: '🔎',
     performance: '🚀',
     analyze: '🔍',
-    
+
     // Development
     review: '👨‍💻',
     code: '👨‍💻',
     test: '🧪',
     bug: '🐞',
-    
+
     // Project management
     documentation: '📝',
     feature: '🌟',
@@ -77,17 +77,17 @@ export const theme = {
     time: '⏰',
     deploy: '🚀',
     insight: '💡',
-    
+
     // Security
     security: '🔐',
-    
+
     // Status levels
     strength: '💪',
     weakness: '🎯',
     recommendation: '💭',
     action: '✨',
     success_celebration: '🎉',
-    
+
     // Priority levels
     priority: {
       high: '🔴',
@@ -105,10 +105,10 @@ export const theme = {
 
     status: {
       error: '🔴',
-      warning: '🟡', 
+      warning: '🟡',
       success: '✅',
-      neutral: '⚪'
-    }
+      neutral: '⚪',
+    },
   },
 } as const;
 
@@ -137,8 +137,7 @@ export const formatInfo = (message: string) =>
 export const formatWarning = (message: string) =>
   logger.passThrough('log', theme.warning(`${theme.symbols.warning} ${message}`));
 
-export const formatDim = (message: string) =>
-  logger.passThrough('log', theme.dim(message));
+export const formatDim = (message: string) => logger.passThrough('log', theme.dim(message));
 
 export const getTerminalWidth = () => {
   try {
@@ -168,9 +167,9 @@ export const box = {
 export const formatBox = (content: string, width = getTerminalWidth() - 4): string => {
   const lines = content.split('\n');
   const horizontalLine = box.horizontal.repeat(width);
-  
+
   return `${box.topLeft}${horizontalLine}
-${lines.map(line => `${box.vertical} ${line}`).join('\n')}
+${lines.map((line) => `${box.vertical} ${line}`).join('\n')}
 ${box.bottomLeft}${horizontalLine}`;
 };
 
@@ -218,7 +217,7 @@ export const formatDuration = (hours: number): string => {
   const days = Math.floor(hours / 24);
   const weeks = Math.floor(days / 7);
   const remainingDays = days % 7;
-  
+
   if (weeks > 0) {
     return remainingDays > 0 ? `${weeks}w ${remainingDays}d` : `${weeks}w`;
   }
@@ -251,25 +250,25 @@ export const formatMetricsTable = (metrics: Record<string, unknown>, title: stri
         const cleanKey = key.substring(1);
         const label = cleanKey
           .split('_')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
         return `\n${formatMetric(label, formatValue(value))}`;
       }
 
       const label = key
         .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      
+
       // Handle multi-line values
       const formattedValue = formatValue(value);
       if (formattedValue.includes('\n')) {
         const valueLines = formattedValue.split('\n');
-        return valueLines.map((line, i) => 
+        return valueLines.map((line, i) =>
           i === 0 ? formatMetric(label, line) : formatMetric('', line)
         ).join('\n');
       }
-      
+
       return formatMetric(label, formattedValue);
     })
     .join('\n');
@@ -307,11 +306,11 @@ export class ProgressIndicator {
   update(message: string) {
     // Clear the current line and move cursor to beginning
     Deno.stdout.writeSync(
-      this.encoder.encode('\x1b[2K\r')
+      this.encoder.encode('\x1b[2K\r'),
     );
     // Write the new message
     Deno.stdout.writeSync(
-      this.encoder.encode(`${ProgressIndicator.progressChars[this.progressIndex]} ${message}`)
+      this.encoder.encode(`${ProgressIndicator.progressChars[this.progressIndex]} ${message}`),
     );
   }
 }
@@ -342,10 +341,11 @@ export class FileAnalysisProgress {
 }
 
 export const formatTableRow = (label: string, value: string | number): string =>
-  `├─────────────────────────┬────────────────────────────────────────┤\n│ ${label.padEnd(23)} │ ${String(value).padEnd(36)}│`;
+  `├─────────────────────────┬────────────────────────────────────────┤\n│ ${label.padEnd(23)} │ ${
+    String(value).padEnd(36)
+  }│`;
 
-export const formatTableHeader = (text: string): string =>
-  `${box.vertical} ${text}`;
+export const formatTableHeader = (text: string): string => `${box.vertical} ${text}`;
 
 export const formatTableSection = (title: string, rows: [string, string | number][]): string => {
   const formattedRows = rows.map(([label, value]) => {
@@ -358,15 +358,15 @@ export const formatMetricsBox = (title: string, sections: string[]): string => {
   return formatBox([
     title,
     `${box.verticalRight}${box.horizontal.repeat(60)}`,
-    ...sections
+    ...sections,
   ].join('\n'));
 };
 
 export const formatTrendChart = (
-  values: number[], 
-  height = 5, 
+  values: number[],
+  height = 5,
   showPercentages = true,
-  timeLabels?: string[]
+  timeLabels?: string[],
 ): string => {
   if (!values || values.length === 0) return 'No trend data available';
 
@@ -380,13 +380,11 @@ export const formatTrendChart = (
     high: '▓',
     medium: '▒',
     low: '░',
-    empty: ' '
+    empty: ' ',
   };
 
   // Calculate column width for better alignment
-  const maxLabelWidth = timeLabels ? 
-    Math.max(...timeLabels.map(l => l.length)) : 
-    3;
+  const maxLabelWidth = timeLabels ? Math.max(...timeLabels.map((l) => l.length)) : 3;
   const columnWidth = Math.max(maxLabelWidth + 2, 5);
 
   // Draw chart from top to bottom
@@ -395,12 +393,12 @@ export const formatTrendChart = (
     const threshold = max - (range * (i / (height - 1)));
     const percentage = showPercentages ? `${Math.round(threshold)}%`.padStart(4) : '';
     let line = `${percentage} `;
-    
-    values.forEach(value => {
+
+    values.forEach((value) => {
       // Calculate how "filled" this column should be at this height
-      const intensity = (value - threshold) / (range/height);
+      const intensity = (value - threshold) / (range / height);
       let block;
-      
+
       if (value >= threshold) {
         if (intensity >= 0.75) block = blocks.full.repeat(3);
         else if (intensity >= 0.5) block = blocks.high.repeat(3);
@@ -409,7 +407,7 @@ export const formatTrendChart = (
       } else {
         block = blocks.empty.repeat(3);
       }
-      
+
       // Add extra spacing between columns for readability
       line += block.padEnd(columnWidth);
     });
@@ -418,15 +416,11 @@ export const formatTrendChart = (
 
   // Add time labels with proper alignment
   if (timeLabels && timeLabels.length === values.length) {
-    const alignedLabels = timeLabels.map(label => 
-      label.padEnd(columnWidth)
-    ).join('');
+    const alignedLabels = timeLabels.map((label) => label.padEnd(columnWidth)).join('');
     chart.push('    ' + alignedLabels);
   } else {
     const defaultLabels = ['4w', '3w', '2w', '1w', 'Now'];
-    const alignedLabels = defaultLabels.map(label => 
-      label.padEnd(columnWidth)
-    ).join('');
+    const alignedLabels = defaultLabels.map((label) => label.padEnd(columnWidth)).join('');
     chart.push('    ' + alignedLabels);
   }
 
@@ -438,7 +432,7 @@ export function formatTimeAgo(date: Date): string {
   const now = Temporal.Now.instant();
   const then = Temporal.Instant.fromEpochMilliseconds(date.getTime());
   const duration = now.since(then);
-  
+
   if (duration.years > 0) {
     return `${duration.years}y ago`;
   } else if (duration.months > 0) {
@@ -502,19 +496,23 @@ export const getHealthIndicator = (score: number | null): string => {
 
 export const getTrendIndicator = (trend: number[]): string => {
   if (trend.length < 2) return `${theme.symbols.status.neutral} No data`;
-  
+
   const change = trend[trend.length - 1] - trend[trend.length - 2];
   const percentChange = (change / trend[trend.length - 2]) * 100;
-  
+
   if (Math.abs(percentChange) < 5) return `${theme.symbols.status.neutral} Stable`;
-  if (percentChange > 0) return `${theme.symbols.status.success} Improving (+${percentChange.toFixed(1)}%)`;
+  if (percentChange > 0) {
+    return `${theme.symbols.status.success} Improving (+${percentChange.toFixed(1)}%)`;
+  }
   return `${theme.symbols.status.warning} Declining (${percentChange.toFixed(1)}%)`;
 };
 
-export const getCycleTimeTrendIndicator = (cycleTime: { mean: number; median: number; distribution: { p75: number; p90: number } }): string => {
+export const getCycleTimeTrendIndicator = (
+  cycleTime: { mean: number; median: number; distribution: { p75: number; p90: number } },
+): string => {
   const p75ToMedianRatio = cycleTime.distribution.p75 / cycleTime.median;
   const p90ToMedianRatio = cycleTime.distribution.p90 / cycleTime.median;
-  
+
   if (p90ToMedianRatio > 3) return '❌ Very unpredictable';
   if (p90ToMedianRatio > 2) return '⚠️ Unpredictable';
   if (p75ToMedianRatio > 1.5) return '⚠️ Somewhat unpredictable';
@@ -536,10 +534,10 @@ export const getStatusEmoji = (statusCategory: string): string => {
 
 export const getDaysAgo = (date: Date | string | undefined): number => {
   if (!date) return 0;
-  
+
   const targetDate = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(targetDate.getTime())) return 0;
-  
+
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - targetDate.getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -548,23 +546,24 @@ export const getDaysAgo = (date: Date | string | undefined): number => {
 /**
  * Format a date to a consistent format for tests and other outputs
  * This ensures snapshot tests don't fail due to locale differences
- * 
+ *
  * @param date The date to format
  * @returns A consistently formatted date string
  */
 export function formatLocaleDate(date: Date | string | number): string {
   const dateObj = date instanceof Date ? date : new Date(date);
-  
+
   // Format: MM/DD/YYYY, hh:mm:ss AM/PM
   return dateObj.toLocaleDateString('en-US', {
     month: 'numeric',
     day: 'numeric',
     year: 'numeric',
-  }) + (dateObj.getHours() || dateObj.getMinutes() || dateObj.getSeconds() ? 
-    ', ' + dateObj.toLocaleTimeString('en-US', {
+  }) + (dateObj.getHours() || dateObj.getMinutes() || dateObj.getSeconds()
+    ? ', ' + dateObj.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       second: '2-digit',
       hour12: true,
-    }) : '');
+    })
+    : '');
 }

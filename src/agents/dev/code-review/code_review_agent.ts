@@ -1015,7 +1015,13 @@ Only use descriptive text for line numbers (e.g., "multiple", "various") when an
       // Check if provider supports structured outputs
       if (this.aiService.provider === 'ollama') {
         // For Ollama: Use plain text generation + manual parsing
-        analysis = await this.analyzeWithOllama(filePath, perspective, content, systemPrompt, analysisPrompt);
+        analysis = await this.analyzeWithOllama(
+          filePath,
+          perspective,
+          content,
+          systemPrompt,
+          analysisPrompt,
+        );
       } else {
         // For providers with structured output support (OpenAI, Azure, Nova)
         const { result } = await this.aiService.generateWithTools({
@@ -1094,51 +1100,58 @@ CRITICAL: You MUST respond with a valid JSON object that has EXACTLY these field
 Respond ONLY with valid JSON - no other text before or after. All severity values must be lowercase ("high", "medium", or "low").`;
 
     try {
-      this.context.logger.passThrough('log', theme.dim(`Analyzing with Ollama (${perspective} perspective)...`));
-      
+      this.context.logger.passThrough(
+        'log',
+        theme.dim(`Analyzing with Ollama (${perspective} perspective)...`),
+      );
+
       const result = await this.aiService.generateText('', {
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: ollamaPrompt }
-        ]
+          { role: 'user', content: ollamaPrompt },
+        ],
       });
-      
+
       // Try to extract and parse JSON from response
       const responseText = result.text;
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No JSON found in response');
       }
-      
+
       // Clean up the JSON string
       let jsonStr = jsonMatch[0];
-      
+
       // Remove any trailing content after the closing brace
       const lastBraceIndex = jsonStr.lastIndexOf('}');
       if (lastBraceIndex !== -1) {
         jsonStr = jsonStr.substring(0, lastBraceIndex + 1);
       }
-      
+
       const parsed = JSON.parse(jsonStr);
-      
+
       // Validate and repair the parsed data
       const repairedAnalysis = this.validateAndRepairAnalysis(parsed, filePath);
-      
+
       // Validate against schema for final check
       const validatedAnalysis = FileAnalysisSchema.parse(repairedAnalysis);
-      
+
       return validatedAnalysis;
     } catch (parseError) {
       this.context.logger.error(`Ollama analysis parsing failed: ${parseError}`);
-      
+
       // Return fallback if parsing fails
       return {
         path: filePath,
         issues: [],
-        suggestions: [`Analysis failed for ${filePath}: ${parseError instanceof Error ? parseError.message : String(parseError)}`],
+        suggestions: [
+          `Analysis failed for ${filePath}: ${
+            parseError instanceof Error ? parseError.message : String(parseError)
+          }`,
+        ],
         score: 5,
         summary: `Could not parse analysis for ${filePath}`,
-        learningOpportunities: [`Consider reviewing the file manually due to parsing issues`]
+        learningOpportunities: [`Consider reviewing the file manually due to parsing issues`],
       };
     }
   }
@@ -1149,30 +1162,32 @@ Respond ONLY with valid JSON - no other text before or after. All severity value
   private validateAndRepairAnalysis(data: any, filePath: string): FileAnalysis {
     const repairedData: FileAnalysis = {
       path: typeof data.path === 'string' ? data.path : filePath,
-      issues: Array.isArray(data.issues) ? data.issues.map((issue: any) => ({
-        severity: ['high', 'medium', 'low'].includes(issue.severity?.toLowerCase()) 
-          ? issue.severity.toLowerCase() 
-          : 'medium',
-        message: typeof issue.message === 'string' ? issue.message : 'Issue found',
-        explanation: typeof issue.explanation === 'string' ? issue.explanation : issue.message || 'No explanation provided',
-        suggestion: typeof issue.suggestion === 'string' ? issue.suggestion : 'Review and fix as needed',
-        line: issue.line !== undefined ? issue.line : undefined,
-        column: issue.column !== undefined ? issue.column : undefined,
-        code: typeof issue.code === 'string' ? issue.code : undefined,
-        perspective: issue.perspective || undefined
-      })) : [],
-      suggestions: Array.isArray(data.suggestions) 
+      issues: Array.isArray(data.issues)
+        ? data.issues.map((issue: any) => ({
+          severity: ['high', 'medium', 'low'].includes(issue.severity?.toLowerCase())
+            ? issue.severity.toLowerCase()
+            : 'medium',
+          message: typeof issue.message === 'string' ? issue.message : 'Issue found',
+          explanation: typeof issue.explanation === 'string'
+            ? issue.explanation
+            : issue.message || 'No explanation provided',
+          suggestion: typeof issue.suggestion === 'string'
+            ? issue.suggestion
+            : 'Review and fix as needed',
+          line: issue.line !== undefined ? issue.line : undefined,
+          column: issue.column !== undefined ? issue.column : undefined,
+          code: typeof issue.code === 'string' ? issue.code : undefined,
+          perspective: issue.perspective || undefined,
+        }))
+        : [],
+      suggestions: Array.isArray(data.suggestions)
         ? data.suggestions.filter((s: any) => typeof s === 'string')
         : ['Review the code for potential improvements'],
-      score: typeof data.score === 'number' && data.score >= 1 && data.score <= 10 
-        ? data.score 
-        : 5,
-      summary: typeof data.summary === 'string' 
-        ? data.summary 
-        : `Analysis of ${filePath}`,
-      learningOpportunities: Array.isArray(data.learningOpportunities) 
+      score: typeof data.score === 'number' && data.score >= 1 && data.score <= 10 ? data.score : 5,
+      summary: typeof data.summary === 'string' ? data.summary : `Analysis of ${filePath}`,
+      learningOpportunities: Array.isArray(data.learningOpportunities)
         ? data.learningOpportunities.filter((lo: any) => typeof lo === 'string')
-        : []
+        : [],
     };
 
     return repairedData;
@@ -2164,7 +2179,7 @@ session.mr.changes length: ${session?.mr?.changes?.length}`);
           if (issue.line !== undefined) {
             // Ensure line is treated as a number for comparisons
             const lineNum = typeof issue.line === 'string' ? parseInt(issue.line, 10) : issue.line;
-            
+
             // Skip if conversion resulted in NaN
             if (isNaN(lineNum)) {
               return issue;

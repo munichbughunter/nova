@@ -54,6 +54,7 @@ deno run --allow-all examples/js_executor_example.ts
 ```
 
 These scripts demonstrate:
+
 - Getting a list of available tools
 - Testing individual tools
 - Running a sequence of tool tests
@@ -149,4 +150,4 @@ To add a new tool to the MCP service:
 2. **Test with minimal parameters**: Start with required parameters only
 3. **Test error cases**: Try invalid parameters to ensure proper error handling
 4. **Test tool sequences**: Test how tools work together
-5. **Test timeouts**: Ensure long-running tools can be terminated properly 
+5. **Test timeouts**: Ensure long-running tools can be terminated properly

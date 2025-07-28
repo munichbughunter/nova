@@ -29,10 +29,10 @@ export const dashboardCommand = new Command()
 
       // Get current branch
       const currentBranch = await gitService.getCurrentBranch();
-      
+
       // Get changed files
       const changedFiles = await gitService.getChangedFiles();
-      
+
       // Get file statuses for more detailed information
       const fileStatuses = await gitService.getFileStatuses();
 
@@ -44,9 +44,9 @@ export const dashboardCommand = new Command()
           ['Repository Root', repoRoot],
           ['Current Branch', currentBranch || 'Unknown'],
           ['Changed Files', changedFiles.length.toString()],
-          ['Staged Changes', fileStatuses.filter(f => f.staged).length.toString()],
-          ['Unstaged Changes', fileStatuses.filter(f => f.unstaged).length.toString()],
-          ['Untracked Files', fileStatuses.filter(f => f.untracked).length.toString()]
+          ['Staged Changes', fileStatuses.filter((f) => f.staged).length.toString()],
+          ['Unstaged Changes', fileStatuses.filter((f) => f.unstaged).length.toString()],
+          ['Untracked Files', fileStatuses.filter((f) => f.untracked).length.toString()],
         ]);
 
       logger.passThrough('log', '\n' + overviewTable.toString());
@@ -57,19 +57,19 @@ export const dashboardCommand = new Command()
           .border(true)
           .header(['Status', 'File'])
           .body(
-            fileStatuses.map(file => {
+            fileStatuses.map((file) => {
               let status = '';
               if (file.staged) status += colors.green('●');
               if (file.unstaged) status += colors.yellow('●');
               if (file.untracked) status += colors.red('●');
               if (file.deleted) status += colors.red('✕');
               return [status, file.path];
-            })
+            }),
           );
 
         logger.passThrough('log', '\nChanged Files:');
         logger.passThrough('log', changesTable.toString());
-        
+
         // Add legend
         logger.passThrough('log', '\nLegend:');
         logger.passThrough('log', `${colors.green('●')} Staged changes`);
@@ -77,9 +77,11 @@ export const dashboardCommand = new Command()
         logger.passThrough('log', `${colors.red('●')} Untracked files`);
         logger.passThrough('log', `${colors.red('✕')} Deleted files`);
       }
-
     } catch (error) {
-      logger.error('Error in git dashboard:', error instanceof Error ? error.message : String(error));
+      logger.error(
+        'Error in git dashboard:',
+        error instanceof Error ? error.message : String(error),
+      );
       Deno.exit(1);
     }
-  }); 
+  });

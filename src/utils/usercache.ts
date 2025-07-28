@@ -52,9 +52,9 @@ export class UserCache {
     try {
       await this.ensureInitialized();
       const projects = await this.db.getRecentProjects();
-      return projects.map(p => ({
+      return projects.map((p) => ({
         ...p,
-        type: 'gitlab' as const
+        type: 'gitlab' as const,
       }));
     } catch (error) {
       this.logger.error('Error getting recent projects:', error);
@@ -68,10 +68,10 @@ export class UserCache {
   public async addRecentProject(project: ProjectSchema | Record<string, unknown>): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       // Ensure project has the right fields regardless of input type
       const projectToAdd: ProjectSchema = this.ensureProjectSchema(project);
-      
+
       await this.db.addRecentProject(projectToAdd);
     } catch (error) {
       this.logger.error('Error adding project to recent list:', error);
@@ -86,7 +86,7 @@ export class UserCache {
     if (this.isFullProjectSchema(project)) {
       return project;
     }
-    
+
     // Convert from potential GraphQL response or other formats
     return this.convertToProjectSchema(project);
   }
@@ -94,11 +94,13 @@ export class UserCache {
   /**
    * Type guard to check if object is a full ProjectSchema
    */
-  private isFullProjectSchema(project: ProjectSchema | Record<string, unknown>): project is ProjectSchema {
-    return 'path_with_namespace' in project && 
-           'web_url' in project && 
-           'last_activity_at' in project &&
-           'namespace' in project;
+  private isFullProjectSchema(
+    project: ProjectSchema | Record<string, unknown>,
+  ): project is ProjectSchema {
+    return 'path_with_namespace' in project &&
+      'web_url' in project &&
+      'last_activity_at' in project &&
+      'namespace' in project;
   }
 
   /**
@@ -106,16 +108,16 @@ export class UserCache {
    */
   private convertToProjectSchema(project: Record<string, unknown>): ProjectSchema {
     // Create a minimal ProjectSchema for DB storage
-    const pns = (project.path_with_namespace as string) || 
-                (project.fullPath as string) || '';
-    const webUrl = (project.web_url as string) || 
-                  (project.webUrl as string) || '';
+    const pns = (project.path_with_namespace as string) ||
+      (project.fullPath as string) || '';
+    const webUrl = (project.web_url as string) ||
+      (project.webUrl as string) || '';
     const archived = project.archived as boolean;
     const visibility = project.visibility as string;
-    const lastActivity = (project.last_activity_at as string) || 
-                         (project.lastActivityAt as string) || 
-                         new Date().toISOString();
-    
+    const lastActivity = (project.last_activity_at as string) ||
+      (project.lastActivityAt as string) ||
+      new Date().toISOString();
+
     return {
       id: project.id as string | number,
       name: project.name as string,
@@ -221,7 +223,9 @@ export class UserCache {
   /**
    * Get cached projects list
    */
-  public async getCachedProjectsList(): Promise<{ projects: ProjectSchema[]; timestamp: Date } | null> {
+  public async getCachedProjectsList(): Promise<
+    { projects: ProjectSchema[]; timestamp: Date } | null
+  > {
     try {
       await this.ensureInitialized();
       return await this.db.getCachedProjectsList();
@@ -234,15 +238,17 @@ export class UserCache {
   /**
    * Cache projects list
    */
-  public async cacheProjectsList(projects: Array<ProjectSchema | Record<string, unknown>>): Promise<void> {
+  public async cacheProjectsList(
+    projects: Array<ProjectSchema | Record<string, unknown>>,
+  ): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       // Convert any non-ProjectSchema to ProjectSchema
-      const projectsToCache = projects.map(project => 
+      const projectsToCache = projects.map((project) =>
         this.isFullProjectSchema(project) ? project : this.convertToProjectSchema(project)
       );
-      
+
       await this.db.cacheProjectsList(projectsToCache);
     } catch (error) {
       this.logger.error('Error caching projects list:', error);

@@ -1629,7 +1629,6 @@ declare global {
     };
   }
 
-
   interface GitlabSearchResponse {
     data: {
       search: {
@@ -1871,8 +1870,6 @@ declare global {
       arguments: Record<string, unknown>;
     };
   }
-
 }
 
-export { };
-
+export {};

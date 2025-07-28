@@ -1,13 +1,16 @@
 # Datadog Command
 
-The `nova datadog` command provides seamless access to Datadog monitoring and observability features directly from your terminal, allowing you to view teams, dashboards, metrics, and more without switching contexts.
+The `nova datadog` command provides seamless access to Datadog monitoring and observability features
+directly from your terminal, allowing you to view teams, dashboards, metrics, and more without
+switching contexts.
 
-!!! info Observability Tools
-    This command helps you access and interact with your Datadog monitoring data without leaving your development environment.
+!!! info Observability Tools This command helps you access and interact with your Datadog monitoring
+data without leaving your development environment.
 
 ## Overview
 
-Nova's Datadog integration enables you to monitor application health, track metrics, and view team information directly from the command line, streamlining your observability workflow.
+Nova's Datadog integration enables you to monitor application health, track metrics, and view team
+information directly from the command line, streamlining your observability workflow.
 
 ```mermaid
 graph TD
@@ -88,10 +91,10 @@ Lists and searches Datadog teams.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
 | `-f, --format <format>` | Output format (text/json, default: text) |
-| `-q, --query <string>` | Search for a team by name |
+| `-q, --query <string>`  | Search for a team by name                |
 
 #### Example Output
 
@@ -131,8 +134,8 @@ Lists and views Datadog dashboards.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
 | `-f, --format <format>` | Output format (text/json, default: text) |
 
 #### Example Output
@@ -179,12 +182,12 @@ Queries and visualizes Datadog metrics.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-f, --from <time>` | Start time for the query (default: "1h ago") |
-| `-t, --to <time>` | End time for the query (default: "now") |
+| Option                  | Description                                  |
+| ----------------------- | -------------------------------------------- |
+| `-f, --from <time>`     | Start time for the query (default: "1h ago") |
+| `-t, --to <time>`       | End time for the query (default: "now")      |
 | `-o, --output <format>` | Output format (text/json/csv, default: text) |
-| `--file <path>` | Export results to a file |
+| `--file <path>`         | Export results to a file                     |
 
 #### Example Output
 
@@ -231,12 +234,12 @@ Manages and views Datadog monitors.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                                 |
+| ----------------------- | ------------------------------------------- |
 | `-s, --status <status>` | Filter by status (alert, warn, no data, ok) |
-| `-q, --query <string>` | Search monitors by name or query |
-| `-t, --tags <tags>` | Filter by tags (comma-separated) |
-| `-f, --format <format>` | Output format (text/json, default: text) |
+| `-q, --query <string>`  | Search monitors by name or query            |
+| `-t, --tags <tags>`     | Filter by tags (comma-separated)            |
+| `-f, --format <format>` | Output format (text/json, default: text)    |
 
 ### Events (Planned)
 
@@ -260,13 +263,13 @@ Posts and views Datadog events.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-t, --tags <tags>` | Event tags (comma-separated) |
-| `-p, --priority <priority>` | Event priority (normal/low/high) |
-| `-s, --sources <sources>` | Filter by sources (comma-separated) |
-| `--from <time>` | Start time for event query |
-| `--to <time>` | End time for event query |
+| Option                      | Description                         |
+| --------------------------- | ----------------------------------- |
+| `-t, --tags <tags>`         | Event tags (comma-separated)        |
+| `-p, --priority <priority>` | Event priority (normal/low/high)    |
+| `-s, --sources <sources>`   | Filter by sources (comma-separated) |
+| `--from <time>`             | Start time for event query          |
+| `--to <time>`               | End time for event query            |
 
 ### Logs (Planned)
 
@@ -290,22 +293,22 @@ Queries and analyzes Datadog logs.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-f, --from <time>` | Start time for the query (default: "15m ago") |
-| `-t, --to <time>` | End time for the query (default: "now") |
+| Option                 | Description                                    |
+| ---------------------- | ---------------------------------------------- |
+| `-f, --from <time>`    | Start time for the query (default: "15m ago")  |
+| `-t, --to <time>`      | End time for the query (default: "now")        |
 | `-l, --limit <number>` | Maximum number of logs to return (default: 25) |
-| `--format <format>` | Output format (text/json, default: text) |
+| `--format <format>`    | Output format (text/json, default: text)       |
 
 ## Common Options
 
 These options are available across multiple Datadog commands:
 
-| Option | Description |
-|--------|-------------|
-| `--api-key <key>` | Datadog API key (overrides config) |
-| `--app-key <key>` | Datadog application key (overrides config) |
-| `--site <site>` | Datadog site (e.g., datadoghq.com, datadoghq.eu) |
+| Option            | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `--api-key <key>` | Datadog API key (overrides config)               |
+| `--app-key <key>` | Datadog application key (overrides config)       |
+| `--site <site>`   | Datadog site (e.g., datadoghq.com, datadoghq.eu) |
 
 ## Configuration
 
@@ -384,20 +387,16 @@ sequenceDiagram
 
 ## Tips and Best Practices
 
-!!! tip Working with Metrics
-    - Use precise time ranges to focus on relevant data
-    - Export metrics to CSV for further analysis in spreadsheets
-    - Combine multiple metrics queries to correlate data points
+!!! tip Working with Metrics - Use precise time ranges to focus on relevant data - Export metrics to
+CSV for further analysis in spreadsheets - Combine multiple metrics queries to correlate data points
 
-!!! tip Effective Monitoring
-    - Create consistent tagging schemes across all monitored resources
-    - Use meaningful event titles for better searchability
-    - Configure appropriate notification channels for different alert severities
+!!! tip Effective Monitoring - Create consistent tagging schemes across all monitored resources -
+Use meaningful event titles for better searchability - Configure appropriate notification channels
+for different alert severities
 
 ## Troubleshooting
 
-!!! warning Common Issues
-    Solutions for common Datadog command problems.
+!!! warning Common Issues Solutions for common Datadog command problems.
 
 ### Authentication Errors
 
@@ -428,4 +427,4 @@ If your metric or log queries aren't returning expected results:
 ## Related Commands
 
 - [`nova ops`](ops.md) - Infrastructure operations
-- [`nova slack`](slack.md) - Integration with Slack for notifications 
+- [`nova slack`](slack.md) - Integration with Slack for notifications

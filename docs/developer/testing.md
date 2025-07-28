@@ -25,20 +25,20 @@ src/
 ### Test File Structure
 
 ```typescript
-import { assertEquals, assertRejects } from "testing/asserts.ts";
-import { stub } from "testing/mock.ts";
-import { beforeEach, describe, it } from "testing/bdd.ts";
+import { assertEquals, assertRejects } from 'testing/asserts.ts';
+import { stub } from 'testing/mock.ts';
+import { beforeEach, describe, it } from 'testing/bdd.ts';
 
-describe("feature", () => {
+describe('feature', () => {
   beforeEach(() => {
     // Setup
   });
 
-  it("should handle success case", async () => {
+  it('should handle success case', async () => {
     // Test implementation
   });
 
-  it("should handle error case", async () => {
+  it('should handle error case', async () => {
     // Test implementation
   });
 });
@@ -54,7 +54,7 @@ const mockService = {
 
 // Verify calls
 assertEquals(mockService.getData.calls.length, 1);
-assertEquals(mockService.getData.calls[0].args, ["expected arg"]);
+assertEquals(mockService.getData.calls[0].args, ['expected arg']);
 ```
 
 ## Test Categories
@@ -62,6 +62,7 @@ assertEquals(mockService.getData.calls[0].args, ["expected arg"]);
 ### 1. Unit Tests
 
 Test individual components:
+
 - Commands
 - Services
 - Utilities
@@ -70,6 +71,7 @@ Test individual components:
 ### 2. Integration Tests
 
 Test component interactions:
+
 - Command → Service
 - Service → API
 - Agent → Services
@@ -77,6 +79,7 @@ Test component interactions:
 ### 3. End-to-End Tests
 
 Test complete workflows:
+
 - Full command execution
 - Data flow through system
 - Error handling paths
@@ -86,9 +89,9 @@ Test complete workflows:
 ### 1. Command Testing
 
 ```typescript
-Deno.test("command execution", async () => {
+Deno.test('command execution', async () => {
   const command = new TestCommand();
-  const result = await command.execute(["--option", "value"]);
+  const result = await command.execute(['--option', 'value']);
   assertEquals(result.code, 0);
 });
 ```
@@ -96,17 +99,17 @@ Deno.test("command execution", async () => {
 ### 2. Service Testing
 
 ```typescript
-Deno.test("service operations", async () => {
+Deno.test('service operations', async () => {
   const service = new TestService();
   const result = await service.operation();
-  assertEquals(result.status, "success");
+  assertEquals(result.status, 'success');
 });
 ```
 
 ### 3. Agent Testing
 
 ```typescript
-Deno.test("agent processing", async () => {
+Deno.test('agent processing', async () => {
   const agent = new TestAgent();
   const context = createTestContext();
   await agent.process(context);
@@ -116,41 +119,42 @@ Deno.test("agent processing", async () => {
 
 ### 4. Snapshot Testing
 
-Snapshot testing is an effective way to test UI output and command behavior. It captures the output of a command or function and stores it as a reference for future comparisons.
+Snapshot testing is an effective way to test UI output and command behavior. It captures the output
+of a command or function and stores it as a reference for future comparisons.
 
 #### Creating Snapshot Tests
 
 ```typescript
-import { snapshotTest } from "@cliffy/testing";
+import { snapshotTest } from '@cliffy/testing';
 
 // Basic snapshot test
 await snapshotTest({
-  name: "Command output",
+  name: 'Command output',
   meta: import.meta,
   colors: true, // Preserve ANSI color codes
   async fn() {
     // Code that produces console output
-    console.log("Hello world!");
-  }
+    console.log('Hello world!');
+  },
 });
 
 // Testing multiple scenarios
 await snapshotTest({
-  name: "Command with different options",
+  name: 'Command with different options',
   meta: import.meta,
   colors: true,
   steps: {
-    "should show help": {
+    'should show help': {
       async fn() {
-        console.log("Help text");
-      }
+        console.log('Help text');
+      },
     },
-    "should show version": {
+    'should show version': {
       async fn() {
-        console.log("v1.0.0");
-      }
-    }
-  }
+        console.log('v1.0.0');
+      },
+    },
+  },
 });
 ```
 
@@ -168,9 +172,11 @@ To run tests against existing snapshots:
 deno test -A path/to/your.snapshot.test.ts
 ```
 
-Snapshots are stored in `__snapshots__` directories adjacent to the test files and should be committed to version control.
+Snapshots are stored in `__snapshots__` directories adjacent to the test files and should be
+committed to version control.
 
 When to use snapshot testing:
+
 - Command UI output testing
 - Complex formatted output
 - Text-based reports or tables
@@ -180,20 +186,20 @@ When to use snapshot testing:
 
 ```typescript
 await snapshotTest({
-  name: "Table Output",
+  name: 'Table Output',
   meta: import.meta,
   colors: true,
   async fn() {
     const table = new Table()
-      .header(["Name", "Value"])
+      .header(['Name', 'Value'])
       .body([
-        ["Item 1", "100"],
-        ["Item 2", "200"]
+        ['Item 1', '100'],
+        ['Item 2', '200'],
       ])
       .border(true);
-    
+
     console.log(table.toString());
-  }
+  },
 });
 ```
 
@@ -204,7 +210,7 @@ await snapshotTest({
 ```typescript
 function createTestContext(): TestContext {
   return {
-    command: "test",
+    command: 'test',
     args: [],
     options: {},
     config: createTestConfig(),
@@ -230,12 +236,12 @@ function createMockServices(): ServiceContainer {
 ```typescript
 const testData = {
   projects: [
-    { id: "1", name: "Test Project" },
-    { id: "2", name: "Another Project" },
+    { id: '1', name: 'Test Project' },
+    { id: '2', name: 'Another Project' },
   ],
   issues: [
-    { key: "TEST-1", summary: "Test Issue" },
-    { key: "TEST-2", summary: "Another Issue" },
+    { key: 'TEST-1', summary: 'Test Issue' },
+    { key: 'TEST-2', summary: 'Another Issue' },
   ],
 };
 ```
@@ -282,6 +288,7 @@ deno coverage coverage
 ### Coverage Requirements
 
 Minimum coverage requirements:
+
 - Commands: 90%
 - Services: 85%
 - Utilities: 95%
@@ -290,18 +297,21 @@ Minimum coverage requirements:
 ## Best Practices
 
 ### 1. Test Organization
+
 - Group related tests
 - Use descriptive names
 - Follow consistent patterns
 - Include setup/teardown
 
 ### 2. Mock Usage
+
 - Mock external dependencies
 - Verify mock calls
 - Reset mocks between tests
 - Use realistic test data
 
 ### 3. Assertions
+
 - Use specific assertions
 - Check error conditions
 - Verify state changes
@@ -312,12 +322,12 @@ Minimum coverage requirements:
 ### 1. Error Testing
 
 ```typescript
-Deno.test("should handle errors", async () => {
+Deno.test('should handle errors', async () => {
   const service = new TestService();
   await assertRejects(
     () => service.operation(),
     Error,
-    "Expected error message",
+    'Expected error message',
   );
 });
 ```
@@ -325,19 +335,19 @@ Deno.test("should handle errors", async () => {
 ### 2. Async Testing
 
 ```typescript
-Deno.test("should handle async operations", async () => {
+Deno.test('should handle async operations', async () => {
   const result = await asyncOperation();
-  assertEquals(result.status, "success");
+  assertEquals(result.status, 'success');
 });
 ```
 
 ### 3. State Testing
 
 ```typescript
-Deno.test("should maintain state", async () => {
+Deno.test('should maintain state', async () => {
   const component = new TestComponent();
-  await component.setState("new");
-  assertEquals(await component.getState(), "new");
+  await component.setState('new');
+  assertEquals(await component.getState(), 'new');
 });
 ```
 

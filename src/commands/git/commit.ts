@@ -128,7 +128,10 @@ export const commitCommand = new Command()
         }
 
         if (suggestion.type) {
-          logger.passThrough('log', colors.blue('\nCommit type: ') + colors.yellow(suggestion.type));
+          logger.passThrough(
+            'log',
+            colors.blue('\nCommit type: ') + colors.yellow(suggestion.type),
+          );
         }
         if (suggestion.breaking) {
           logger.passThrough('log', colors.red('This appears to be a BREAKING CHANGE'));
@@ -458,7 +461,8 @@ async function generateCommitSuggestion(
   diff: string,
 ): Promise<{ success: boolean; suggestion?: CommitSuggestion; error?: string }> {
   try {
-    const systemPrompt = `You are a git commit message generator. Your task is to analyze git changes and generate a structured commit message.
+    const systemPrompt =
+      `You are a git commit message generator. Your task is to analyze git changes and generate a structured commit message.
 
 Follow these rules:
 1. Generate a JSON object with these fields:
@@ -493,26 +497,26 @@ Follow these rules:
       const suggestion = await aiService.generateObject(
         userPrompt,
         CommitSuggestionSchema,
-        systemPrompt
+        systemPrompt,
       );
 
       logger.debug('\n[DEBUG] Generated suggestion:', suggestion);
 
       return {
         success: true,
-        suggestion
+        suggestion,
       };
     } catch (error) {
       logger.error('Failed to generate commit suggestion:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
-} 
+}

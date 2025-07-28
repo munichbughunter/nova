@@ -87,10 +87,13 @@ export class Logger {
 }
 
 // Create default logger instance
-export const logger = new Logger('App', (() => {
-  try {
-    return Deno.env.get('nova_DEBUG') === 'true';
-  } catch {
-    return false;
-  }
-})()); 
+export const logger = new Logger(
+  'App',
+  (() => {
+    try {
+      return Deno.env.get('nova_DEBUG') === 'true';
+    } catch {
+      return false;
+    }
+  })(),
+);

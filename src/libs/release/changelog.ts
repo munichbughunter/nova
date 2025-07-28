@@ -407,9 +407,7 @@ export async function generateReleaseNotes(
     const commitLink = `[${commit.hash.substring(0, 7)}](${repoUrl}/commit/${commit.hash})`;
 
     // Create the ticket link if present
-    const ticketLink = ticket
-      ? `, closes [${ticket}](https://atlassian.net/browse/${ticket})`
-      : '';
+    const ticketLink = ticket ? `, closes [${ticket}](https://atlassian.net/browse/${ticket})` : '';
 
     return `* ${scope}${cleanMessage} (${commitLink})${ticketLink}`;
   }

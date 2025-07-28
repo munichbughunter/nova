@@ -169,9 +169,12 @@ const metricsCmd = new Command()
         Deno.exit(1);
       }
 
-      logger.passThrough('log', colors.bold.blue(
-        `\nAnalyzing DORA metrics for:\n- Jira: ${jiraProjectKey}\n- GitLab: ${gitlabProjectPath}\n- Time range: ${options.timeRange}\n`,
-      ));
+      logger.passThrough(
+        'log',
+        colors.bold.blue(
+          `\nAnalyzing DORA metrics for:\n- Jira: ${jiraProjectKey}\n- GitLab: ${gitlabProjectPath}\n- Time range: ${options.timeRange}\n`,
+        ),
+      );
 
       // Get DORA metrics
       const metrics = options.refresh
@@ -215,12 +218,12 @@ const metricsCmd = new Command()
           jiraProject: {
             key: jiraProjectKey,
             name: metrics.jiraProject.name,
-            url: metrics.jiraProject.url
+            url: metrics.jiraProject.url,
           },
           gitlabProject: {
             path: gitlabProjectPath,
             name: metrics.gitlabProject.name,
-            url: metrics.gitlabProject.url
+            url: metrics.gitlabProject.url,
           },
           metrics: {
             deploymentFrequency: {
@@ -228,40 +231,40 @@ const metricsCmd = new Command()
               deploymentsTotal: metrics.metrics.deploymentFrequency.deploymentsTotal,
               rating: metrics.metrics.deploymentFrequency.rating,
               trendStats: metrics.metrics.deploymentFrequency.trendStats,
-              environmentBreakdown: metrics.metrics.deploymentFrequency.environmentBreakdown
+              environmentBreakdown: metrics.metrics.deploymentFrequency.environmentBreakdown,
             },
             leadTimeForChanges: {
               averageInHours: metrics.metrics.leadTimeForChanges.averageInHours,
               medianInHours: metrics.metrics.leadTimeForChanges.medianInHours,
-              rating: metrics.metrics.leadTimeForChanges.rating
+              rating: metrics.metrics.leadTimeForChanges.rating,
             },
             changeFailureRate: {
               percentage: metrics.metrics.changeFailureRate.percentage,
               failedDeployments: metrics.metrics.changeFailureRate.failedDeployments,
               totalDeployments: metrics.metrics.changeFailureRate.totalDeployments,
-              rating: metrics.metrics.changeFailureRate.rating
+              rating: metrics.metrics.changeFailureRate.rating,
             },
             timeToRestore: {
               averageInHours: metrics.metrics.timeToRestore.averageInHours,
               medianInHours: metrics.metrics.timeToRestore.medianInHours,
               incidents: metrics.metrics.timeToRestore.incidents,
-              rating: metrics.metrics.timeToRestore.rating
-            }
+              rating: metrics.metrics.timeToRestore.rating,
+            },
           },
           trends: metrics.trends,
           timestamp: new Date().toISOString(),
-          timeRange: options.timeRange
+          timeRange: options.timeRange,
         }];
 
         try {
           // Ensure apiUrl and token are strings
           const apiUrl = typeof options.apiUrl === 'string' ? options.apiUrl : undefined;
           const token = typeof options.token === 'string' ? options.token : undefined;
-          
+
           if (!apiUrl || !token) {
             throw new Error('API URL and token must be provided as strings for ingestion');
           }
-          
+
           await sendIngestPayload({
             apiUrl,
             token,
@@ -270,7 +273,13 @@ const metricsCmd = new Command()
           });
           logger.passThrough('log', colors.green('✓ DORA metrics ingested to Commander4!'));
         } catch (err) {
-          logger.error(colors.red(`✗ Failed to ingest DORA metrics: ${err instanceof Error ? err.message : String(err)}`));
+          logger.error(
+            colors.red(
+              `✗ Failed to ingest DORA metrics: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            ),
+          );
         }
       }
     } catch (error) {

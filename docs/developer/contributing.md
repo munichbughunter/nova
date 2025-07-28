@@ -10,7 +10,6 @@ process and standards.
    # Clone repository
    git clone 
    cd nova
-
    ```
 
 ## Development Workflow
@@ -64,7 +63,7 @@ Nova uses snapshot testing for commands to ensure output stability and catch UI 
 1. Create a test file with the `.snapshot.test.ts` extension:
    ```typescript
    import { snapshotTest } from '@cliffy/testing';
-   
+
    await snapshotTest({
      name: 'My Test',
      meta: import.meta,
@@ -103,7 +102,7 @@ Snapshots are stored in `__snapshots__` directories and should be committed to v
    - Service interfaces
    - Error handling
    - Testing utilities
-   
+
 3. **MCP Server Integration**
    - Model Context Protocol implementation
    - Service integrations via MCP
@@ -234,6 +233,7 @@ To contribute effectively to Nova, you'll need:
 - GitHub account with authentication
 
 For testing optional features, you may also need:
+
 - [Github Copilot CLI extension](https://github.com/apps/gh-copilot) installed
 
 ## Shell Completions
@@ -265,6 +265,7 @@ deno completions fish > ~/.config/fish/completions/nova.fish
 ```
 
 This will give you:
+
 1. Completion for agent types (eng, pm, bm, rs)
 2. Command completion based on agent type
 3. File/directory completion for the review command

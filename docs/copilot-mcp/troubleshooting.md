@@ -131,7 +131,8 @@ Here are some common error messages and their solutions:
 
 This usually indicates a problem with the stdio communication channel.
 
-**Solution**: 
+**Solution**:
+
 - Restart the MCP server
 - Ensure no other process is reading from stdin or writing to stdout
 - Try using the SSE transport instead:
@@ -144,6 +145,7 @@ This usually indicates a problem with the stdio communication channel.
 This indicates a problem finding a file or directory.
 
 **Solution**:
+
 - Make sure you're running the MCP server in the correct directory
 - Check that the file paths in your requests are correct
 - Use absolute paths when necessary
@@ -153,6 +155,7 @@ This indicates a problem finding a file or directory.
 This indicates that a required service (like Jira or GitLab) hasn't been configured.
 
 **Solution**:
+
 - Run the setup process to configure the service:
   ```bash
   nova setup
@@ -167,6 +170,7 @@ This indicates that a required service (like Jira or GitLab) hasn't been configu
 This generic error happens when a tool fails to execute properly.
 
 **Solution**:
+
 - Check the specific error message in the debug logs
 - Verify that all required parameters are provided
 - Ensure the service is properly configured and accessible
@@ -190,7 +194,8 @@ If you suspect configuration issues are causing problems, you can reset your MCP
 If you're still experiencing issues:
 
 1. Check the [Nova documentation](https://docs.nova.dev) for updates
-2. Look for similar issues in the [Nova GitHub repository](https://github.com/yourusername/nova-cli/issues)
+2. Look for similar issues in the
+   [Nova GitHub repository](https://github.com/yourusername/nova-cli/issues)
 3. Submit a detailed bug report with:
    - Nova version (`nova --version`)
    - Operating system

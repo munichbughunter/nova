@@ -1,13 +1,16 @@
 # Jira Command
 
-The `nova jira` command provides an integrated interface to Atlassian Jira directly from your terminal, streamlining issue management and reporting.
+The `nova jira` command provides an integrated interface to Atlassian Jira directly from your
+terminal, streamlining issue management and reporting.
 
-!!! tip "Terminal-Based Jira Interface"
-    Interact with your Jira projects and issues without leaving your development environment.
+!!! tip "Terminal-Based Jira Interface" Interact with your Jira projects and issues without leaving
+your development environment.
 
 ## Overview
 
-The Jira command enables seamless interaction with your Jira projects and issues directly from the command line. This integration helps developers stay in their workflow without context switching to the Jira web interface.
+The Jira command enables seamless interaction with your Jira projects and issues directly from the
+command line. This integration helps developers stay in their workflow without context switching to
+the Jira web interface.
 
 ```mermaid
 graph TD
@@ -38,53 +41,53 @@ Before using the Jira commands, ensure:
 
 <div class="grid cards" markdown>
 
-- :clipboard: __Project Management__
+- :clipboard: **Project Management**
 
-    ---
+  ---
 
-    List and view Jira projects
-    
-    ```bash
-    nova jira projects
-    ```
-    
-    [➡️ Projects Command](#projects-command)
+  List and view Jira projects
 
-- :memo: __Issue Management__
+  ```bash
+  nova jira projects
+  ```
 
-    ---
+  [➡️ Projects Command](#projects-command)
 
-    List and view Jira issues
-    
-    ```bash
-    nova jira issues
-    ```
-    
-    [➡️ Issues Command](#issues-command)
+- :memo: **Issue Management**
 
-- :bar_chart: __Dashboards__
+  ---
 
-    ---
+  List and view Jira issues
 
-    View project metrics and dashboards
-    
-    ```bash
-    nova jira dashboard
-    ```
-    
-    [➡️ Dashboard Command](#dashboard-command)
+  ```bash
+  nova jira issues
+  ```
 
-- :link: __Browser Integration__
+  [➡️ Issues Command](#issues-command)
 
-    ---
+- :bar_chart: **Dashboards**
 
-    Open issues in your browser
-    
-    ```bash
-    nova jira open ISSUE-KEY
-    ```
-    
-    [➡️ Open Command](#open-command)
+  ---
+
+  View project metrics and dashboards
+
+  ```bash
+  nova jira dashboard
+  ```
+
+  [➡️ Dashboard Command](#dashboard-command)
+
+- :link: **Browser Integration**
+
+  ---
+
+  Open issues in your browser
+
+  ```bash
+  nova jira open ISSUE-KEY
+  ```
+
+  [➡️ Open Command](#open-command)
 
 </div>
 
@@ -98,8 +101,8 @@ Lists all available Jira projects that you have access to.
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
 | `-f, --format <format>` | Output format (text/json, default: text) |
 
 ### Example
@@ -131,17 +134,18 @@ Total projects: 2
 nova jira issues [options]
 ```
 
-Lists issues for a specified project or based on a JQL query. If no project or query is specified, you'll be prompted to select a project.
+Lists issues for a specified project or based on a JQL query. If no project or query is specified,
+you'll be prompted to select a project.
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-p, --project <key>` | Project key to list issues for |
-| `-q, --query <jql>` | JQL query to search issues |
-| `-l, --limit <number>` | Maximum number of issues to return (default: 20) |
-| `-f, --format <format>` | Output format (text/json, default: text) |
-| `--show-completed` | Include completed issues in results |
+| Option                  | Description                                      |
+| ----------------------- | ------------------------------------------------ |
+| `-p, --project <key>`   | Project key to list issues for                   |
+| `-q, --query <jql>`     | JQL query to search issues                       |
+| `-l, --limit <number>`  | Maximum number of issues to return (default: 20) |
+| `-f, --format <format>` | Output format (text/json, default: text)         |
+| `--show-completed`      | Include completed issues in results              |
 
 ### Example
 
@@ -184,8 +188,8 @@ Shows detailed information about a specific issue.
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
 | `-f, --format <format>` | Output format (text/json, default: text) |
 
 ### Example
@@ -236,17 +240,18 @@ Found the issue - it's a z-index problem. Working on a fix.
 nova jira dashboard [project-key] [options]
 ```
 
-Shows a metrics dashboard for a Jira project. If no project is specified, you'll be prompted to select one.
+Shows a metrics dashboard for a Jira project. If no project is specified, you'll be prompted to
+select one.
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-f, --format <format>` | Output format (table/json, default: table) |
-| `-d, --days <number>` | Number of days to analyze (default: 84) |
-| `-r, --recent` | Show dashboard for most recently viewed project |
-| `--refresh` | Force refresh cached data |
-| `-b, --board <id>` | Specific board ID to analyze |
+| Option                  | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| `-f, --format <format>` | Output format (table/json, default: table)      |
+| `-d, --days <number>`   | Number of days to analyze (default: 84)         |
+| `-r, --recent`          | Show dashboard for most recently viewed project |
+| `--refresh`             | Force refresh cached data                       |
+| `-b, --board <id>`      | Specific board ID to analyze                    |
 
 ### Example
 
@@ -310,39 +315,36 @@ nova jira open PROJ-123
 
 ## Global Options
 
-| Option | Description |
-|--------|-------------|
+| Option       | Description           |
+| ------------ | --------------------- |
 | `-h, --help` | Show help information |
 
 ## Environment Variables
 
 The following environment variables can affect Jira command behavior:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ATLASSIAN_TOKEN` | Jira API token | `export ATLASSIAN_TOKEN="your-token"` |
-| `JIRA_URL` | URL of your Jira instance | `export JIRA_URL="https://your-domain.atlassian.net"` |
+| Variable          | Description               | Example                                               |
+| ----------------- | ------------------------- | ----------------------------------------------------- |
+| `ATLASSIAN_TOKEN` | Jira API token            | `export ATLASSIAN_TOKEN="your-token"`                 |
+| `JIRA_URL`        | URL of your Jira instance | `export JIRA_URL="https://your-domain.atlassian.net"` |
 
 ## Troubleshooting
 
-!!! failure Authentication Failures
-    If you encounter authentication errors:
-    
+!!! failure Authentication Failures If you encounter authentication errors:
+
     1. Verify your Jira token is valid
     2. Check your Jira URL is correct
     3. Run `nova setup` to reconfigure Jira credentials
     4. Ensure your token has the necessary permissions
 
-!!! failure Issue Not Found
-    If an issue cannot be found:
-    
+!!! failure Issue Not Found If an issue cannot be found:
+
     1. Check that you have the correct issue key
     2. Verify you have permission to view the issue
     3. Ensure the issue hasn't been deleted
 
-!!! failure Performance Issues
-    If commands are slow:
-    
+!!! failure Performance Issues If commands are slow:
+
     1. Use a more specific JQL query to limit results
     2. Add a lower `--limit` value when listing issues
     3. Consider using cached results instead of `--refresh`
@@ -350,4 +352,4 @@ The following environment variables can affect Jira command behavior:
 ## Related Commands
 
 - [`nova setup`](setup.md) - Setup Nova with Jira credentials
-- [`nova config`](config.md) - Manage Jira configuration 
+- [`nova config`](config.md) - Manage Jira configuration

@@ -36,12 +36,12 @@ export class EngineeringAgent extends BaseAgent {
       this.logger.error('GitLab service is required for code review agent');
       return;
     }
-    
+
     // Initialize the subagents with proper keys that match the command names
     this.subAgents.set('review', new CodeReviewAgent(context, this.options));
-    
+
     this.subAgents.set('review-mr', new MergeRequestReviewAgent(context, this.options));
-    
+
     // Log initialization for debugging
     this.logger.debug(`Initialized subagents: ${Array.from(this.subAgents.keys()).join(', ')}`);
   }
@@ -81,10 +81,12 @@ Examples:
   }
 
   override execute(command: string, args: string[]): Promise<AgentResponse> {
-    // Enhanced debugging 
-    this.logger.debug(`EngineeringAgent.execute called with command: ${command}, args: ${args.join(' ')}`);
+    // Enhanced debugging
+    this.logger.debug(
+      `EngineeringAgent.execute called with command: ${command}, args: ${args.join(' ')}`,
+    );
     this.logger.debug(`Available subAgents: ${Array.from(this.subAgents.keys()).join(', ')}`);
-    
+
     // Show help by default or when help command is used
     if (!command || command === 'help') {
       this.logger.debug('Showing help message due to empty command or explicit help command');
@@ -111,7 +113,7 @@ Examples:
 
   private getSubAgentForCommand(command: string): BaseAgent | undefined {
     this.logger.debug(`getSubAgentForCommand called with command: "${command}"`);
-    
+
     // Map commands to sub-agents
     switch (command) {
       case 'review':

@@ -1,13 +1,16 @@
 # GitLab Command
 
-The `nova gitlab` command enables you to interact with GitLab repositories and projects directly from your terminal, streamlining your development workflow.
+The `nova gitlab` command enables you to interact with GitLab repositories and projects directly
+from your terminal, streamlining your development workflow.
 
-!!! info "Version Control"
-    This command helps you manage GitLab projects, issues, merge requests, and pipelines without switching contexts.
+!!! info "Version Control" This command helps you manage GitLab projects, issues, merge requests,
+and pipelines without switching contexts.
 
 ## Overview
 
-Nova's GitLab integration provides a seamless interface to GitLab's features, allowing you to manage your repositories, track issues, handle merge requests, and monitor CI/CD pipelines directly from the command line.
+Nova's GitLab integration provides a seamless interface to GitLab's features, allowing you to manage
+your repositories, track issues, handle merge requests, and monitor CI/CD pipelines directly from
+the command line.
 
 ```mermaid
 graph TD
@@ -287,33 +290,33 @@ Searches across GitLab projects, issues, merge requests, and more.
 
 ## Global Options
 
-| Option | Description |
-|--------|-------------|
-| `-f, --format <format>` | Output format (text/json/yaml) |
-| `--project <project>` | Specify the GitLab project path |
-| `-r, --recent` | Use most recent project |
-| `--url <url>` | GitLab instance URL (overrides config) |
-| `--token <token>` | GitLab API token (overrides config) |
-| `-h, --help` | Show help information |
+| Option                  | Description                            |
+| ----------------------- | -------------------------------------- |
+| `-f, --format <format>` | Output format (text/json/yaml)         |
+| `--project <project>`   | Specify the GitLab project path        |
+| `-r, --recent`          | Use most recent project                |
+| `--url <url>`           | GitLab instance URL (overrides config) |
+| `--token <token>`       | GitLab API token (overrides config)    |
+| `-h, --help`            | Show help information                  |
 
 ## Project-Specific Options
 
-| Option | Description |
-|--------|-------------|
+| Option                      | Description                                    |
+| --------------------------- | ---------------------------------------------- |
 | `--visibility <visibility>` | Filter by visibility (public/internal/private) |
-| `--owned` | Show only owned projects |
-| `--starred` | Show only starred projects |
-| `--limit <limit>` | Limit the number of results |
+| `--owned`                   | Show only owned projects                       |
+| `--starred`                 | Show only starred projects                     |
+| `--limit <limit>`           | Limit the number of results                    |
 
 ## Issue and MR Options
 
-| Option | Description |
-|--------|-------------|
-| `--status <status>` | Filter by status (open/closed/all) |
-| `--labels <labels>` | Filter by labels (comma-separated) |
-| `--assignee <username>` | Filter by assignee |
-| `--created-after <date>` | Filter by creation date |
-| `--order-by <field>` | Sort results by field |
+| Option                   | Description                        |
+| ------------------------ | ---------------------------------- |
+| `--status <status>`      | Filter by status (open/closed/all) |
+| `--labels <labels>`      | Filter by labels (comma-separated) |
+| `--assignee <username>`  | Filter by assignee                 |
+| `--created-after <date>` | Filter by creation date            |
+| `--order-by <field>`     | Sort results by field              |
 
 ## Integration with Other Commands
 
@@ -382,8 +385,7 @@ sequenceDiagram
 
 ## Troubleshooting
 
-!!! warning Common Issues
-    Here are solutions to common problems with the GitLab integration.
+!!! warning Common Issues Here are solutions to common problems with the GitLab integration.
 
 ### Authentication Failures
 
@@ -413,4 +415,4 @@ If a project is not found:
 
 - [`nova jira`](jira.md) - Jira operations for issue tracking
 - [`nova agent`](agent.md) - AI-powered agents for development assistance
-- [`nova mcp`](mcp.md) - Model Context Protocol for AI-assisted development 
+- [`nova mcp`](mcp.md) - Model Context Protocol for AI-assisted development

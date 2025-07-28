@@ -51,8 +51,8 @@ interface GitLabTagResponse {
 
 function _isGitLabCommit(commit: unknown): commit is GitLabCommit {
   return (
-    typeof commit === 'object' && 
-    commit !== null && 
+    typeof commit === 'object' &&
+    commit !== null &&
     'id' in commit &&
     'short_id' in commit &&
     'title' in commit
@@ -75,7 +75,8 @@ interface GitLabDiscussionNote {
 // Use the global GitLabDiscussion interface from types.d.ts
 
 // This interface adds discussions to GitLabMergeRequest
-interface GitLabMergeRequestWithDiscussions extends Omit<GitLabMergeRequest, 'reviewers' | 'approvedBy' | 'assignees' | 'labels'> {
+interface GitLabMergeRequestWithDiscussions
+  extends Omit<GitLabMergeRequest, 'reviewers' | 'approvedBy' | 'assignees' | 'labels'> {
   discussions?: {
     nodes: GitLabDiscussion[];
   };
@@ -697,7 +698,7 @@ export class GitLabService {
 
       // Get coverage from code coverage summary
       let coverage = project.codeCoverageSummary?.averageCoverage || 0;
-      
+
       // If coverage is 0, try to look for coverage data in pipeline artifacts
       if (coverage === 0 && project.pipelines?.nodes) {
         const pipelineNodes = project.pipelines.nodes;
@@ -705,13 +706,13 @@ export class GitLabService {
         for (const pipeline of pipelineNodes) {
           if (pipeline.jobs?.nodes) {
             // Look for jobs that might contain coverage information
-            const coverageJobs = pipeline.jobs.nodes.filter(job => 
-              job.name.toLowerCase().includes('test') || 
+            const coverageJobs = pipeline.jobs.nodes.filter((job) =>
+              job.name.toLowerCase().includes('test') ||
               job.name.toLowerCase().includes('coverage') ||
               job.name.toLowerCase().includes('unit') ||
               job.name.toLowerCase().includes('integration')
             );
-            
+
             if (coverageJobs.length > 0) {
               // If we have coverage-related jobs, we can assume there are tests
               // even if we don't have exact coverage numbers
@@ -721,35 +722,39 @@ export class GitLabService {
           }
         }
       }
-      
+
       // Process pipeline jobs
       const jobs = project.pipelines?.nodes?.flatMap((p) => p.jobs?.nodes || []) || [];
 
       // Get documentation checks which includes file checks
       const docChecks = await this.checkDocumentation(fullPath, 'master');
-      
+
       // Look for coverage indicators in project files
       if (coverage === 0) {
         // Check if repository has test files which indicates potential test coverage
-        const hasTestDir = docChecks?.project?.repository?.tree?.trees?.nodes?.some((node: { name: string; path: string }) => 
-          node.name.toLowerCase().includes('test') || 
+        const hasTestDir = docChecks?.project?.repository?.tree?.trees?.nodes?.some((
+          node: { name: string; path: string },
+        ) =>
+          node.name.toLowerCase().includes('test') ||
           node.name.toLowerCase().includes('spec')
         );
-        
-        const hasTestFiles = docChecks?.project?.repository?.tree?.blobs?.nodes?.some((node: { name: string; path: string }) => 
-          node.path.toLowerCase().includes('test') || 
+
+        const hasTestFiles = docChecks?.project?.repository?.tree?.blobs?.nodes?.some((
+          node: { name: string; path: string },
+        ) =>
+          node.path.toLowerCase().includes('test') ||
           node.path.toLowerCase().includes('spec') ||
           node.name.toLowerCase().endsWith('.test.ts') ||
           node.name.toLowerCase().endsWith('.test.js') ||
           node.name.toLowerCase().endsWith('.spec.ts') ||
           node.name.toLowerCase().endsWith('.spec.js')
         );
-        
+
         if (hasTestDir || hasTestFiles) {
           coverage = Math.max(coverage, 10); // Assume at least 10% coverage if test files exist
         }
       }
-      
+
       const hasTests = coverage > 0; // If we have coverage, we must have tests
 
       // Enhanced tools detection
@@ -912,32 +917,40 @@ export class GitLabService {
 
   private getProjectCodeQualityWithFallback(fullPath: string): Promise<GitLabCodeQuality> {
     return this.getProjectCodeQuality(fullPath).catch(async (error) => {
-      this.logger.debug(`Error getting code quality data: ${error}. Falling back to alternative methods.`);
-      
+      this.logger.debug(
+        `Error getting code quality data: ${error}. Falling back to alternative methods.`,
+      );
+
       // Try to determine if the project has tests by checking for common test files/folders
       let hasTests = false;
       let estimatedCoverage = 0;
-      
+
       try {
         // Check if project has common test directories or files
         const docChecks = await this.checkDocumentation(fullPath, 'main')
           .catch(() => this.checkDocumentation(fullPath, 'master'))
-          .catch(() => ({ project: { repository: { tree: { blobs: { nodes: [] }, trees: { nodes: [] } } } } }));
-        
-        const hasTestDir = docChecks?.project?.repository?.tree?.trees?.nodes?.some((node: { name: string; path: string }) => 
-          node.name.toLowerCase().includes('test') || 
+          .catch(() => ({
+            project: { repository: { tree: { blobs: { nodes: [] }, trees: { nodes: [] } } } },
+          }));
+
+        const hasTestDir = docChecks?.project?.repository?.tree?.trees?.nodes?.some((
+          node: { name: string; path: string },
+        ) =>
+          node.name.toLowerCase().includes('test') ||
           node.name.toLowerCase().includes('spec')
         );
-        
-        const hasTestFiles = docChecks?.project?.repository?.tree?.blobs?.nodes?.some((node: { name: string; path: string }) => 
-          node.path.toLowerCase().includes('test') || 
+
+        const hasTestFiles = docChecks?.project?.repository?.tree?.blobs?.nodes?.some((
+          node: { name: string; path: string },
+        ) =>
+          node.path.toLowerCase().includes('test') ||
           node.path.toLowerCase().includes('spec') ||
           node.name.toLowerCase().endsWith('.test.ts') ||
           node.name.toLowerCase().endsWith('.test.js') ||
           node.name.toLowerCase().endsWith('.spec.ts') ||
           node.name.toLowerCase().endsWith('.spec.js')
         );
-        
+
         if (hasTestDir || hasTestFiles) {
           hasTests = true;
           estimatedCoverage = 15; // Estimate coverage if test files exist
@@ -945,7 +958,7 @@ export class GitLabService {
       } catch (checkError) {
         this.logger.debug(`Error checking for test files: ${checkError}. Assuming no tests.`);
       }
-      
+
       // Return default values with our estimated coverage
       return {
         grade: hasTests ? 'D' : 'E', // If we detect tests, give a slightly better grade
@@ -1035,20 +1048,40 @@ export class GitLabService {
       const project = response.data.project;
 
       // Get documentation checks
-      const hasReadme = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === 'README.md') || false;
-      const hasContributing = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === 'CONTRIBUTING.md') || false;
-      const hasChangelog = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === 'CHANGELOG.md') || false;
-      const hasLicense = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === 'LICENSE') || false;
-      const hasSecurityPolicy = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === 'SECURITY.md') || false;
-      const hasCodeOwners = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === 'CODEOWNERS') || false;
-      const hasCopilotInstructions = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === '.github/copilot-instructions.md') || false;
+      const hasReadme = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+        node.name === 'README.md'
+      ) || false;
+      const hasContributing =
+        project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+          node.name === 'CONTRIBUTING.md'
+        ) || false;
+      const hasChangelog = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+        node.name === 'CHANGELOG.md'
+      ) || false;
+      const hasLicense = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+        node.name === 'LICENSE'
+      ) || false;
+      const hasSecurityPolicy =
+        project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+          node.name === 'SECURITY.md'
+        ) || false;
+      const hasCodeOwners = project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+        node.name === 'CODEOWNERS'
+      ) || false;
+      const hasCopilotInstructions =
+        project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+          node.name === '.github/copilot-instructions.md'
+        ) || false;
 
-      const hasFile = (filePath: string): boolean => 
-        project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) => node.name === filePath) || false;
+      const hasFile = (filePath: string): boolean =>
+        project.repository?.tree?.blobs?.nodes?.some((node: { name: string }) =>
+          node.name === filePath
+        ) || false;
 
       const pipelineNodes = project.pipelines?.nodes || [];
       const averageJobDuration = pipelineNodes.length > 0
-        ? pipelineNodes.reduce((sum: number, p: { duration: number }) => sum + (p.duration || 0), 0) / pipelineNodes.length
+        ? pipelineNodes.reduce((sum: number, p: { duration: number }) =>
+          sum + (p.duration || 0), 0) / pipelineNodes.length
         : 0;
 
       return {
@@ -1083,12 +1116,21 @@ export class GitLabService {
         hasTerraform: hasFile('.tf'),
         hasHelmfile: hasFile('helmfile.yaml'),
         hasFile,
-        hasTests: project.pipelines?.nodes?.some((p: { jobs: { nodes: Array<{ name: string }> } }) => 
-          p.jobs?.nodes?.some((job: { name: string }) => job.name.toLowerCase().includes('test'))
+        hasTests:
+          project.pipelines?.nodes?.some((p: { jobs: { nodes: Array<{ name: string }> } }) =>
+            p.jobs?.nodes?.some((job: { name: string }) =>
+              job.name.toLowerCase().includes('test')
+            )
+          ) || false,
+        hasLoadTesting: project.securityScanners?.available?.some((s: string) =>
+          s.toLowerCase().includes('load-test')
         ) || false,
-        hasLoadTesting: project.securityScanners?.available?.some((s: string) => s.toLowerCase().includes('load-test')) || false,
-        hasRenovate: project.securityScanners?.available?.some((s: string) => s.toLowerCase().includes('renovate')) || false,
-        hasSecretScanning: project.securityScanners?.enabled?.some((s: string) => s.toLowerCase().includes('secret-detection')) || false,
+        hasRenovate: project.securityScanners?.available?.some((s: string) =>
+          s.toLowerCase().includes('renovate')
+        ) || false,
+        hasSecretScanning: project.securityScanners?.enabled?.some((s: string) =>
+          s.toLowerCase().includes('secret-detection')
+        ) || false,
         hasAiReview: false,
         hasJobArtifacts: false,
         totalArtifacts: 0,
@@ -1276,7 +1318,7 @@ export class GitLabService {
       created_at: mr.createdAt,
       updated_at: mr.updatedAt,
       author: { username: mr.author.username },
-      changes: []
+      changes: [],
     };
   }
 
@@ -1309,7 +1351,7 @@ export class GitLabService {
       const timeToFirstReview = mergedMRs.reduce((sum, mr) => {
         const created = new Date(mr.created_at);
         const mrWithDiscussions = mr as GitLabMergeRequestWithDiscussions;
-        
+
         // Find the first review by checking each discussion
         const firstReviewDate = mrWithDiscussions.discussions?.nodes?.find((d) => {
           // Handle both array and object with nodes property
@@ -1318,10 +1360,10 @@ export class GitLabService {
         })?.notes;
 
         // Get the created_at date from the first non-system note
-        const firstReview = firstReviewDate 
-          ? ('nodes' in firstReviewDate 
-              ? firstReviewDate.nodes.find((n: GitLabNote) => !n.system)?.created_at
-              : firstReviewDate.find((n: GitLabNote) => !n.system)?.created_at)
+        const firstReview = firstReviewDate
+          ? ('nodes' in firstReviewDate
+            ? firstReviewDate.nodes.find((n: GitLabNote) => !n.system)?.created_at
+            : firstReviewDate.find((n: GitLabNote) => !n.system)?.created_at)
           : undefined;
 
         if (!firstReview) return sum;
@@ -1330,7 +1372,7 @@ export class GitLabService {
 
       const commentsPerMR = mergedMRs.reduce((sum, mr) => {
         const mrWithDiscussions = mr as GitLabMergeRequestWithDiscussions;
-        
+
         // Calculate total comments by reducing through all discussions
         const totalComments = mrWithDiscussions.discussions?.nodes?.reduce(
           (total: number, d) => {
@@ -1338,9 +1380,9 @@ export class GitLabService {
             const notes = 'nodes' in d.notes ? d.notes.nodes : d.notes;
             return total + notes.filter((n: GitLabNote) => !n.system).length;
           },
-          0
+          0,
         ) || 0;
-        
+
         return sum + totalComments;
       }, 0) / mergedMRs.length;
 
@@ -1964,7 +2006,9 @@ query GetProjectPipelines($fullPath: ID!, $limit: Int!) {
 
       // Find open MR for current branch
       const mrs = await this.getProjectMergeRequests(projectPath, '30d');
-      const currentMR = mrs.find((mr) => mr.source_branch === branchName || mr.sourceBranch === branchName);
+      const currentMR = mrs.find((mr) =>
+        mr.source_branch === branchName || mr.sourceBranch === branchName
+      );
 
       if (!currentMR) {
         return null;
@@ -2143,23 +2187,29 @@ query GetProjectPipelines($fullPath: ID!, $limit: Int!) {
       source_branch: mrData.sourceBranch,
       target_branch: mrData.targetBranch,
       // For fields that can have either array or nodes structure, convert as needed
-      reviewers: Array.isArray(mrData.reviewers) ? mrData.reviewers : 
-                (mrData.reviewers?.nodes ? mrData.reviewers.nodes : []),
+      reviewers: Array.isArray(mrData.reviewers)
+        ? mrData.reviewers
+        : (mrData.reviewers?.nodes ? mrData.reviewers.nodes : []),
       approved: mrData.approved,
-      approvedBy: Array.isArray(mrData.approvedBy) ? mrData.approvedBy : 
-                 (mrData.approvedBy?.nodes ? mrData.approvedBy.nodes : []),
-      assignees: Array.isArray(mrData.assignees) ? mrData.assignees : 
-                (mrData.assignees?.nodes ? mrData.assignees.nodes : []),
-      labels: Array.isArray(mrData.labels) ? mrData.labels : 
-             (mrData.labels?.nodes ? mrData.labels.nodes.map((label: { title: string }) => label.title) : [])
+      approvedBy: Array.isArray(mrData.approvedBy)
+        ? mrData.approvedBy
+        : (mrData.approvedBy?.nodes ? mrData.approvedBy.nodes : []),
+      assignees: Array.isArray(mrData.assignees)
+        ? mrData.assignees
+        : (mrData.assignees?.nodes ? mrData.assignees.nodes : []),
+      labels: Array.isArray(mrData.labels)
+        ? mrData.labels
+        : (mrData.labels?.nodes
+          ? mrData.labels.nodes.map((label: { title: string }) => label.title)
+          : []),
     };
-    
+
     // Add diff_refs if available
     if (mrData.diffRefs) {
       mr.diff_refs = {
         base_sha: mrData.diffRefs.baseSha,
         head_sha: mrData.diffRefs.headSha,
-        start_sha: mrData.diffRefs.startSha
+        start_sha: mrData.diffRefs.startSha,
       };
     }
 
@@ -2852,7 +2902,7 @@ query GetProjectPipelines($fullPath: ID!, $limit: Int!) {
     includeDeployments?: boolean;
     includePipelines?: boolean;
   } = {}): Promise<{
-    latestTag: { name: string; createdAt: string; } | null;
+    latestTag: { name: string; createdAt: string } | null;
     hasChangelog: boolean;
     lastDeployment: { environment: string; deployedAt: string } | null;
     pipeline: { stats: { success: number; failed: number; running: number; total: number } } | null;

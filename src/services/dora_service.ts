@@ -1,9 +1,15 @@
 import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
 import { Config } from '../config/mod.ts';
-import { formatDuration, formatServiceStatus, formatTrendChart, formatTrendValue, theme } from '../utils.ts';
+import {
+  formatDuration,
+  formatServiceStatus,
+  formatTrendChart,
+  formatTrendValue,
+  theme,
+} from '../utils.ts';
 import { DevCache } from '../utils/devcache.ts';
-import { logger, Logger } from '../utils/logger.ts';
+import { Logger, logger } from '../utils/logger.ts';
 import { DatabaseService } from './db_service.ts';
 import { GitLabService } from './gitlab_service.ts';
 import { JiraService } from './jira_service.ts';
@@ -24,11 +30,11 @@ export class DoraService {
   private cacheDuration: number;
 
   constructor(
-    config: Config, 
-    jiraService: JiraService, 
+    config: Config,
+    jiraService: JiraService,
     gitlabService: GitLabService,
     logger: Logger,
-    db: DatabaseService
+    db: DatabaseService,
   ) {
     this.config = config;
     this.jiraService = jiraService;
@@ -52,7 +58,7 @@ export class DoraService {
     this.cache = new DevCache({
       basePath: `${Deno.env.get('HOME')}/.nova/cache`,
       serviceName: 'dora',
-      logger: this.logger
+      logger: this.logger,
     });
   }
 
@@ -63,11 +69,11 @@ export class DoraService {
         return parts[1];
       }
     }
-    
+
     if (key.includes('raw_')) {
       return 'raw';
     }
-    
+
     return 'other';
   }
 
@@ -97,12 +103,12 @@ export class DoraService {
     const data = new TextEncoder().encode(key);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hash = Array.from(
-      new Uint8Array(hashBuffer)
-    ).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+      new Uint8Array(hashBuffer),
+    ).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
 
     const queryType = this.extractQueryType(key);
     const subDir = queryType ? `${this.cacheDir}/${queryType}` : this.cacheDir;
-    
+
     try {
       await Deno.mkdir(subDir, { recursive: true });
     } catch (error) {
@@ -123,9 +129,11 @@ export class DoraService {
       const cacheFile = await this.getCacheFilePath(key);
       const content = await Deno.readTextFile(cacheFile);
       const cached = JSON.parse(content);
-      
+
       if (Date.now() - cached.timestamp < this.cacheDuration) {
-        this.logger.debug(`Using cached data for ${this.extractQueryType(key)}_${key.slice(0, 50)}...`);
+        this.logger.debug(
+          `Using cached data for ${this.extractQueryType(key)}_${key.slice(0, 50)}...`,
+        );
         return cached.data as T;
       }
     } catch {
@@ -141,10 +149,13 @@ export class DoraService {
 
     try {
       const cacheFile = await this.getCacheFilePath(key);
-      await Deno.writeTextFile(cacheFile, JSON.stringify({
-        timestamp: Date.now(),
-        data
-      }));
+      await Deno.writeTextFile(
+        cacheFile,
+        JSON.stringify({
+          timestamp: Date.now(),
+          data,
+        }),
+      );
       this.logger.debug(`Cached data for ${this.extractQueryType(key)}_${key.slice(0, 50)}...`);
     } catch (error) {
       this.logger.error(`Failed to cache data for ${key}:`, error);
@@ -175,7 +186,7 @@ export class DoraService {
         this.jiraService.getProject(jiraProjectKey),
         this.gitlabService.getProjectDetails(gitlabProjectPath),
         this.jiraService.getProjectMetrics(jiraProjectKey),
-        this.gitlabService.getProjectMetrics(gitlabProjectPath, timeRange, false)
+        this.gitlabService.getProjectMetrics(gitlabProjectPath, timeRange, false),
       ]);
 
       // Calculate trends first since other metrics depend on it
@@ -185,14 +196,14 @@ export class DoraService {
       const [leadTimeForChanges, changeFailureRate, timeToRestore] = await Promise.all([
         this.calculateLeadTimeForChanges(jiraMetrics, gitlabMetrics, trends),
         this.calculateChangeFailureRate(jiraMetrics, gitlabMetrics, trends),
-        this.calculateTimeToRestore(jiraMetrics, timeRange)
+        this.calculateTimeToRestore(jiraMetrics, timeRange),
       ]);
 
       // Now calculate deployment frequency using the trends data
       const deploymentFrequency = await this.calculateDeploymentFrequency(
         gitlabMetrics.codeQuality.environments?.nodes || [],
         gitlabProjectPath,
-        trends
+        trends,
       );
 
       // Calculate custom metrics in parallel
@@ -202,14 +213,14 @@ export class DoraService {
         sprintVelocity,
         workTypeBreakdown,
         addedTickets,
-        epicTracking
+        epicTracking,
       ] = await Promise.all([
         this.calculateSprintCommitment(jiraMetrics),
         this.calculateSprintSpillover(jiraMetrics),
         this.calculateSprintVelocity(jiraMetrics),
         this.calculateWorkTypeBreakdown(jiraMetrics),
         this.calculateAddedTickets(jiraMetrics),
-        this.calculateEpicTracking(jiraMetrics)
+        this.calculateEpicTracking(jiraMetrics),
       ]);
 
       const result: ExtendedDoraMetricsResult = {
@@ -237,14 +248,14 @@ export class DoraService {
             trend: sprintCommitment.trend,
             rating: sprintCommitment.rating,
             averageTotalPerSprint: sprintCommitment.averageTotalPerSprint,
-            perSprintValues: sprintCommitment.perSprintValues
+            perSprintValues: sprintCommitment.perSprintValues,
           },
           sprintSpillover: {
             spilloverRate: sprintSpillover.spilloverRate,
             spilledTickets: sprintSpillover.spilledTickets,
             totalTickets: sprintSpillover.totalTickets,
             trend: sprintSpillover.trend,
-            rating: sprintSpillover.rating
+            rating: sprintSpillover.rating,
           },
           sprintVelocity: {
             cycleTime: sprintVelocity.cycleTime,
@@ -254,14 +265,14 @@ export class DoraService {
             throughputTrend: sprintVelocity.throughputTrend,
             bottlenecks: sprintVelocity.bottlenecks,
             rating: sprintVelocity.rating,
-            perSprintValues: sprintVelocity.perSprintValues
+            perSprintValues: sprintVelocity.perSprintValues,
           },
           workTypeBreakdown: {
             technical: workTypeBreakdown.technical,
             operational: workTypeBreakdown.operational,
             valueCreation: workTypeBreakdown.valueCreation,
             perSprintValues: workTypeBreakdown.perSprintValues,
-            trend: workTypeBreakdown.trend
+            trend: workTypeBreakdown.trend,
           },
           addedTickets: {
             percentage: addedTickets.percentage,
@@ -270,7 +281,7 @@ export class DoraService {
             byType: addedTickets.byType,
             byTypePercentage: addedTickets.byTypePercentage,
             trend: addedTickets.trend,
-            rating: addedTickets.rating
+            rating: addedTickets.rating,
           },
           epicTracking: {
             averageParallelEpics: epicTracking.averageParallelEpics,
@@ -278,17 +289,17 @@ export class DoraService {
             perSprintValues: epicTracking.perSprintValues,
             quarterlyAverage: epicTracking.quarterlyAverage,
             trend: epicTracking.trend,
-            rating: epicTracking.rating
-          }
+            rating: epicTracking.rating,
+          },
         },
         trends: {
           deploymentFrequencyTrend: trends.deploymentFrequencyTrend,
           leadTimeTrend: trends.leadTimeTrend,
           changeFailureRateTrend: trends.changeFailureRateTrend,
           timeToRestoreTrend: trends.timeToRestoreTrend,
-          compareWithPrevious: trends.compareWithPrevious
+          compareWithPrevious: trends.compareWithPrevious,
         },
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       // Cache the result
@@ -309,44 +320,48 @@ export class DoraService {
   private calculateLeadTimeForChanges(
     jiraMetrics: JiraProjectMetrics,
     gitlabMetrics: GitLabProjectMetrics,
-    trends: DoraTrends
+    trends: DoraTrends,
   ): DoraMetrics['leadTimeForChanges'] {
     try {
       // Get sprint data and filter out future sprints
-      const sprintHistory = jiraMetrics.sprintHistory?.filter(sprint => 
-        sprint.state !== 'future' && 
+      const sprintHistory = jiraMetrics.sprintHistory?.filter((sprint) =>
+        sprint.state !== 'future' &&
         new Date(sprint.endDate) <= new Date()
       ) || [];
 
       // Calculate average cycle time from completed sprints
-      const sprintCycleTimes = sprintHistory.map(sprint => {
+      const sprintCycleTimes = sprintHistory.map((sprint) => {
         const startDate = new Date(sprint.startDate);
         const endDate = new Date(sprint.endDate);
-        const daysInSprint = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const daysInSprint = Math.round(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
         // Calculate completion rate and velocity
         const completionRate = sprint.completionRate || 0;
         const velocity = sprint.completedPoints / Math.max(1, daysInSprint);
-        
+
         this.logger.debug(`Sprint "${sprint.name}" metrics:`, {
           dates: `${startDate.toLocaleDateString()} → ${endDate.toLocaleDateString()}`,
           daysInSprint,
           completionRate: `${(completionRate * 100).toFixed(1)}%`,
-          velocity: `${velocity.toFixed(1)} points/day`
+          velocity: `${velocity.toFixed(1)} points/day`,
         });
 
         return {
           name: sprint.name,
           cycleTime: daysInSprint * 24, // Convert to hours
           completionRate,
-          velocity
+          velocity,
         };
       });
 
       // Calculate average and median cycle times
-      const cycleTimes = sprintCycleTimes.map(s => s.cycleTime);
-      const averageInHours = cycleTimes.length > 0 
-        ? cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length 
+      const cycleTimes = sprintCycleTimes.map((s) =>
+        s.cycleTime
+      );
+      const averageInHours = cycleTimes.length > 0
+        ? cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length
         : gitlabMetrics.teamMetrics.averageTimeToMerge || 0;
 
       const sortedCycleTimes = [...cycleTimes].sort((a, b) => a - b);
@@ -366,30 +381,30 @@ export class DoraService {
 
       // Log detailed metrics for debugging
       this.logger.debug('Lead Time Metrics:', {
-        sprintHistory: sprintCycleTimes.map(s => ({
+        sprintHistory: sprintCycleTimes.map((s) => ({
           name: s.name,
           cycleTime: `${(s.cycleTime / 24).toFixed(1)} days`,
           completionRate: `${(s.completionRate * 100).toFixed(1)}%`,
-          velocity: `${s.velocity.toFixed(1)} points/day`
+          velocity: `${s.velocity.toFixed(1)} points/day`,
         })),
         averageCycleTime: `${(averageInHours / 24).toFixed(1)} days`,
         medianCycleTime: `${(medianInHours / 24).toFixed(1)} days`,
         mrReviewTime: `${(mrReviewTime / 24).toFixed(1)} days`,
         totalLeadTime: `${(totalLeadTime / 24).toFixed(1)} days`,
-        rating
+        rating,
       });
 
       return {
         averageInHours: totalLeadTime,
         medianInHours: medianInHours + mrReviewTime,
-        rating
+        rating,
       };
     } catch (error) {
       this.logger.error('Error calculating lead time:', error);
       return {
         averageInHours: 0,
         medianInHours: 0,
-        rating: 'low'
+        rating: 'low',
       };
     }
   }
@@ -400,7 +415,7 @@ export class DoraService {
   private calculateChangeFailureRate(
     jiraMetrics: JiraProjectMetrics,
     gitlabMetrics: GitLabProjectMetrics,
-    trends: DoraTrends
+    trends: DoraTrends,
   ): DoraMetrics['changeFailureRate'] {
     try {
       const deployments = gitlabMetrics.deploymentCount;
@@ -427,7 +442,7 @@ export class DoraService {
    */
   private async calculateTimeToRestore(
     _jiraMetrics: JiraProjectMetrics,
-    timeRange: TimeRange
+    timeRange: TimeRange,
   ): Promise<DoraMetrics['timeToRestore']> {
     // This is a placeholder. Implementation requires incident data.
     this.logger.warn('Time to restore calculation is a placeholder and not yet implemented.');
@@ -456,11 +471,11 @@ export class DoraService {
 
     const periods = 5;
     const periodLength = parseInt(timeRange.replace('d', '')) / periods;
-    
+
     this.logger.debug('Calculating trends:', {
       timeRange,
       periods,
-      periodLength
+      periodLength,
     });
 
     // Pre-fetch all required data once
@@ -484,22 +499,26 @@ export class DoraService {
 
         this.logger.debug(`Calculating metrics for period ${i + 1}:`, {
           startDate: startDate.toISOString(),
-          endDate: endDate.toISOString()
+          endDate: endDate.toISOString(),
         });
 
         // Calculate metrics for this period using the pre-fetched data
         const periodDeployments = gitlabMetrics.codeQuality.environments.nodes
           .reduce((total, env) => {
-            if (env.lastDeployment && 
-                env.lastDeployment.status === 'SUCCESS' &&
-                new Date(env.lastDeployment.createdAt) >= startDate && 
-                new Date(env.lastDeployment.createdAt) <= endDate) {
+            if (
+              env.lastDeployment &&
+              env.lastDeployment.status === 'SUCCESS' &&
+              new Date(env.lastDeployment.createdAt) >= startDate &&
+              new Date(env.lastDeployment.createdAt) <= endDate
+            ) {
               return total + 1;
             }
             return total;
           }, 0);
 
-        const daysInPeriod = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysInPeriod = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
         const deploymentsPerDay = periodDeployments / Math.max(1, daysInPeriod);
 
         const jiraCycleTime = jiraMetrics.sprints?.avgCycleTime?.mean || 0;
@@ -511,13 +530,13 @@ export class DoraService {
 
         // Calculate incident metrics using pre-fetched data
         if (incidents.length > 0) {
-          const periodIncidents = incidents.filter(incident => {
+          const periodIncidents = incidents.filter((incident) => {
             const createdAt = new Date(incident.createdAt);
             return createdAt >= startDate && createdAt <= endDate;
           });
 
           const resolutionTimes = periodIncidents
-            .map(incident => {
+            .map((incident) => {
               if (incident.status === 'closed' && incident.createdAt) {
                 const createdTime = new Date(incident.createdAt).getTime();
                 const resolvedTime = new Date(incident.updatedAt).getTime();
@@ -531,43 +550,41 @@ export class DoraService {
             ? resolutionTimes.reduce((sum, time) => sum + time, 0) / resolutionTimes.length
             : 0;
 
-          const deploymentIncidents = periodIncidents.filter(incident =>
-            incident.tags.some(tag => 
-              tag.toLowerCase().includes('deployment') || 
+          const deploymentIncidents = periodIncidents.filter((incident) =>
+            incident.tags.some((tag) =>
+              tag.toLowerCase().includes('deployment') ||
               tag.toLowerCase().includes('release')
             )
           );
 
-          failureRate = periodDeployments > 0 
-            ? (deploymentIncidents.length / periodDeployments) * 100 
+          failureRate = periodDeployments > 0
+            ? (deploymentIncidents.length / periodDeployments) * 100
             : 0;
         } else {
           // Fallback to pipeline metrics if no data
           const failedDeployments = gitlabMetrics.pipelines?.nodes
-            ?.filter(p => {
+            ?.filter((p) => {
               const deployDate = new Date(p.createdAt);
               return deployDate >= startDate && deployDate <= endDate && p.status === 'FAILED';
             })
             ?.length || 0;
-          failureRate = periodDeployments > 0 
-            ? (failedDeployments / periodDeployments) * 100 
-            : 0;
+          failureRate = periodDeployments > 0 ? (failedDeployments / periodDeployments) * 100 : 0;
         }
 
         return {
           deploymentFrequency: deploymentsPerDay,
           leadTime: leadTimeHours,
           changeFailureRate: failureRate,
-          timeToRestore
+          timeToRestore,
         };
-      })
+      }),
     );
 
     // Extract trend data (reverse to show oldest to newest)
-    const deploymentFrequencyTrend = periodMetrics.map(m => m.deploymentFrequency).reverse();
-    const leadTimeTrend = periodMetrics.map(m => m.leadTime).reverse();
-    const changeFailureRateTrend = periodMetrics.map(m => m.changeFailureRate).reverse();
-    const timeToRestoreTrend = periodMetrics.map(m => m.timeToRestore).reverse();
+    const deploymentFrequencyTrend = periodMetrics.map((m) => m.deploymentFrequency).reverse();
+    const leadTimeTrend = periodMetrics.map((m) => m.leadTime).reverse();
+    const changeFailureRateTrend = periodMetrics.map((m) => m.changeFailureRate).reverse();
+    const timeToRestoreTrend = periodMetrics.map((m) => m.timeToRestore).reverse();
 
     // Calculate percentage changes
     const calcPercentChange = (current: number, previous: number): number => {
@@ -646,14 +663,19 @@ export class DoraService {
     const headerTable = new Table()
       .border(true)
       .padding(1);
-    
+
     // Add title as a header row instead of using .title()
-    headerTable.push([`📊 DORA Metrics Dashboard: ${result.jiraProject.key} + ${result.gitlabProject.name}`]);
-    
+    headerTable.push([
+      `📊 DORA Metrics Dashboard: ${result.jiraProject.key} + ${result.gitlabProject.name}`,
+    ]);
+
     headerTable.push(['📎 Jira Project', `${result.jiraProject.name} (${result.jiraProject.key})`]);
-    headerTable.push(['🦊 GitLab Project', `${result.gitlabProject.name} (${result.gitlabProject.path})`]);
+    headerTable.push([
+      '🦊 GitLab Project',
+      `${result.gitlabProject.name} (${result.gitlabProject.path})`,
+    ]);
     headerTable.push(['📆 Generated', result.timestamp.toISOString()]);
-    
+
     // if (!gitLabOrGitHub) {
     //   headerTable.push(['⚠️ Warning', colors.yellow('Not configured - some incident metrics may be limited')]);
     // }
@@ -672,57 +694,77 @@ export class DoraService {
 
     // Calculate percentage change for display
     const percentageChange = trends.compareWithPrevious.deploymentFrequency;
-    const changeDisplay = Math.abs(percentageChange) < 0.1 
+    const changeDisplay = Math.abs(percentageChange) < 0.1
       ? 'No significant change'
-      : `${Math.abs(percentageChange).toFixed(1)}% ${percentageChange > 0 ? '↑' : '↓'} vs previous week`;
+      : `${Math.abs(percentageChange).toFixed(1)}% ${
+        percentageChange > 0 ? '↑' : '↓'
+      } vs previous week`;
 
     // Deployment section
     const deploymentTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row instead of using .title()
-    deploymentTable.push([`${theme.symbols.deploy} Deployment Frequency (${timeRangeDisplay})`, '']);
-    
+    deploymentTable.push([
+      `${theme.symbols.deploy} Deployment Frequency (${timeRangeDisplay})`,
+      '',
+    ]);
+
     deploymentTable.push(['📊 Sources', 'GitLab Pipelines']);
     deploymentTable.push(['Deployments per day', deploymentsPerDay.toFixed(2)]);
     deploymentTable.push(['Total deployments', totalDeployments.toString()]);
-    deploymentTable.push(['Success rate', `${((deploymentMetrics?.deploymentsTotal || 0) / (deploymentMetrics?.deploymentsTotal || 1) * 100).toFixed(1)}%`]);
+    deploymentTable.push([
+      'Success rate',
+      `${
+        ((deploymentMetrics?.deploymentsTotal || 0) / (deploymentMetrics?.deploymentsTotal || 1) *
+          100).toFixed(1)
+      }%`,
+    ]);
     deploymentTable.push(['Performance level', formatServiceStatus(deploymentRating)]);
-    
+
     // Trend visualization
     const trendData = [
       formatTrendChart(
-        trends.deploymentFrequencyTrend.map(value => 
+        trends.deploymentFrequencyTrend.map((value) =>
           // Scale the values to be between 0 and 4 for better visualization
           Math.min(4, Math.max(0, value / Math.max(...trends.deploymentFrequencyTrend) * 4))
         ),
         5,
         false,
-        ['4w', '3w', '2w', '1w', 'Now']
+        ['4w', '3w', '2w', '1w', 'Now'],
       ),
       `Min: ${deploymentMetrics?.trendStats?.min.toFixed(1) || '0.0'}/day`,
       `Max: ${deploymentMetrics?.trendStats?.max.toFixed(1) || '0.0'}/day`,
-      `Avg: ${deploymentMetrics?.trendStats?.avg.toFixed(1) || '0.0'}/day`
+      `Avg: ${deploymentMetrics?.trendStats?.avg.toFixed(1) || '0.0'}/day`,
     ].join('\n');
-    
+
     deploymentTable.push(['Trend (deploys/day)', trendData]);
     deploymentTable.push(['Change vs Previous', changeDisplay]);
     deploymentTable.push(['\nEnvironment Breakdown', '']);
-    
+
     // Environment breakdowns
-    deploymentTable.push(['Production', deploymentMetrics?.environmentBreakdown?.production.environments.length > 0 
-      ? this.formatProductionEnvironments(deploymentMetrics.environmentBreakdown.production)
-      : 'No deployments']);
-    
-    deploymentTable.push(['Staging', deploymentMetrics?.environmentBreakdown?.staging.environments.length > 0
-      ? this.formatStagingEnvironments(deploymentMetrics.environmentBreakdown.staging)
-      : 'No deployments']);
-    
-    deploymentTable.push(['Development', deploymentMetrics?.environmentBreakdown?.development.environments.length > 0
-      ? this.formatDevelopmentEnvironments(deploymentMetrics.environmentBreakdown.development)
-      : 'No deployments']);
+    deploymentTable.push([
+      'Production',
+      deploymentMetrics?.environmentBreakdown?.production.environments.length > 0
+        ? this.formatProductionEnvironments(deploymentMetrics.environmentBreakdown.production)
+        : 'No deployments',
+    ]);
+
+    deploymentTable.push([
+      'Staging',
+      deploymentMetrics?.environmentBreakdown?.staging.environments.length > 0
+        ? this.formatStagingEnvironments(deploymentMetrics.environmentBreakdown.staging)
+        : 'No deployments',
+    ]);
+
+    deploymentTable.push([
+      'Development',
+      deploymentMetrics?.environmentBreakdown?.development.environments.length > 0
+        ? this.formatDevelopmentEnvironments(deploymentMetrics.environmentBreakdown.development)
+        : 'No deployments',
+    ]);
 
     // Calculate lead time metrics
     const leadTimeMetrics = metrics.leadTimeForChanges;
@@ -735,17 +777,26 @@ export class DoraService {
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     leadTimeTable.push([`${theme.symbols.time} Lead Time for Changes (${timeRangeDisplay})`, '']);
-    
-    leadTimeTable.push(['📊 Sources', `Jira ${colors.dim('(Development)')} + GitLab ${colors.dim('(Review & Deploy)')}`]);
+
+    leadTimeTable.push([
+      '📊 Sources',
+      `Jira ${colors.dim('(Development)')} + GitLab ${colors.dim('(Review & Deploy)')}`,
+    ]);
     leadTimeTable.push(['Average lead time', this.formatDurationForDisplay(avgLeadTime)]);
     leadTimeTable.push(['Median lead time', this.formatDurationForDisplay(medianLeadTime)]);
     leadTimeTable.push(['Performance level', formatServiceStatus(leadTimeRating)]);
     leadTimeTable.push(['Breakdown', this.formatLeadTimeBreakdown(avgLeadTime)]);
-    leadTimeTable.push(['Trend', formatTrendChart(trends.leadTimeTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    leadTimeTable.push(['Change vs Previous', formatTrendValue(-trends.compareWithPrevious.leadTime, false)]);
+    leadTimeTable.push([
+      'Trend',
+      formatTrendChart(trends.leadTimeTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    leadTimeTable.push([
+      'Change vs Previous',
+      formatTrendValue(-trends.compareWithPrevious.leadTime, false),
+    ]);
 
     // Calculate change failure metrics
     const failureMetrics = metrics.changeFailureRate;
@@ -757,14 +808,14 @@ export class DoraService {
     // Format failure breakdown
     const formatFailureBreakdown = () => {
       if (totalCount === 0) return 'No deployments in period';
-      
+
       const pipelineFailures = Math.floor(failedCount * 0.7); // Approximate pipeline failures
       const incidentFailures = failedCount - pipelineFailures; // Remaining are incident-related
-      
+
       return [
         `Pipeline Failures: ${pipelineFailures}`,
         `Incident-related: ${incidentFailures}`,
-        `Success Rate: ${((totalCount - failedCount) / totalCount * 100).toFixed(1)}%`
+        `Success Rate: ${((totalCount - failedCount) / totalCount * 100).toFixed(1)}%`,
       ].join('\n');
     };
 
@@ -773,17 +824,23 @@ export class DoraService {
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     failureRateTable.push([`${theme.symbols.error} Change Failure Rate (${timeRangeDisplay})`, '']);
-    
+
     // failureRateTable.push(['📊 Sources', `${hasGitLab ? 'GitLab/GitHub Incidents + ' : ''}GitLab Pipeline Failures`]);
     failureRateTable.push(['Failure rate', `${failureRate.toFixed(1)}%`]);
     failureRateTable.push(['Failed/Total', `${failedCount}/${totalCount}`]);
     failureRateTable.push(['Performance level', formatServiceStatus(failureRating)]);
     failureRateTable.push(['Breakdown', formatFailureBreakdown()]);
-    failureRateTable.push(['Trend', formatTrendChart(trends.changeFailureRateTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    failureRateTable.push(['Change vs Previous', formatTrendValue(-trends.compareWithPrevious.changeFailureRate, false)]);
+    failureRateTable.push([
+      'Trend',
+      formatTrendChart(trends.changeFailureRateTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    failureRateTable.push([
+      'Change vs Previous',
+      formatTrendValue(-trends.compareWithPrevious.changeFailureRate, false),
+    ]);
 
     // Calculate time to restore metrics
     const restoreMetrics = metrics.timeToRestore;
@@ -795,18 +852,18 @@ export class DoraService {
     // Format incident breakdown
     const formatIncidentBreakdown = () => {
       if (incidentCount === 0) return 'No incidents in period';
-      
+
       // Approximate severity distribution
       const critical = Math.floor(incidentCount * 0.1);
       const high = Math.floor(incidentCount * 0.3);
       const medium = Math.floor(incidentCount * 0.4);
       const low = incidentCount - critical - high - medium;
-      
+
       return [
         `Critical: ${critical} (avg: ${this.formatDurationForDisplay(avgRestoreTime * 0.5)})`,
         `High: ${high} (avg: ${this.formatDurationForDisplay(avgRestoreTime * 0.8)})`,
         `Medium: ${medium} (avg: ${this.formatDurationForDisplay(avgRestoreTime * 1.2)})`,
-        `Low: ${low} (avg: ${this.formatDurationForDisplay(avgRestoreTime * 1.5)})`
+        `Low: ${low} (avg: ${this.formatDurationForDisplay(avgRestoreTime * 1.5)})`,
       ].join('\n');
     };
 
@@ -815,18 +872,27 @@ export class DoraService {
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
-    restoreTable.push([`${theme.symbols.metrics} Time to Restore Service (${timeRangeDisplay})`, '']);
-    
+    restoreTable.push([
+      `${theme.symbols.metrics} Time to Restore Service (${timeRangeDisplay})`,
+      '',
+    ]);
+
     // restoreTable.push(['📊 Sources', `${hasGitLab ? 'GitLab Incidents' : 'GitLab Pipeline Recovery'}`]);
     restoreTable.push(['Average restore time', this.formatDurationForDisplay(avgRestoreTime)]);
     restoreTable.push(['Median restore time', this.formatDurationForDisplay(medianRestoreTime)]);
     restoreTable.push(['Total incidents', incidentCount.toString()]);
     restoreTable.push(['Performance level', formatServiceStatus(restoreRating)]);
     restoreTable.push(['Breakdown', formatIncidentBreakdown()]);
-    restoreTable.push(['Trend', formatTrendChart(trends.timeToRestoreTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    restoreTable.push(['Change vs Previous', formatTrendValue(-trends.compareWithPrevious.timeToRestore, false)]);
+    restoreTable.push([
+      'Trend',
+      formatTrendChart(trends.timeToRestoreTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    restoreTable.push([
+      'Change vs Previous',
+      formatTrendValue(-trends.compareWithPrevious.timeToRestore, false),
+    ]);
 
     return [
       headerTable.toString(),
@@ -837,7 +903,7 @@ export class DoraService {
       '',
       failureRateTable.toString(),
       '',
-      restoreTable.toString()
+      restoreTable.toString(),
     ].join('\n');
   }
 
@@ -932,7 +998,11 @@ export class DoraService {
   ): Promise<CustomTeamMetrics['sprintCommitment']> {
     try {
       // Get last 6 sprints data
-      const { sprintData } = await this.jiraService.getLastNSprintsData(6, jiraMetrics.project.key, 1);
+      const { sprintData } = await this.jiraService.getLastNSprintsData(
+        6,
+        jiraMetrics.project.key,
+        1,
+      );
 
       // Handle case where no sprint data is available
       if (!sprintData || sprintData.length === 0) {
@@ -941,7 +1011,7 @@ export class DoraService {
           committedTickets: 0,
           completedTickets: 0,
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
@@ -954,13 +1024,15 @@ export class DoraService {
           committedTickets: 0,
           completedTickets: 0,
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
       const committedTickets = currentSprint.committedIssues.length;
       const completedTickets = currentSprint.completedIssues.length;
-      const doneVsCommitted = committedTickets > 0 ? (completedTickets / committedTickets) * 100 : 0;
+      const doneVsCommitted = committedTickets > 0
+        ? (completedTickets / committedTickets) * 100
+        : 0;
 
       // Calculate trend over last 6 sprints
       const trend = sprintData.map((sprint) => {
@@ -995,7 +1067,7 @@ export class DoraService {
         committedTickets: 0,
         completedTickets: 0,
         trend: [],
-        rating: 'poor' as const
+        rating: 'poor' as const,
       };
     }
   }
@@ -1008,7 +1080,11 @@ export class DoraService {
   ): Promise<CustomTeamMetrics['sprintSpillover']> {
     try {
       // Get last 6 sprints data
-      const { sprintData } = await this.jiraService.getLastNSprintsData(6, jiraMetrics.project.key, 1);
+      const { sprintData } = await this.jiraService.getLastNSprintsData(
+        6,
+        jiraMetrics.project.key,
+        1,
+      );
 
       // Handle case where no sprint data is available
       if (!sprintData || sprintData.length === 0) {
@@ -1017,7 +1093,7 @@ export class DoraService {
           spilledTickets: 0,
           totalTickets: 0,
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
@@ -1030,7 +1106,7 @@ export class DoraService {
           spilledTickets: 0,
           totalTickets: 0,
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
@@ -1071,7 +1147,7 @@ export class DoraService {
         spilledTickets: 0,
         totalTickets: 0,
         trend: [],
-        rating: 'poor' as const
+        rating: 'poor' as const,
       };
     }
   }
@@ -1171,7 +1247,11 @@ export class DoraService {
   ): Promise<CustomTeamMetrics['sprintVelocity']> {
     try {
       // Get last 6 sprints data
-      const { sprintData } = await this.jiraService.getLastNSprintsData(6, jiraMetrics.project.key, 1);
+      const { sprintData } = await this.jiraService.getLastNSprintsData(
+        6,
+        jiraMetrics.project.key,
+        1,
+      );
 
       // Handle case where no sprint data is available
       if (!sprintData || sprintData.length === 0) {
@@ -1182,7 +1262,7 @@ export class DoraService {
           cycleTimeDistribution: [0, 0, 0, 0],
           throughputTrend: [],
           bottlenecks: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
@@ -1197,12 +1277,12 @@ export class DoraService {
           cycleTimeDistribution: [0, 0, 0, 0],
           throughputTrend: [],
           bottlenecks: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
       const cycleTime = currentSprint.averageCycleTime.mean;
-      
+
       // Store both cycle time distribution and trend
       const cycleTimeDistribution = [
         currentSprint.averageCycleTime.median || 0,
@@ -1210,19 +1290,17 @@ export class DoraService {
         currentSprint.averageCycleTime.distribution.p75 || 0,
         currentSprint.averageCycleTime.distribution.p90 || 0,
       ];
-      
+
       // Convert cycle time to days for trend visualization
-      const cycleTimeTrend = sprintData.map((sprint) => 
-        sprint.averageCycleTime?.mean || 0
-      );
+      const cycleTimeTrend = sprintData.map((sprint) => sprint.averageCycleTime?.mean || 0);
 
       const throughput = currentSprint.completedIssues.length;
-      const throughputTrend = sprintData.map((sprint) => 
-        sprint.completedIssues?.length || 0
-      );
+      const throughputTrend = sprintData.map((sprint) => sprint.completedIssues?.length || 0);
 
       // Identify bottlenecks
-      const { bottlenecks } = this.identifyBottlenecks(currentSprint.stageTransitions || { transitions: [], statusAnalytics: [] });
+      const { bottlenecks } = this.identifyBottlenecks(
+        currentSprint.stageTransitions || { transitions: [], statusAnalytics: [] },
+      );
 
       // Determine rating based on cycle time and throughput correlation
       let rating: 'excellent' | 'good' | 'needs-improvement' | 'poor';
@@ -1246,7 +1324,7 @@ export class DoraService {
         cycleTimeTrend,
         cycleTimeDistribution,
         throughputTrend,
-        bottlenecks: bottlenecks.map(b => b.status),
+        bottlenecks: bottlenecks.map((b) => b.status),
         rating,
       };
     } catch (error) {
@@ -1258,7 +1336,7 @@ export class DoraService {
         cycleTimeDistribution: [0, 0, 0, 0],
         throughputTrend: [],
         bottlenecks: [],
-        rating: 'poor' as const
+        rating: 'poor' as const,
       };
     }
   }
@@ -1270,7 +1348,11 @@ export class DoraService {
     jiraMetrics: JiraProjectMetrics,
   ): Promise<CustomTeamMetrics['workTypeBreakdown']> {
     try {
-      const { sprintData } = await this.jiraService.getLastNSprintsData(6, jiraMetrics.project.key, 1);
+      const { sprintData } = await this.jiraService.getLastNSprintsData(
+        6,
+        jiraMetrics.project.key,
+        1,
+      );
 
       if (!sprintData || !Array.isArray(sprintData) || sprintData.length === 0) {
         this.logger.warn('No sprint data available for work type breakdown');
@@ -1282,28 +1364,35 @@ export class DoraService {
           trend: {
             technical: [],
             operational: [],
-            valueCreation: []
-          }
+            valueCreation: [],
+          },
         };
       }
 
       const categorizeIssue = (issue: JiraIssue) => {
-        const technicalLabels = ['technical-debt', 'refactoring', 'infrastructure', 'tech-improvement'];
+        const technicalLabels = [
+          'technical-debt',
+          'refactoring',
+          'infrastructure',
+          'tech-improvement',
+        ];
         const operationalLabels = ['bug', 'incident', 'maintenance', 'operations'];
-        
+
         const labels = issue.fields.labels || [];
         const issueType = issue.fields.issuetype?.name || 'Unknown';
-        
-        this.logger.debug(`Categorizing issue ${issue.key} with type ${issueType} and labels ${labels.join(', ')}`);
-        
-        if (labels.some(label => technicalLabels.includes(label.toLowerCase()))) {
+
+        this.logger.debug(
+          `Categorizing issue ${issue.key} with type ${issueType} and labels ${labels.join(', ')}`,
+        );
+
+        if (labels.some((label) => technicalLabels.includes(label.toLowerCase()))) {
           return 'technical';
         }
-        
-        if (labels.some(label => operationalLabels.includes(label.toLowerCase()))) {
+
+        if (labels.some((label) => operationalLabels.includes(label.toLowerCase()))) {
           return 'operational';
         }
-        
+
         if (['Bug', 'Incident', 'Problem'].includes(issueType)) {
           return 'operational';
         }
@@ -1315,18 +1404,23 @@ export class DoraService {
       };
 
       // Calculate per-sprint breakdown
-      const perSprintValues = sprintData.map(sprint => {
+      const perSprintValues = sprintData.map((sprint) => {
         const issues = sprint.completedIssues || [];
         const categorizedIssues = {
           technical: 0,
           operational: 0,
           valueCreation: 0,
-          total: issues.length
+          total: issues.length,
         };
 
-        issues.forEach(issue => {
+        issues.forEach((issue) => {
           const category = categorizeIssue(issue);
-          categorizedIssues[category as keyof Pick<typeof categorizedIssues, 'technical' | 'operational' | 'valueCreation'>]++;
+          categorizedIssues[
+            category as keyof Pick<
+              typeof categorizedIssues,
+              'technical' | 'operational' | 'valueCreation'
+            >
+          ]++;
         });
 
         return {
@@ -1334,24 +1428,30 @@ export class DoraService {
           technical: categorizedIssues.technical,
           operational: categorizedIssues.operational,
           valueCreation: categorizedIssues.valueCreation,
-          total: categorizedIssues.total
+          total: categorizedIssues.total,
         };
       });
-      
+
       // Calculate overall percentages from the most recent sprint
       const currentSprint = perSprintValues[0];
-      const technical = currentSprint.total > 0 ? (currentSprint.technical / currentSprint.total) * 100 : 0;
-      const operational = currentSprint.total > 0 ? (currentSprint.operational / currentSprint.total) * 100 : 0;
-      const valueCreation = currentSprint.total > 0 ? (currentSprint.valueCreation / currentSprint.total) * 100 : 0;
-      
+      const technical = currentSprint.total > 0
+        ? (currentSprint.technical / currentSprint.total) * 100
+        : 0;
+      const operational = currentSprint.total > 0
+        ? (currentSprint.operational / currentSprint.total) * 100
+        : 0;
+      const valueCreation = currentSprint.total > 0
+        ? (currentSprint.valueCreation / currentSprint.total) * 100
+        : 0;
+
       // Calculate trends
-      const technicalTrend = perSprintValues.map(s => 
+      const technicalTrend = perSprintValues.map((s) =>
         s.total > 0 ? (s.technical / s.total) * 100 : 0
       );
-      const operationalTrend = perSprintValues.map(s => 
+      const operationalTrend = perSprintValues.map((s) =>
         s.total > 0 ? (s.operational / s.total) * 100 : 0
       );
-      const valueCreationTrend = perSprintValues.map(s => 
+      const valueCreationTrend = perSprintValues.map((s) =>
         s.total > 0 ? (s.valueCreation / s.total) * 100 : 0
       );
 
@@ -1363,8 +1463,8 @@ export class DoraService {
         trend: {
           technical: technicalTrend,
           operational: operationalTrend,
-          valueCreation: valueCreationTrend
-        }
+          valueCreation: valueCreationTrend,
+        },
       };
     } catch (error) {
       this.logger.error('Error calculating work type breakdown:', error);
@@ -1376,8 +1476,8 @@ export class DoraService {
         trend: {
           technical: [],
           operational: [],
-          valueCreation: []
-        }
+          valueCreation: [],
+        },
       };
     }
   }
@@ -1389,7 +1489,11 @@ export class DoraService {
     jiraMetrics: JiraProjectMetrics,
   ): Promise<CustomTeamMetrics['addedTickets']> {
     try {
-      const { sprintData } = await this.jiraService.getLastNSprintsData(6, jiraMetrics.project.key, 1);
+      const { sprintData } = await this.jiraService.getLastNSprintsData(
+        6,
+        jiraMetrics.project.key,
+        1,
+      );
 
       if (!sprintData || !Array.isArray(sprintData) || sprintData.length === 0) {
         this.logger.warn('No sprint data available for added tickets calculation');
@@ -1400,41 +1504,47 @@ export class DoraService {
           byType: {},
           byTypePercentage: {},
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
       const currentSprint = sprintData[0];
       const totalIssues = currentSprint.totalIssues || [];
-      const committedIssues = new Set(currentSprint.committedIssues?.map((i: JiraIssue) => i.key) || []);
-      
+      const committedIssues = new Set(
+        currentSprint.committedIssues?.map((i: JiraIssue) => i.key) || [],
+      );
+
       // Calculate added issues (those in totalIssues but not in committedIssues)
-      const addedIssues = totalIssues.filter(issue => !committedIssues.has(issue.key));
+      const addedIssues = totalIssues.filter((issue) => !committedIssues.has(issue.key));
       const addedCount = addedIssues.length;
       const totalCount = totalIssues.length;
       const percentage = totalCount > 0 ? (addedCount / totalCount) * 100 : 0;
-      
+
       // Calculate breakdown by type
       const byType: Record<string, number> = {};
-      addedIssues.forEach(issue => {
+      addedIssues.forEach((issue) => {
         const type = issue.fields.issuetype?.name || 'Unknown';
         byType[type] = (byType[type] || 0) + 1;
       });
-      
+
       // Calculate percentages by type
       const byTypePercentage: Record<string, number> = {};
-      Object.keys(byType).forEach(type => {
+      Object.keys(byType).forEach((type) => {
         byTypePercentage[type] = addedCount > 0 ? (byType[type] / addedCount) * 100 : 0;
       });
-      
+
       // Calculate trend across sprints
-      const trend = sprintData.map(sprint => {
-        const sprintCommittedIssues = new Set(sprint.committedIssues?.map(i => i.key) || []);
+      const trend = sprintData.map((sprint) => {
+        const sprintCommittedIssues = new Set(sprint.committedIssues?.map((i) => i.key) || []);
         const sprintTotalIssues = sprint.totalIssues || [];
-        const sprintAddedIssues = sprintTotalIssues.filter(issue => !sprintCommittedIssues.has(issue.key));
-        return sprintTotalIssues.length > 0 ? (sprintAddedIssues.length / sprintTotalIssues.length) * 100 : 0;
+        const sprintAddedIssues = sprintTotalIssues.filter((issue) =>
+          !sprintCommittedIssues.has(issue.key)
+        );
+        return sprintTotalIssues.length > 0
+          ? (sprintAddedIssues.length / sprintTotalIssues.length) * 100
+          : 0;
       });
-      
+
       // Determine rating
       let rating: 'excellent' | 'good' | 'needs-improvement' | 'poor';
       if (percentage <= 10) {
@@ -1454,7 +1564,7 @@ export class DoraService {
         byType,
         byTypePercentage,
         trend,
-        rating
+        rating,
       };
     } catch (error) {
       this.logger.error('Error calculating added tickets:', error);
@@ -1465,7 +1575,7 @@ export class DoraService {
         byType: {},
         byTypePercentage: {},
         trend: [],
-        rating: 'poor' as const
+        rating: 'poor' as const,
       };
     }
   }
@@ -1477,7 +1587,11 @@ export class DoraService {
     jiraMetrics: JiraProjectMetrics,
   ): Promise<CustomTeamMetrics['epicTracking']> {
     try {
-      const { sprintData } = await this.jiraService.getLastNSprintsData(6, jiraMetrics.project.key, 1);
+      const { sprintData } = await this.jiraService.getLastNSprintsData(
+        6,
+        jiraMetrics.project.key,
+        1,
+      );
 
       // Handle case where no sprint data is available
       if (!sprintData || !Array.isArray(sprintData) || sprintData.length === 0) {
@@ -1488,7 +1602,7 @@ export class DoraService {
           perSprintValues: [],
           quarterlyAverage: 0,
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
@@ -1501,20 +1615,23 @@ export class DoraService {
           perSprintValues: [],
           quarterlyAverage: 0,
           trend: [],
-          rating: 'poor' as const
+          rating: 'poor' as const,
         };
       }
 
       // Track unique epic keys
       const epicKeys = new Set<string>();
-      
+
       // Process all issues in the current sprint
-      const allIssues = [...(currentSprint.totalIssues || []), ...(currentSprint.committedIssues || [])];
-      
-      allIssues.forEach(issue => {
+      const allIssues = [
+        ...(currentSprint.totalIssues || []),
+        ...(currentSprint.committedIssues || []),
+      ];
+
+      allIssues.forEach((issue) => {
         // Look for epic link in custom fields
         const epicLink = this.findEpicLink(issue);
-        if (epicLink && !currentSprint.completedIssues.some(i => i.key === epicLink)) {
+        if (epicLink && !currentSprint.completedIssues.some((i) => i.key === epicLink)) {
           epicKeys.add(epicLink);
         }
       });
@@ -1542,9 +1659,9 @@ export class DoraService {
       }
 
       // Create per-sprint values array
-      const perSprintValues = sprintData.map(sprint => ({
+      const perSprintValues = sprintData.map((sprint) => ({
         sprint: sprint.name,
-        parallelEpics: epicKeys.size // Using current size as historical data isn't available
+        parallelEpics: epicKeys.size, // Using current size as historical data isn't available
       }));
 
       return {
@@ -1553,7 +1670,7 @@ export class DoraService {
         perSprintValues,
         quarterlyAverage,
         trend,
-        rating
+        rating,
       };
     } catch (error) {
       this.logger.error('Error calculating epic tracking:', error);
@@ -1563,7 +1680,7 @@ export class DoraService {
         perSprintValues: [],
         quarterlyAverage: 0,
         trend: [],
-        rating: 'poor' as const
+        rating: 'poor' as const,
       };
     }
   }
@@ -1598,119 +1715,221 @@ export class DoraService {
     const customMetricsTable = new Table()
       .border(true)
       .padding(1);
-    
+
     // Add title as header row
     customMetricsTable.push([`${theme.symbols.metrics} Custom Team Metrics`]);
-    
+
     // Sprint commitment section
     const commitmentTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     commitmentTable.push(['🎯 Sprint Commitment', '']);
-    
-    commitmentTable.push(['Current Progress', `${metrics.sprintCommitment.doneVsCommitted.toFixed(1)}% (${metrics.sprintCommitment.completedTickets}/${metrics.sprintCommitment.committedTickets})`]);
-    commitmentTable.push(['Projected at Sprint End', `${(metrics.sprintCommitment.doneVsCommitted * 2).toFixed(1)}% (${metrics.sprintCommitment.completedTickets * 2}/${metrics.sprintCommitment.committedTickets})`]);
-    commitmentTable.push(['Daily Velocity', `${(metrics.sprintCommitment.completedTickets / 7).toFixed(1)} tickets/day`]);
+
+    commitmentTable.push([
+      'Current Progress',
+      `${
+        metrics.sprintCommitment.doneVsCommitted.toFixed(1)
+      }% (${metrics.sprintCommitment.completedTickets}/${metrics.sprintCommitment.committedTickets})`,
+    ]);
+    commitmentTable.push([
+      'Projected at Sprint End',
+      `${(metrics.sprintCommitment.doneVsCommitted * 2).toFixed(1)}% (${
+        metrics.sprintCommitment.completedTickets * 2
+      }/${metrics.sprintCommitment.committedTickets})`,
+    ]);
+    commitmentTable.push([
+      'Daily Velocity',
+      `${(metrics.sprintCommitment.completedTickets / 7).toFixed(1)} tickets/day`,
+    ]);
     commitmentTable.push(['Status', formatServiceStatus(metrics.sprintCommitment.rating)]);
-    commitmentTable.push(['Trend', formatTrendChart(metrics.sprintCommitment.trend, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now'])]);
-    
+    commitmentTable.push([
+      'Trend',
+      formatTrendChart(metrics.sprintCommitment.trend, 5, true, [
+        'S-5',
+        'S-4',
+        'S-3',
+        'S-2',
+        'Now',
+      ]),
+    ]);
+
     // Sprint spillover section
     const spilloverTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     spilloverTable.push(['🔄 Sprint Spillover', '']);
-    
+
     spilloverTable.push(['Spillover Rate', `${metrics.sprintSpillover.spilloverRate.toFixed(1)}%`]);
-    spilloverTable.push(['Spilled/Total Tickets', `${metrics.sprintSpillover.spilledTickets}/${metrics.sprintSpillover.totalTickets}`]);
+    spilloverTable.push([
+      'Spilled/Total Tickets',
+      `${metrics.sprintSpillover.spilledTickets}/${metrics.sprintSpillover.totalTickets}`,
+    ]);
     spilloverTable.push(['Status', formatServiceStatus(metrics.sprintSpillover.rating)]);
-    spilloverTable.push(['Trend', formatTrendChart(metrics.sprintSpillover.trend, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now'])]);
-    
+    spilloverTable.push([
+      'Trend',
+      formatTrendChart(metrics.sprintSpillover.trend, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now']),
+    ]);
+
     // Velocity metrics section
     const velocityTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     velocityTable.push(['⏱️ Sprint Velocity & Cycle Time', '']);
-    
+
     velocityTable.push(['Average Cycle Time', formatDuration(metrics.sprintVelocity.cycleTime)]);
-    velocityTable.push(['Median Cycle Time', formatDuration(metrics.sprintVelocity.cycleTimeTrend[0] || 0)]);
-    velocityTable.push(['25th Percentile', metrics.sprintVelocity.cycleTimeDistribution[1] ? formatDuration(metrics.sprintVelocity.cycleTimeDistribution[1]) : 'N/A']);
-    velocityTable.push(['75th Percentile', metrics.sprintVelocity.cycleTimeDistribution[2] ? formatDuration(metrics.sprintVelocity.cycleTimeDistribution[2]) : 'N/A']);
-    velocityTable.push(['90th Percentile', metrics.sprintVelocity.cycleTimeDistribution[3] ? formatDuration(metrics.sprintVelocity.cycleTimeDistribution[3]) : 'N/A']);
+    velocityTable.push([
+      'Median Cycle Time',
+      formatDuration(metrics.sprintVelocity.cycleTimeTrend[0] || 0),
+    ]);
+    velocityTable.push([
+      '25th Percentile',
+      metrics.sprintVelocity.cycleTimeDistribution[1]
+        ? formatDuration(metrics.sprintVelocity.cycleTimeDistribution[1])
+        : 'N/A',
+    ]);
+    velocityTable.push([
+      '75th Percentile',
+      metrics.sprintVelocity.cycleTimeDistribution[2]
+        ? formatDuration(metrics.sprintVelocity.cycleTimeDistribution[2])
+        : 'N/A',
+    ]);
+    velocityTable.push([
+      '90th Percentile',
+      metrics.sprintVelocity.cycleTimeDistribution[3]
+        ? formatDuration(metrics.sprintVelocity.cycleTimeDistribution[3])
+        : 'N/A',
+    ]);
     velocityTable.push(['Throughput', `${metrics.sprintVelocity.throughput} tickets`]);
     velocityTable.push(['Status', formatServiceStatus(metrics.sprintVelocity.rating)]);
-    
+
     // Cycle time trend with detailed stats
     const cycleTimeTrendData = [
-      formatTrendChart(metrics.sprintVelocity.cycleTimeTrend, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now']),
-      `Current: ${(metrics.sprintVelocity.cycleTime / 24).toFixed(1)}d (${this.getTrendChange(metrics.sprintVelocity.cycleTimeTrend).toFixed(1)}% vs prev)`
+      formatTrendChart(metrics.sprintVelocity.cycleTimeTrend, 5, true, [
+        'S-5',
+        'S-4',
+        'S-3',
+        'S-2',
+        'Now',
+      ]),
+      `Current: ${(metrics.sprintVelocity.cycleTime / 24).toFixed(1)}d (${
+        this.getTrendChange(metrics.sprintVelocity.cycleTimeTrend).toFixed(1)
+      }% vs prev)`,
     ].join('\n');
-    
+
     velocityTable.push(['Cycle Time Trend', cycleTimeTrendData]);
-    velocityTable.push(['Throughput Trend', formatTrendChart(metrics.sprintVelocity.throughputTrend, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now'])]);
+    velocityTable.push([
+      'Throughput Trend',
+      formatTrendChart(metrics.sprintVelocity.throughputTrend, 5, true, [
+        'S-5',
+        'S-4',
+        'S-3',
+        'S-2',
+        'Now',
+      ]),
+    ]);
     velocityTable.push(['Bottlenecks', metrics.sprintVelocity.bottlenecks.join(', ') || 'None']);
-    
+
     // Work type breakdown section
     const workTypeTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     workTypeTable.push(['📊 Work Type Breakdown', '']);
-    
+
     // Current distribution stats
     const currentDistributionData = [
-      `Technical: ${metrics.workTypeBreakdown.technical.toFixed(1)}% ${this.getTrendArrow(metrics.workTypeBreakdown.trend.technical)} (Target: 20-30%)`,
-      `Operational: ${metrics.workTypeBreakdown.operational.toFixed(1)}% ${this.getTrendArrow(metrics.workTypeBreakdown.trend.operational)} (Target: 15-25%)`,
-      `Value Creation: ${metrics.workTypeBreakdown.valueCreation.toFixed(1)}% ${this.getTrendArrow(metrics.workTypeBreakdown.trend.valueCreation)} (Target: 45-65%)`
+      `Technical: ${metrics.workTypeBreakdown.technical.toFixed(1)}% ${
+        this.getTrendArrow(metrics.workTypeBreakdown.trend.technical)
+      } (Target: 20-30%)`,
+      `Operational: ${metrics.workTypeBreakdown.operational.toFixed(1)}% ${
+        this.getTrendArrow(metrics.workTypeBreakdown.trend.operational)
+      } (Target: 15-25%)`,
+      `Value Creation: ${metrics.workTypeBreakdown.valueCreation.toFixed(1)}% ${
+        this.getTrendArrow(metrics.workTypeBreakdown.trend.valueCreation)
+      } (Target: 45-65%)`,
     ].join('\n');
-    
+
     workTypeTable.push(['Current Distribution', currentDistributionData]);
     workTypeTable.push(['\nTrend Analysis', '']);
-    
+
     // Technical work trend
     const technicalTrendData = [
-      formatTrendChart(metrics.workTypeBreakdown.trend.technical, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now']),
-      `Average: ${this.calculateAverage(metrics.workTypeBreakdown.trend.technical).toFixed(1)}% | Peak: ${Math.max(...metrics.workTypeBreakdown.trend.technical).toFixed(1)}% | Change: ${this.getTrendArrow(metrics.workTypeBreakdown.trend.technical)}`
+      formatTrendChart(metrics.workTypeBreakdown.trend.technical, 5, true, [
+        'S-5',
+        'S-4',
+        'S-3',
+        'S-2',
+        'Now',
+      ]),
+      `Average: ${
+        this.calculateAverage(metrics.workTypeBreakdown.trend.technical).toFixed(1)
+      }% | Peak: ${Math.max(...metrics.workTypeBreakdown.trend.technical).toFixed(1)}% | Change: ${
+        this.getTrendArrow(metrics.workTypeBreakdown.trend.technical)
+      }`,
     ].join('\n');
-    
+
     workTypeTable.push(['Technical Work Trend', technicalTrendData]);
-    
+
     // Operational work trend
     const operationalTrendData = [
-      formatTrendChart(metrics.workTypeBreakdown.trend.operational, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now']),
-      `Average: ${this.calculateAverage(metrics.workTypeBreakdown.trend.operational).toFixed(1)}% | Peak: ${Math.max(...metrics.workTypeBreakdown.trend.operational).toFixed(1)}% | Change: ${this.getTrendArrow(metrics.workTypeBreakdown.trend.operational)}`
+      formatTrendChart(metrics.workTypeBreakdown.trend.operational, 5, true, [
+        'S-5',
+        'S-4',
+        'S-3',
+        'S-2',
+        'Now',
+      ]),
+      `Average: ${
+        this.calculateAverage(metrics.workTypeBreakdown.trend.operational).toFixed(1)
+      }% | Peak: ${
+        Math.max(...metrics.workTypeBreakdown.trend.operational).toFixed(1)
+      }% | Change: ${this.getTrendArrow(metrics.workTypeBreakdown.trend.operational)}`,
     ].join('\n');
-    
+
     workTypeTable.push(['\nOperational Work Trend', operationalTrendData]);
-    
+
     // Value creation trend
     const valueTrendData = [
-      formatTrendChart(metrics.workTypeBreakdown.trend.valueCreation, 5, true, ['S-5', 'S-4', 'S-3', 'S-2', 'Now']),
-      `Average: ${this.calculateAverage(metrics.workTypeBreakdown.trend.valueCreation).toFixed(1)}% | Peak: ${Math.max(...metrics.workTypeBreakdown.trend.valueCreation).toFixed(1)}% | Change: ${this.getTrendArrow(metrics.workTypeBreakdown.trend.valueCreation)}`
+      formatTrendChart(metrics.workTypeBreakdown.trend.valueCreation, 5, true, [
+        'S-5',
+        'S-4',
+        'S-3',
+        'S-2',
+        'Now',
+      ]),
+      `Average: ${
+        this.calculateAverage(metrics.workTypeBreakdown.trend.valueCreation).toFixed(1)
+      }% | Peak: ${
+        Math.max(...metrics.workTypeBreakdown.trend.valueCreation).toFixed(1)
+      }% | Change: ${this.getTrendArrow(metrics.workTypeBreakdown.trend.valueCreation)}`,
     ].join('\n');
-    
+
     workTypeTable.push(['\nValue Creation Trend', valueTrendData]);
-    
+
     // Sprint details
     workTypeTable.push(['\nSprint Details', '']);
-    
+
     // Sprint-by-sprint breakdown
-    const sprintDetailsData = metrics.workTypeBreakdown.perSprintValues.map((period, i) => 
-      `Sprint ${i + 1}:`.padEnd(20) + `T: ${period.technical.toString().padStart(2)}  O: ${period.operational.toString().padStart(2)}  V: ${period.valueCreation.toString().padStart(2)}`
+    const sprintDetailsData = metrics.workTypeBreakdown.perSprintValues.map((period, i) =>
+      `Sprint ${i + 1}:`.padEnd(20) +
+      `T: ${period.technical.toString().padStart(2)}  O: ${
+        period.operational.toString().padStart(2)
+      }  V: ${period.valueCreation.toString().padStart(2)}`
     ).join('\n');
-    
+
     workTypeTable.push(['Sprint-by-Sprint Details', sprintDetailsData]);
-    
+
     return [
       commitmentTable.toString(),
       '',
@@ -1718,7 +1937,7 @@ export class DoraService {
       '',
       velocityTable.toString(),
       '',
-      workTypeTable.toString()
+      workTypeTable.toString(),
     ].join('\n');
   }
 
@@ -1729,7 +1948,12 @@ export class DoraService {
   /**
    * Format sprint metrics for display
    */
-  private formatSprintMetrics(sprintDataObj: { sprintData: SprintData[]; duplicateSprints: Array<{ dateRange: string; sprints: string[] }> }): string {
+  private formatSprintMetrics(
+    sprintDataObj: {
+      sprintData: SprintData[];
+      duplicateSprints: Array<{ dateRange: string; sprints: string[] }>;
+    },
+  ): string {
     const { sprintData } = sprintDataObj;
 
     if (!sprintData || !Array.isArray(sprintData) || sprintData.length === 0) {
@@ -1750,13 +1974,14 @@ export class DoraService {
       (sum, sprint) => sum + (sprint.spiltOverIssues?.length || 0),
       0,
     );
-    const avgCycleTime = sprintData.reduce((sum, sprint) => sum + (sprint.averageCycleTime?.mean || 0), 0) /
+    const avgCycleTime =
+      sprintData.reduce((sum, sprint) => sum + (sprint.averageCycleTime?.mean || 0), 0) /
       Math.max(1, sprintData.length);
 
     // Get bottleneck analysis from the most recent sprint
     const latestSprint = sprintData[0];
     const { bottlenecks, blockedIssues } = this.identifyBottlenecks(
-      latestSprint?.stageTransitions || { transitions: [], statusAnalytics: [] }
+      latestSprint?.stageTransitions || { transitions: [], statusAnalytics: [] },
     );
 
     // Format durations
@@ -1770,145 +1995,172 @@ export class DoraService {
     const sprintMetricsTable = new Table()
       .border(true)
       .padding(1);
-    
+
     // Add title as a header row
-    sprintMetricsTable.push([`${theme.symbols.metrics} Sprint Metrics (Last ${sprintData.length} Sprints)`]);
-    
+    sprintMetricsTable.push([
+      `${theme.symbols.metrics} Sprint Metrics (Last ${sprintData.length} Sprints)`,
+    ]);
+
     // Commitment & delivery section
     const commitmentTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     commitmentTable.push(['🎯 Commitment & Delivery', '']);
-    
-    commitmentTable.push(['Done vs Committed', `${(totalCompleted / totalCommitted * 100).toFixed(1)}%`]);
+
+    commitmentTable.push([
+      'Done vs Committed',
+      `${(totalCompleted / totalCommitted * 100).toFixed(1)}%`,
+    ]);
     commitmentTable.push(['Completed/Committed', `${totalCompleted}/${totalCommitted}`]);
-    commitmentTable.push(['Performance Level', formatServiceStatus(this.rateCompletionRate(totalCompleted / totalCommitted))]);
-    
+    commitmentTable.push([
+      'Performance Level',
+      formatServiceStatus(this.rateCompletionRate(totalCompleted / totalCommitted)),
+    ]);
+
     // Sprint spillover section
     const spilloverTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     spilloverTable.push(['🔄 Sprint Spillover', '']);
-    
-    spilloverTable.push(['Spillover Rate', `${(totalSpiltOver / totalCommitted * 100).toFixed(1)}%`]);
+
+    spilloverTable.push([
+      'Spillover Rate',
+      `${(totalSpiltOver / totalCommitted * 100).toFixed(1)}%`,
+    ]);
     spilloverTable.push(['Spilled/Total Tickets', `${totalSpiltOver}/${totalCommitted}`]);
-    spilloverTable.push(['Performance Level', formatServiceStatus(this.rateSpilloverRate(totalSpiltOver / totalCommitted))]);
-    
+    spilloverTable.push([
+      'Performance Level',
+      formatServiceStatus(this.rateSpilloverRate(totalSpiltOver / totalCommitted)),
+    ]);
+
     // Sprint velocity section
     const velocityTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     velocityTable.push(['⏱️ Sprint Velocity', '']);
-    
+
     velocityTable.push(['Average Cycle Time', formatDuration(avgCycleTime)]);
-    velocityTable.push(['Throughput (avg)', `${(totalCompleted / sprintData.length).toFixed(1)} tickets/sprint`]);
-    velocityTable.push(['Performance Level', formatServiceStatus(this.rateVelocity(avgCycleTime, totalCompleted / sprintData.length))]);
-    
+    velocityTable.push([
+      'Throughput (avg)',
+      `${(totalCompleted / sprintData.length).toFixed(1)} tickets/sprint`,
+    ]);
+    velocityTable.push([
+      'Performance Level',
+      formatServiceStatus(this.rateVelocity(avgCycleTime, totalCompleted / sprintData.length)),
+    ]);
+
     // Process bottlenecks section
     const bottlenecksTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     bottlenecksTable.push(['🚧 Process Bottlenecks', '']);
-    
-    bottlenecksTable.push(['Current Bottlenecks', bottlenecks.length > 0 
-      ? bottlenecks.map(b => `${b.status} (${formatDuration(b.avgDuration)} avg)`).join('\n')
-      : 'No significant bottlenecks']);
-    
-    bottlenecksTable.push(['Affected Issues', bottlenecks.length > 0
-      ? bottlenecks.map(b => `${b.status}: ${b.issueCount} issues`).join('\n')
-      : 'N/A']);
-    
+
+    bottlenecksTable.push([
+      'Current Bottlenecks',
+      bottlenecks.length > 0
+        ? bottlenecks.map((b) => `${b.status} (${formatDuration(b.avgDuration)} avg)`).join('\n')
+        : 'No significant bottlenecks',
+    ]);
+
+    bottlenecksTable.push([
+      'Affected Issues',
+      bottlenecks.length > 0
+        ? bottlenecks.map((b) => `${b.status}: ${b.issueCount} issues`).join('\n')
+        : 'N/A',
+    ]);
+
     // Format sprint-by-sprint analysis
-    const sprintAnalysis = sprintData.map((sprint, index) => 
-      `Period ${index + 1}`.padEnd(20) + 
+    const sprintAnalysis = sprintData.map((sprint, index) =>
+      `Period ${index + 1}`.padEnd(20) +
       `Committed: ${sprint.committedIssues?.length || 0}, ` +
       `Completed: ${sprint.completedIssues?.length || 0}, ` +
       `Spillover: ${sprint.spiltOverIssues?.length || 0}`
     ).join('\n');
-    
+
     // Sprint analysis table
     const sprintAnalysisTable = new Table()
       .border(true)
       .padding(1)
       .header(['Sprint', 'Results']);
-    
+
     // Add title as a header row
     sprintAnalysisTable.push(['📈 Sprint-by-Sprint Analysis', '']);
-    
+
     sprintAnalysisTable.push(['Analysis', sprintAnalysis]);
-    
+
     // Format status outliers
     const statusOutliers = latestSprint?.stageTransitions?.statusAnalytics
-      ?.filter(stat => stat.maxDuration > 24 * 7) // More than 7 days
-      ?.map(stat => 
+      ?.filter((stat) => stat.maxDuration > 24 * 7) // More than 7 days
+      ?.map((stat) =>
         `${stat.status.padEnd(20)}Max: ${formatDuration(stat.maxDuration)} (${stat.maxIssue})`
       )?.join('\n') || '';
-    
+
     // Outliers table
     const outliersTable = new Table()
       .border(true)
       .padding(1)
       .header(['Status', 'Duration']);
-    
+
     // Add title as a header row
     outliersTable.push(['⚠️ Outliers by Status (>7 days)', '']);
-    
+
     if (statusOutliers) {
       outliersTable.push(['Outliers', statusOutliers]);
     } else {
       outliersTable.push(['Outliers', 'No outliers found']);
     }
-    
+
     // Format status analysis
     const statusAnalysis = latestSprint?.stageTransitions?.statusAnalytics
-      ?.map(stat => 
-        `${stat.status.padEnd(20)}Avg: ${formatDuration(stat.avgDuration)} (${stat.issueCount} issues)`
+      ?.map((stat) =>
+        `${stat.status.padEnd(20)}Avg: ${
+          formatDuration(stat.avgDuration)
+        } (${stat.issueCount} issues)`
       )?.join('\n') || '';
-    
+
     // Status analysis table
     const statusAnalysisTable = new Table()
       .border(true)
       .padding(1)
       .header(['Status', 'Average Time']);
-    
+
     // Add title as a header row
     statusAnalysisTable.push(['🚦 Status Analysis', '']);
-    
+
     statusAnalysisTable.push(['Analysis', statusAnalysis || 'No status analysis available']);
-    
+
     // Format blocked issues
     const blockedIssuesList = blockedIssues
-      ?.map(issue => 
-        `${issue.key.padEnd(20)}${issue.status}: ${formatDuration(issue.duration)}`
-      )?.join('\n') || '';
-    
+      ?.map((issue) => `${issue.key.padEnd(20)}${issue.status}: ${formatDuration(issue.duration)}`)
+      ?.join('\n') || '';
+
     // Blocked issues table
     const blockedIssuesTable = new Table()
       .border(true)
       .padding(1)
       .header(['Issue', 'Status and Duration']);
-    
+
     // Add title as a header row
     blockedIssuesTable.push(['⚠️ Blocked Issues (>30 days)', '']);
-    
+
     if (blockedIssuesList) {
       blockedIssuesTable.push(['Issues', blockedIssuesList]);
     } else {
       blockedIssuesTable.push(['Issues', 'No blocked issues']);
     }
-    
+
     return [
       commitmentTable.toString(),
       '',
@@ -1924,7 +2176,7 @@ export class DoraService {
       '',
       statusAnalysisTable.toString(),
       '',
-      blockedIssuesTable.toString()
+      blockedIssuesTable.toString(),
     ].join('\n');
   }
 
@@ -1976,58 +2228,82 @@ export class DoraService {
     const trendTable = new Table()
       .border(true)
       .padding(1);
-    
+
     // Add title as a header row
     trendTable.push(['📈 Trend Analysis (Last 5 Periods)']);
-    
+
     // Deployment frequency trends
     const deploymentTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     deploymentTable.push(['Deployment Frequency', '']);
-    
-    deploymentTable.push(['Trend', formatTrendChart(trends.deploymentFrequencyTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    deploymentTable.push(['Change vs Previous', formatTrendValue(trends.compareWithPrevious.deploymentFrequency, true)]);
-    
+
+    deploymentTable.push([
+      'Trend',
+      formatTrendChart(trends.deploymentFrequencyTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    deploymentTable.push([
+      'Change vs Previous',
+      formatTrendValue(trends.compareWithPrevious.deploymentFrequency, true),
+    ]);
+
     // Lead time trends
     const leadTimeTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     leadTimeTable.push(['Lead Time for Changes', '']);
-    
-    leadTimeTable.push(['Trend', formatTrendChart(trends.leadTimeTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    leadTimeTable.push(['Change vs Previous', formatTrendValue(-trends.compareWithPrevious.leadTime, false)]);
-    
+
+    leadTimeTable.push([
+      'Trend',
+      formatTrendChart(trends.leadTimeTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    leadTimeTable.push([
+      'Change vs Previous',
+      formatTrendValue(-trends.compareWithPrevious.leadTime, false),
+    ]);
+
     // Change failure rate trends
     const failureRateTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     failureRateTable.push(['Change Failure Rate', '']);
-    
-    failureRateTable.push(['Trend', formatTrendChart(trends.changeFailureRateTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    failureRateTable.push(['Change vs Previous', formatTrendValue(-trends.compareWithPrevious.changeFailureRate, false)]);
-    
+
+    failureRateTable.push([
+      'Trend',
+      formatTrendChart(trends.changeFailureRateTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    failureRateTable.push([
+      'Change vs Previous',
+      formatTrendValue(-trends.compareWithPrevious.changeFailureRate, false),
+    ]);
+
     // Time to restore trends
     const restoreTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     restoreTable.push(['Time to Restore', '']);
-    
-    restoreTable.push(['Trend', formatTrendChart(trends.timeToRestoreTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now'])]);
-    restoreTable.push(['Change vs Previous', formatTrendValue(-trends.compareWithPrevious.timeToRestore, false)]);
-    
+
+    restoreTable.push([
+      'Trend',
+      formatTrendChart(trends.timeToRestoreTrend, 5, true, ['4w', '3w', '2w', '1w', 'Now']),
+    ]);
+    restoreTable.push([
+      'Change vs Previous',
+      formatTrendValue(-trends.compareWithPrevious.timeToRestore, false),
+    ]);
+
     return [
       deploymentTable.toString(),
       '',
@@ -2035,7 +2311,7 @@ export class DoraService {
       '',
       failureRateTable.toString(),
       '',
-      restoreTable.toString()
+      restoreTable.toString(),
     ].join('\n');
   }
 
@@ -2059,23 +2335,27 @@ export class DoraService {
    * Calculate deployment frequency rating based on DORA metrics standards
    * @see https://cloud.google.com/blog/products/devops-sre/using-the-four-keys-to-measure-your-devops-performance
    */
-  private calculateDeploymentRating(deploymentsPerDay: number): 'elite' | 'high' | 'medium' | 'low' {
-    if (deploymentsPerDay >= 1) return 'elite';     // Multiple deploys per day
-    if (deploymentsPerDay >= 0.14) return 'high';   // Between once per day and once per week
+  private calculateDeploymentRating(
+    deploymentsPerDay: number,
+  ): 'elite' | 'high' | 'medium' | 'low' {
+    if (deploymentsPerDay >= 1) return 'elite'; // Multiple deploys per day
+    if (deploymentsPerDay >= 0.14) return 'high'; // Between once per day and once per week
     if (deploymentsPerDay >= 0.03) return 'medium'; // Between once per week and once per month
-    return 'low';                                   // Less than once per month
+    return 'low'; // Less than once per month
   }
 
   /**
    * Format environment deployments for display
    */
-  private formatEnvironmentDeployments(env?: { environments: Array<{ name: string; deployments: number }>; total: number }): string {
+  private formatEnvironmentDeployments(
+    env?: { environments: Array<{ name: string; deployments: number }>; total: number },
+  ): string {
     if (!env) return 'No data';
-    
+
     const envDetails = env.environments
-      .map(e => `${e.name}: ${e.deployments}`)
+      .map((e) => `${e.name}: ${e.deployments}`)
       .join(', ');
-    
+
     return `${env.total} total (${envDetails})`;
   }
 
@@ -2089,12 +2369,12 @@ export class DoraService {
   ): Promise<ExtendedDoraMetricsResult> {
     try {
       this.logger.info('Refreshing DORA metrics...');
-      
+
       // Clear caches before fetching fresh data
       await this.clearCache();
       await this.jiraService.clearCache();
       await this.gitlabService.clearCache();
-      
+
       // Get fresh metrics
       return await this.getDoraMetrics(jiraProjectKey, gitlabProjectPath, timeRange);
     } catch (error) {
@@ -2107,11 +2387,18 @@ export class DoraService {
     }
   }
 
-  private async calculateDeploymentFrequency(_environments: GitLabEnvironment[], gitlabProjectPath: string, trends: DoraTrends): Promise<DoraMetrics['deploymentFrequency']> {
+  private async calculateDeploymentFrequency(
+    _environments: GitLabEnvironment[],
+    gitlabProjectPath: string,
+    trends: DoraTrends,
+  ): Promise<DoraMetrics['deploymentFrequency']> {
     // Cache key for environment deployments
     const cacheKey = `deployments_${gitlabProjectPath}`;
-    const cached = await this.cache.get<Array<{ name: string; deployments: number }>>(cacheKey, 'deployments');
-    
+    const cached = await this.cache.get<Array<{ name: string; deployments: number }>>(
+      cacheKey,
+      'deployments',
+    );
+
     // Process environments and get their deployments
     const envMetrics = cached || await (async () => {
       this.logger.debug('Fetching environment deployments from GitLab');
@@ -2121,11 +2408,16 @@ export class DoraService {
     })();
 
     // Filter for production environments only
-    const prodEnvs = envMetrics.filter((env: { name: string }) => this.isProductionEnvironment(env.name));
-    const totalDeployments = prodEnvs.reduce((sum: number, env: { deployments: number }) => sum + env.deployments, 0);
+    const prodEnvs = envMetrics.filter((env: { name: string }) =>
+      this.isProductionEnvironment(env.name)
+    );
+    const totalDeployments = prodEnvs.reduce(
+      (sum: number, env: { deployments: number }) => sum + env.deployments,
+      0,
+    );
 
     // Calculate deployments per day using the trend data
-    const deploymentsPerDay = trends.deploymentFrequencyTrend.length > 0 
+    const deploymentsPerDay = trends.deploymentFrequencyTrend.length > 0
       ? trends.deploymentFrequencyTrend[trends.deploymentFrequencyTrend.length - 1]
       : totalDeployments / (5 * 7); // fallback to total deployments divided by timerange (5 weeks)
 
@@ -2133,7 +2425,8 @@ export class DoraService {
     const trendStats = {
       min: Math.min(...trends.deploymentFrequencyTrend),
       max: Math.max(...trends.deploymentFrequencyTrend),
-      avg: trends.deploymentFrequencyTrend.reduce((a, b) => a + b, 0) / trends.deploymentFrequencyTrend.length
+      avg: trends.deploymentFrequencyTrend.reduce((a, b) => a + b, 0) /
+        trends.deploymentFrequencyTrend.length,
     };
 
     // Log debug information
@@ -2142,8 +2435,8 @@ export class DoraService {
       deploymentsPerDay,
       trendStats,
       environments: {
-        production: prodEnvs.length
-      }
+        production: prodEnvs.length,
+      },
     });
 
     return {
@@ -2155,19 +2448,22 @@ export class DoraService {
         production: {
           environments: prodEnvs.map((env: { name: string; deployments: number }) => ({
             name: env.name,
-            deployments: env.deployments
+            deployments: env.deployments,
           })),
-          total: prodEnvs.reduce((sum: number, env: { deployments: number }) => sum + env.deployments, 0)
+          total: prodEnvs.reduce(
+            (sum: number, env: { deployments: number }) => sum + env.deployments,
+            0,
+          ),
         },
         staging: {
           environments: [],
-          total: 0
+          total: 0,
         },
         development: {
           environments: [],
-          total: 0
-        }
-      }
+          total: 0,
+        },
+      },
     };
   }
 
@@ -2178,20 +2474,18 @@ export class DoraService {
     const lowercaseName = name.toLowerCase();
     // Expanded production environment patterns
     const productionPatterns = [
-      '^prd$',                  // Exact match for 'prd'
-      '^prod$',                 // Exact match for 'prod'
-      '^production$',           // Exact match for 'production'
-      '^prod-[a-z0-9-]+$',     // prod-anything
-      '^prod_[a-z0-9_]+$',     // prod_anything
-      '^live$',                // Exact match for 'live'
-      '^main$',                // Exact match for 'main'
-      'production',            // Contains production
-      'live-[a-z0-9-]+'       // live-anything
+      '^prd$', // Exact match for 'prd'
+      '^prod$', // Exact match for 'prod'
+      '^production$', // Exact match for 'production'
+      '^prod-[a-z0-9-]+$', // prod-anything
+      '^prod_[a-z0-9_]+$', // prod_anything
+      '^live$', // Exact match for 'live'
+      '^main$', // Exact match for 'main'
+      'production', // Contains production
+      'live-[a-z0-9-]+', // live-anything
     ];
-    
-    return productionPatterns.some(pattern => 
-      new RegExp(pattern).test(lowercaseName)
-    );
+
+    return productionPatterns.some((pattern) => new RegExp(pattern).test(lowercaseName));
   }
 
   /**
@@ -2201,75 +2495,81 @@ export class DoraService {
     const lowercaseName = name.toLowerCase();
     // Expanded staging environment patterns
     const stagingPatterns = [
-      '^stg$',                // Exact match for 'stg'
-      '^stage$',              // Exact match for 'stage'
-      '^staging$',            // Exact match for 'staging'
-      '^stg-[a-z0-9-]+$',    // stg-anything
-      '^stage-[a-z0-9-]+$',  // stage-anything
-      '^uat$',               // User Acceptance Testing
-      '^qa$',                // Quality Assurance
-      '^test$',              // Test environment
-      'staging',             // Contains staging
-      'preprod'              // Pre-production
+      '^stg$', // Exact match for 'stg'
+      '^stage$', // Exact match for 'stage'
+      '^staging$', // Exact match for 'staging'
+      '^stg-[a-z0-9-]+$', // stg-anything
+      '^stage-[a-z0-9-]+$', // stage-anything
+      '^uat$', // User Acceptance Testing
+      '^qa$', // Quality Assurance
+      '^test$', // Test environment
+      'staging', // Contains staging
+      'preprod', // Pre-production
     ];
-    return stagingPatterns.some(pattern => 
-      new RegExp(pattern).test(lowercaseName)
-    );
+    return stagingPatterns.some((pattern) => new RegExp(pattern).test(lowercaseName));
   }
 
-  private formatProductionEnvironments(env: { environments: Array<{ name: string; deployments: number }>; total: number }): string {
+  private formatProductionEnvironments(
+    env: { environments: Array<{ name: string; deployments: number }>; total: number },
+  ): string {
     if (!env.environments.length) return 'No deployments';
-    
+
     // For production, show all environments with their deployment counts
     return env.environments
-      .map(e => `${e.name}: ${e.deployments} deployments`)
-      .join('\n') + 
+      .map((e) => `${e.name}: ${e.deployments} deployments`)
+      .join('\n') +
       `\nTotal: ${env.total} deployments`;
   }
 
-  private formatStagingEnvironments(env: { environments: Array<{ name: string; deployments: number }>; total: number }): string {
+  private formatStagingEnvironments(
+    env: { environments: Array<{ name: string; deployments: number }>; total: number },
+  ): string {
     if (!env.environments.length) return 'No deployments';
-    
+
     // For staging, show all environments with their deployment counts
     return env.environments
-      .map(e => `${e.name}: ${e.deployments} deployments`)
-      .join('\n') + 
+      .map((e) => `${e.name}: ${e.deployments} deployments`)
+      .join('\n') +
       `\nTotal: ${env.total} deployments`;
   }
 
-  private formatDevelopmentEnvironments(env: { environments: Array<{ name: string; deployments: number }>; total: number }): string {
+  private formatDevelopmentEnvironments(
+    env: { environments: Array<{ name: string; deployments: number }>; total: number },
+  ): string {
     if (!env.environments.length) return 'No deployments';
-    
+
     // For development, show summary and top 5 most active environments
     const sortedEnvs = [...env.environments].sort((a, b) => b.deployments - a.deployments);
     const topEnvs = sortedEnvs.slice(0, 5);
-    
+
     let output = `${env.environments.length} environments, ${env.total} total deployments\n`;
     output += 'Most active:\n';
     output += topEnvs
-      .map(e => `${e.name}: ${e.deployments} deployments`)
+      .map((e) => `${e.name}: ${e.deployments} deployments`)
       .join('\n');
-    
+
     if (sortedEnvs.length > 5) {
       const remainingDeployments = sortedEnvs
         .slice(5)
         .reduce((sum, e) => sum + e.deployments, 0);
-      output += `\n... and ${sortedEnvs.length - 5} more environments (${remainingDeployments} deployments)`;
+      output += `\n... and ${
+        sortedEnvs.length - 5
+      } more environments (${remainingDeployments} deployments)`;
     }
-    
+
     return output;
   }
 
   private formatLeadTimeBreakdown(leadTimeHours: number): string {
     // Approximate breakdown based on typical ratios
     const developmentTime = leadTimeHours * 0.6; // 60% in development
-    const reviewTime = leadTimeHours * 0.3;      // 30% in review
-    const deployTime = leadTimeHours * 0.1;      // 10% in deployment
-    
+    const reviewTime = leadTimeHours * 0.3; // 30% in review
+    const deployTime = leadTimeHours * 0.1; // 10% in deployment
+
     return [
       `Development: ${formatDuration(developmentTime)}`,
       `Review: ${formatDuration(reviewTime)}`,
-      `Deploy: ${formatDuration(deployTime)}`
+      `Deploy: ${formatDuration(deployTime)}`,
     ].join('\n');
   }
 
@@ -2289,31 +2589,34 @@ export class DoraService {
     return `${weeks}w ${remainingDays}d`;
   }
 
-  private getRating(metric: 'leadTime' | 'changeFailureRate' | 'deploymentFrequency' | 'timeToRestore', value: number): 'elite' | 'high' | 'medium' | 'low' {
+  private getRating(
+    metric: 'leadTime' | 'changeFailureRate' | 'deploymentFrequency' | 'timeToRestore',
+    value: number,
+  ): 'elite' | 'high' | 'medium' | 'low' {
     switch (metric) {
       case 'leadTime':
-        if (value <= 24) return 'elite';     // Less than 1 day
-        if (value <= 168) return 'high';     // Less than 1 week
-        if (value <= 672) return 'medium';   // Less than 4 weeks
-        return 'low';                        // More than 4 weeks
+        if (value <= 24) return 'elite'; // Less than 1 day
+        if (value <= 168) return 'high'; // Less than 1 week
+        if (value <= 672) return 'medium'; // Less than 4 weeks
+        return 'low'; // More than 4 weeks
 
       case 'changeFailureRate':
-        if (value <= 15) return 'elite';     // 0-15%
-        if (value <= 30) return 'high';      // 16-30%
-        if (value <= 45) return 'medium';    // 31-45%
-        return 'low';                        // >45%
+        if (value <= 15) return 'elite'; // 0-15%
+        if (value <= 30) return 'high'; // 16-30%
+        if (value <= 45) return 'medium'; // 31-45%
+        return 'low'; // >45%
 
       case 'deploymentFrequency':
-        if (value >= 1) return 'elite';      // Multiple deploys per day
-        if (value >= 0.14) return 'high';    // Between once per day and once per week
-        if (value >= 0.03) return 'medium';  // Between once per week and once per month
-        return 'low';                        // Less than once per month
+        if (value >= 1) return 'elite'; // Multiple deploys per day
+        if (value >= 0.14) return 'high'; // Between once per day and once per week
+        if (value >= 0.03) return 'medium'; // Between once per week and once per month
+        return 'low'; // Less than once per month
 
       case 'timeToRestore':
-        if (value <= 1) return 'elite';      // Less than 1 hour
-        if (value <= 24) return 'high';      // Less than 1 day
-        if (value <= 168) return 'medium';   // Less than 1 week
-        return 'low';                        // More than 1 week
+        if (value <= 1) return 'elite'; // Less than 1 hour
+        if (value <= 24) return 'high'; // Less than 1 day
+        if (value <= 168) return 'medium'; // Less than 1 week
+        return 'low'; // More than 1 week
     }
   }
 
@@ -2328,7 +2631,7 @@ export class DoraService {
       deploymentFrequency: metrics.metrics.deploymentFrequency.deploymentsPerDay,
       leadTimeForChanges: metrics.metrics.leadTimeForChanges.averageInHours,
       changeFailureRate: metrics.metrics.changeFailureRate.percentage,
-      meanTimeToRecovery: metrics.metrics.timeToRestore.averageInHours
+      meanTimeToRecovery: metrics.metrics.timeToRestore.averageInHours,
     };
   }
 }

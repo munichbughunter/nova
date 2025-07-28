@@ -1,5 +1,3 @@
-
-
 ```
 sequenceDiagram
     participant Website as 🌐 Website (Client)

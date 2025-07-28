@@ -1,26 +1,26 @@
 #!/usr/bin/env deno run --allow-net --allow-read --allow-write --allow-run --allow-env
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
-    CallToolRequestSchema,
-    ListResourcesRequestSchema,
-    ListToolsRequestSchema,
-    ReadResourceRequestSchema
-} from "@modelcontextprotocol/sdk/types.js";
+  CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 
 // Create a basic server
 const server = new Server(
   {
-    name: "nova-mcp-base",
-    version: "1.0.0"
+    name: 'nova-mcp-base',
+    version: '1.0.0',
   },
   {
     capabilities: {
       tools: {},
-      resources: {}
-    }
-  }
+      resources: {},
+    },
+  },
 );
 
 // Define our tools
@@ -28,72 +28,71 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: "echo",
-        description: "Echo back the input",
+        name: 'echo',
+        description: 'Echo back the input',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             message: {
-              type: "string",
-              description: "Message to echo"
-            }
+              type: 'string',
+              description: 'Message to echo',
+            },
           },
-          required: ["message"]
-        }
+          required: ['message'],
+        },
       },
       {
-        name: "list_files",
-        description: "List files in a directory",
+        name: 'list_files',
+        description: 'List files in a directory',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             path: {
-              type: "string",
-              description: "Directory path"
-            }
+              type: 'string',
+              description: 'Directory path',
+            },
           },
-          required: ["path"]
-        }
-      }
-    ]
+          required: ['path'],
+        },
+      },
+    ],
   };
 });
 
 // Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  
+
   // Handle different tools
-  if (name === "echo") {
+  if (name === 'echo') {
     const message = args.message;
     return {
-      content: [{ type: "text", text: message }]
+      content: [{ type: 'text', text: message }],
     };
-  }
-  else if (name === "list_files") {
+  } else if (name === 'list_files') {
     try {
-      const path = args.path || ".";
+      const path = args.path || '.';
       const files = [];
-      
+
       for await (const entry of Deno.readDir(path)) {
         files.push(entry.name);
       }
-      
+
       return {
-        content: [{ type: "text", text: JSON.stringify(files, null, 2) }]
+        content: [{ type: 'text', text: JSON.stringify(files, null, 2) }],
       };
     } catch (error) {
       return {
-        content: [{ type: "text", text: `Error: ${error.message}` }],
-        isError: true
+        content: [{ type: 'text', text: `Error: ${error.message}` }],
+        isError: true,
       };
     }
   }
-  
+
   // Unknown tool
   return {
-    content: [{ type: "text", text: `Unknown tool: ${name}` }],
-    isError: true
+    content: [{ type: 'text', text: `Unknown tool: ${name}` }],
+    isError: true,
   };
 });
 
@@ -102,49 +101,49 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return {
     resources: [
       {
-        name: "help",
-        uri_template: "help://info"
+        name: 'help',
+        uri_template: 'help://info',
       },
       {
-        name: "file",
-        uri_template: "file://{path}"
-      }
-    ]
+        name: 'file',
+        uri_template: 'file://{path}',
+      },
+    ],
   };
 });
 
 // Handle resource reads
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const uri = new URL(request.params.uri);
-  
-  if (uri.protocol === "help:") {
+
+  if (uri.protocol === 'help:') {
     return {
       contents: [{
         uri: uri.href,
-        text: `# nova MCP Server Help\n\nThis is a help page for the nova MCP Server.\n\nAvailable tools:\n- echo: Echo back a message\n- list_files: List files in a directory`
-      }]
+        text:
+          `# nova MCP Server Help\n\nThis is a help page for the nova MCP Server.\n\nAvailable tools:\n- echo: Echo back a message\n- list_files: List files in a directory`,
+      }],
     };
-  }
-  else if (uri.protocol === "file:") {
+  } else if (uri.protocol === 'file:') {
     try {
       // Extract path from URL
       const path = uri.pathname.replace(/^\/+/, '');
       const content = await Deno.readTextFile(path);
-      
+
       return {
         contents: [{
           uri: uri.href,
-          text: content
-        }]
+          text: content,
+        }],
       };
     } catch (error) {
       throw new Error(`Failed to read file: ${error.message}`);
     }
   }
-  
+
   throw new Error(`Unsupported resource URI: ${request.params.uri}`);
 });
 
 // Start the server
 const transport = new StdioServerTransport();
-await server.connect(transport); 
+await server.connect(transport);

@@ -46,9 +46,9 @@ export interface CreateCompletionOptions {
 }
 
 // These are used to allow more precise types in the AISdkClient
-declare module "@browserbasehq/stagehand" {
+declare module '@browserbasehq/stagehand' {
   interface LLMClient {
     type: string;
     createChatCompletion<T>(options: CreateCompletionOptions): Promise<T>;
   }
-} 
+}

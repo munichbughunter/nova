@@ -51,7 +51,7 @@ export class ConfigManager {
       'AZURE_OPENAI_DEPLOYMENT_NAME',
     ];
 
-    const hasAiEnvVars = aiEnvVars.some(key => Deno.env.get(key) !== undefined);
+    const hasAiEnvVars = aiEnvVars.some((key) => Deno.env.get(key) !== undefined);
     if (hasAiEnvVars) {
       this.config = null;
     }
@@ -103,7 +103,7 @@ export class ConfigManager {
       };
     }
 
-    // AI config  
+    // AI config
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     const openaiUrl = Deno.env.get('OPENAI_URL');
     const openaiVersion = Deno.env.get('OPENAI_API_VERSION');
@@ -112,7 +112,10 @@ export class ConfigManager {
     const azureVersion = Deno.env.get('AZURE_OPENAI_API_VERSION');
     const azureDeployment = Deno.env.get('AZURE_OPENAI_DEPLOYMENT_NAME');
 
-    if (openaiKey || openaiUrl || openaiVersion || azureKey || azureEndpoint || azureVersion || azureDeployment) {
+    if (
+      openaiKey || openaiUrl || openaiVersion || azureKey || azureEndpoint || azureVersion ||
+      azureDeployment
+    ) {
       envConfig.ai = {
         default_provider: azureKey ? 'azure' : 'openai',
         ...(openaiKey && {
@@ -121,7 +124,7 @@ export class ConfigManager {
             api_url: openaiUrl ?? 'https://api.openai.com/v1',
             api_version: openaiVersion ?? '2024-02-15',
             default_model: 'gpt-4',
-          }
+          },
         }),
         ...(azureKey && {
           azure: {
@@ -129,7 +132,7 @@ export class ConfigManager {
             api_url: azureEndpoint ?? '',
             api_version: azureVersion ?? '2024-02-15',
             deployment_name: azureDeployment ?? 'gpt-4',
-          }
+          },
         }),
         copilot: {
           enabled: true,
@@ -204,7 +207,7 @@ export class ConfigManager {
       // Type-safe merging of each config section
       if (curr.gitlab) {
         const { url, token } = curr.gitlab;
-        merged.gitlab = { 
+        merged.gitlab = {
           ...merged.gitlab,
           ...(url ? { url } : {}),
           ...(token ? { token } : {}),
@@ -228,7 +231,7 @@ export class ConfigManager {
    * Validate configuration against schema
    */
   private validateConfig(
-    config: Partial<Config>
+    config: Partial<Config>,
   ): Config {
     try {
       // Validate with schema

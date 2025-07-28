@@ -79,10 +79,12 @@ export interface Agent {
 export class OllamaProvider implements LLMProvider {
   name = 'Ollama';
   private _model: string;
-  public get model(): string { return this._model || 'none'; }
+  public get model(): string {
+    return this._model || 'none';
+  }
   private maxRetries = 3;
   private baseUrl = 'http://localhost:11434';
-  
+
   constructor(model = 'llama3.2') {
     this._model = model;
   }
@@ -171,7 +173,7 @@ export class OllamaProvider implements LLMProvider {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         if (attempt < this.maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
         throw lastError;
@@ -185,10 +187,12 @@ export class OllamaProvider implements LLMProvider {
 export class OpenAIProvider implements LLMProvider {
   name = 'OpenAI';
   private _model: string;
-  public get model(): string { return this._model || 'gpt-4'; }
+  public get model(): string {
+    return this._model || 'gpt-4';
+  }
   private apiKey: string;
   private baseUrl = 'https://api.openai.com/v1';
-  
+
   constructor(apiKey: string, model = 'gpt-4') {
     this.apiKey = apiKey;
     this._model = model;
@@ -358,7 +362,7 @@ export abstract class BaseAgent implements Agent {
     this.context = context;
     this.options = options;
     this.logger = context.logger.child(this.constructor.name);
-    
+
     if (context.mcpEnabled) {
       this.mcpService = MCPService.getInstance(context.config);
       this.mcpTools = this.mcpService.getTools();
@@ -367,12 +371,12 @@ export abstract class BaseAgent implements Agent {
 
   protected async executeMCPTool(
     toolName: string,
-    params: Record<string, unknown>
+    params: Record<string, unknown>,
   ): Promise<MCPToolResult> {
     if (!this.context.mcpEnabled || !this.mcpService) {
       return {
         success: false,
-        error: 'MCP tools are not enabled for this agent'
+        error: 'MCP tools are not enabled for this agent',
       };
     }
 
@@ -380,21 +384,23 @@ export abstract class BaseAgent implements Agent {
       const context: MCPToolContext = {
         mcpService: this.mcpService,
         workingDirectory: Deno.cwd(),
-        ...this.context.mcpContext
+        ...this.context.mcpContext,
       };
 
       return await this.mcpService.executeTool(toolName, params, context);
     } catch (error) {
       return {
         success: false,
-        error: `Failed to execute tool ${toolName}: ${error instanceof Error ? error.message : String(error)}`
+        error: `Failed to execute tool ${toolName}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
   }
 
   protected async withMCPContext<T>(
     callback: () => Promise<T>,
-    context?: Partial<MCPToolContext>
+    context?: Partial<MCPToolContext>,
   ): Promise<T> {
     if (!this.context.mcpEnabled) {
       return callback();
@@ -404,7 +410,7 @@ export abstract class BaseAgent implements Agent {
     const newContext: MCPToolContext = {
       mcpService: this.mcpService!,
       ...previousContext,
-      ...context
+      ...context,
     };
 
     this.context.mcpContext = newContext;
@@ -420,29 +426,29 @@ export abstract class BaseAgent implements Agent {
   protected notifyUser(message: string, attachments?: string | string[]): Promise<MCPToolResult> {
     return this.executeMCPTool('message_notify_user', {
       text: message,
-      attachments
+      attachments,
     });
   }
 
   protected askUser(
     question: string,
     attachments?: string | string[],
-    suggestTakeover?: 'none' | 'browser'
+    suggestTakeover?: 'none' | 'browser',
   ): Promise<MCPToolResult> {
     return this.executeMCPTool('message_ask_user', {
       text: question,
       attachments,
-      suggest_user_takeover: suggestTakeover
+      suggest_user_takeover: suggestTakeover,
     });
   }
 
   protected readFile(
     file: string,
-    options?: { startLine?: number; endLine?: number; sudo?: boolean }
+    options?: { startLine?: number; endLine?: number; sudo?: boolean },
   ): Promise<MCPToolResult> {
     return this.executeMCPTool('file_read', {
       file,
-      ...options
+      ...options,
     });
   }
 
@@ -454,12 +460,12 @@ export abstract class BaseAgent implements Agent {
       leadingNewline?: boolean;
       trailingNewline?: boolean;
       sudo?: boolean;
-    }
+    },
   ): Promise<MCPToolResult> {
     return this.executeMCPTool('file_write', {
       file,
       content,
-      ...options
+      ...options,
     });
   }
 

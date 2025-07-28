@@ -48,7 +48,7 @@ export class KeyService {
       const _config = await this.configManager.loadConfig();
       // For now, we'll generate a secure random key
       // In the future, this should call the actual nova API at _config.ai?.nova?.api_url
-      
+
       // For now, we'll generate a secure random key
       // In the future, this should call the actual nova API
       const keyBytes = new Uint8Array(32);
@@ -62,7 +62,7 @@ export class KeyService {
         name,
         key: apiKey,
         created: new Date().toISOString(),
-        description
+        description,
       });
 
       formatSuccess('✅ API Key generated successfully!');
@@ -71,7 +71,7 @@ export class KeyService {
         formatInfo(`Description: ${description}`);
       }
       formatInfo(`Created: ${new Date().toLocaleString()}`);
-      
+
       return apiKey;
     } catch (error) {
       formatError('Failed to generate API key');
@@ -85,9 +85,9 @@ export class KeyService {
   async listKeys(): Promise<APIKey[]> {
     try {
       const keyStore = await this.loadKeyStore();
-      return keyStore.keys.map(key => ({
+      return keyStore.keys.map((key) => ({
         ...key,
-        key: this.maskKey(key.key) // Mask the key for display
+        key: this.maskKey(key.key), // Mask the key for display
       }));
     } catch (error) {
       this.logger.debug('Error listing keys:', error);
@@ -101,9 +101,7 @@ export class KeyService {
   async getKey(nameOrId: string): Promise<APIKey | null> {
     try {
       const keyStore = await this.loadKeyStore();
-      return keyStore.keys.find(key => 
-        key.name === nameOrId || key.id === nameOrId
-      ) || null;
+      return keyStore.keys.find((key) => key.name === nameOrId || key.id === nameOrId) || null;
     } catch (error) {
       this.logger.debug('Error getting key:', error);
       return null;
@@ -117,10 +115,8 @@ export class KeyService {
     try {
       const keyStore = await this.loadKeyStore();
       const initialLength = keyStore.keys.length;
-      keyStore.keys = keyStore.keys.filter(key => 
-        key.name !== nameOrId && key.id !== nameOrId
-      );
-      
+      keyStore.keys = keyStore.keys.filter((key) => key.name !== nameOrId && key.id !== nameOrId);
+
       if (keyStore.keys.length < initialLength) {
         await this.saveKeyStore(keyStore);
         return true;
@@ -138,7 +134,7 @@ export class KeyService {
   async markKeyUsed(nameOrId: string): Promise<void> {
     try {
       const keyStore = await this.loadKeyStore();
-      const key = keyStore.keys.find(k => k.name === nameOrId || k.id === nameOrId);
+      const key = keyStore.keys.find((k) => k.name === nameOrId || k.id === nameOrId);
       if (key) {
         key.lastUsed = new Date().toISOString();
         await this.saveKeyStore(keyStore);
@@ -153,10 +149,10 @@ export class KeyService {
    */
   async createKeyInteractive(): Promise<string> {
     formatInfo('🔑 Create New API Key');
-    
+
     const name = await Input.prompt({
       message: 'Key name (for identification)',
-      hint: 'e.g., "my-dev-key", "prod-deployment"'
+      hint: 'e.g., "my-dev-key", "prod-deployment"',
     });
 
     if (!name) {
@@ -171,7 +167,7 @@ export class KeyService {
 
     const description = await Input.prompt({
       message: 'Description (optional)',
-      hint: 'Brief description of what this key is used for'
+      hint: 'Brief description of what this key is used for',
     });
 
     return await this.generateKey(name, description || undefined);
@@ -188,18 +184,18 @@ export class KeyService {
 
     try {
       const config = await this.configManager.loadConfig();
-      
+
       // Update the Nova configuration with this key
       if (!config.ai) {
         config.ai = {
-          default_provider: 'nova'
+          default_provider: 'nova',
         };
       }
       if (!config.ai.nova) {
         config.ai.nova = {
           api_key: key.key,
           api_url: 'https://llmgw.nova.de',
-          default_model: 'claude-3-5-sonnet-20241022'
+          default_model: 'claude-3-5-sonnet-20241022',
         };
       } else {
         config.ai.nova.api_key = key.key;
@@ -207,7 +203,7 @@ export class KeyService {
 
       await this.configManager.saveConfig(config);
       await this.markKeyUsed(nameOrId);
-      
+
       formatSuccess(`✅ Set "${key.name}" as default API key`);
     } catch (error) {
       formatError('Failed to set default key');
@@ -221,7 +217,7 @@ export class KeyService {
         return {
           keys: [],
           encrypted: false,
-          version: '1.0'
+          version: '1.0',
         };
       }
 
@@ -232,7 +228,7 @@ export class KeyService {
       return {
         keys: [],
         encrypted: false,
-        version: '1.0'
+        version: '1.0',
       };
     }
   }
@@ -241,9 +237,9 @@ export class KeyService {
     // Ensure the directory exists
     const dir = this.keyStorePath.substring(0, this.keyStorePath.lastIndexOf('/'));
     await Deno.mkdir(dir, { recursive: true });
-    
+
     await Deno.writeTextFile(this.keyStorePath, JSON.stringify(keyStore, null, 2));
-    
+
     // Set restrictive permissions on the key store
     await Deno.chmod(this.keyStorePath, 0o600);
   }

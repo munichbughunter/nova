@@ -132,20 +132,26 @@ teamsCommand.command('help')
     logger.passThrough('log', 'Usage:');
     logger.passThrough('log', '  nova datadog teams [options]');
     logger.passThrough('log', '\nOptions:');
-    logger.passThrough('log', '  -f, --format            Output format (text/json) [default: text]');
+    logger.passThrough(
+      'log',
+      '  -f, --format            Output format (text/json) [default: text]',
+    );
     logger.passThrough('log', '  -q, --query <string>    Search for a team by name');
-    logger.passThrough('log', formatJsonExamples([
-      commonJsonExamples.copyToClipboard('nova datadog teams'),
-      {
-        description: 'Search for engineering teams',
-        command: 'nova datadog teams -q "engineering"'
-      },
-      {
-        description: 'Get team details in JSON',
-        command:
-          'nova datadog teams --format json | jq -r \'.[] | {name, handle, members: .user_count}\'',
-      },
-    ]));
+    logger.passThrough(
+      'log',
+      formatJsonExamples([
+        commonJsonExamples.copyToClipboard('nova datadog teams'),
+        {
+          description: 'Search for engineering teams',
+          command: 'nova datadog teams -q "engineering"',
+        },
+        {
+          description: 'Get team details in JSON',
+          command:
+            "nova datadog teams --format json | jq -r '.[] | {name, handle, members: .user_count}'",
+        },
+      ]),
+    );
     logger.passThrough('log', '');
   });
 
@@ -215,20 +221,25 @@ dashboardsCommand.command('help')
     logger.passThrough('log', 'Usage:');
     logger.passThrough('log', '  nova datadog dashboards [options]');
     logger.passThrough('log', '\nOptions:');
-    logger.passThrough('log', '  -f, --format            Output format (text/json) [default: text]');
-    logger.passThrough('log', formatJsonExamples([
-      commonJsonExamples.copyToClipboard('nova datadog dashboards'),
-      {
-        description: 'Get dashboard details',
-        command:
-          'nova datadog dashboards --format json | jq -r \'.[] | {title, description, url}\'',
-      },
-      {
-        description: 'List dashboard titles and IDs',
-        command:
-          'nova datadog dashboards --format json | jq -r \'.[] | "\\(.title) (\\(.id))"\'',
-      },
-    ]));
+    logger.passThrough(
+      'log',
+      '  -f, --format            Output format (text/json) [default: text]',
+    );
+    logger.passThrough(
+      'log',
+      formatJsonExamples([
+        commonJsonExamples.copyToClipboard('nova datadog dashboards'),
+        {
+          description: 'Get dashboard details',
+          command:
+            "nova datadog dashboards --format json | jq -r '.[] | {title, description, url}'",
+        },
+        {
+          description: 'List dashboard titles and IDs',
+          command: 'nova datadog dashboards --format json | jq -r \'.[] | "\\(.title) (\\(.id))"\'',
+        },
+      ]),
+    );
     logger.passThrough('log', '');
   });
 

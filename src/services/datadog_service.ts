@@ -1,9 +1,5 @@
 import { Table } from '@cliffy/table';
-import {
-  client,
-  v1,
-  v2,
-} from '@datadog/datadog-api-client';
+import { client, v1, v2 } from '@datadog/datadog-api-client';
 import { exists } from '@std/fs/exists';
 import { walk } from '@std/fs/walk';
 import { join } from '@std/path/join';
@@ -220,7 +216,7 @@ export class DatadogService {
       authMethods: {
         apiKeyAuth: config.datadog.api_key,
         appKeyAuth: config.datadog.app_key,
-      }
+      },
     });
 
     this.logger.debug('Created Datadog client configuration');
@@ -242,7 +238,7 @@ export class DatadogService {
       const response = await this.monitorApi.listMonitors({}) as MonitorResponse;
       this.logger.debug('Got response from API:', {
         hasData: !!response.data,
-        dataLength: response.data?.length || 0
+        dataLength: response.data?.length || 0,
       });
 
       const monitors = (response.data || []).map((monitor) => ({
@@ -259,11 +255,13 @@ export class DatadogService {
 
       this.logger.debug('Processed monitors:', {
         count: monitors.length,
-        firstMonitor: monitors[0] ? {
-          id: monitors[0].id,
-          name: monitors[0].name,
-          status: monitors[0].status
-        } : null
+        firstMonitor: monitors[0]
+          ? {
+            id: monitors[0].id,
+            name: monitors[0].name,
+            status: monitors[0].status,
+          }
+          : null,
       });
 
       return monitors;
@@ -280,7 +278,9 @@ export class DatadogService {
   async getMetrics(query: string, from: string, to: string): Promise<DatadogMetrics> {
     try {
       const fromTime = Math.floor(new Date(from).getTime() / 1000);
-      const toTime = to === 'now' ? Math.floor(Date.now() / 1000) : Math.floor(new Date(to).getTime() / 1000);
+      const toTime = to === 'now'
+        ? Math.floor(Date.now() / 1000)
+        : Math.floor(new Date(to).getTime() / 1000);
 
       const response = await this.metricsApi.queryMetrics({
         from: fromTime,
@@ -321,10 +321,12 @@ export class DatadogService {
         url: String(dashboard.url || ''),
         created_at: this.formatDate(dashboard.createdAt),
         modified_at: this.formatDate(dashboard.modifiedAt),
-        author: dashboard.author ? {
-          name: String(dashboard.author.name || ''),
-          email: String(dashboard.author.email || ''),
-        } : undefined,
+        author: dashboard.author
+          ? {
+            name: String(dashboard.author.name || ''),
+            email: String(dashboard.author.email || ''),
+          }
+          : undefined,
       }));
     } catch (error) {
       this.logger.error('Failed to fetch dashboards:', error);
@@ -343,10 +345,12 @@ export class DatadogService {
         url: String(response.url || ''),
         created_at: this.formatDate(response.createdAt),
         modified_at: this.formatDate(response.modifiedAt),
-        author: response.author ? {
-          name: String(response.author.name || ''),
-          email: String(response.author.email || ''),
-        } : undefined,
+        author: response.author
+          ? {
+            name: String(response.author.name || ''),
+            email: String(response.author.email || ''),
+          }
+          : undefined,
       };
     } catch (error) {
       this.logger.error('Failed to fetch dashboard:', error);
@@ -424,7 +428,7 @@ export class DatadogService {
       if (await exists(packageJsonPath)) {
         const packageJson = JSON.parse(await Deno.readTextFile(packageJsonPath));
         const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
-        
+
         if (dependencies['dd-trace'] || dependencies['@datadog/tracer']) {
           result.hasTracingConfig = true;
         }
@@ -473,13 +477,15 @@ export class DatadogService {
       }
 
       // Check for common configuration patterns
-      for await (const entry of walk(projectPath, {
-        includeDirs: false,
-        exts: ['.js', '.ts', '.yaml', '.yml'],
-        skip: [/node_modules/, /\.git/],
-      })) {
+      for await (
+        const entry of walk(projectPath, {
+          includeDirs: false,
+          exts: ['.js', '.ts', '.yaml', '.yml'],
+          skip: [/node_modules/, /\.git/],
+        })
+      ) {
         const content = await Deno.readTextFile(entry.path);
-        
+
         // Check for hardcoded API keys (security issue)
         if (content.match(/['"]([a-f0-9]{32})['"]/) && !entry.path.includes('.env')) {
           result.recommendations.push(
@@ -582,10 +588,10 @@ module.exports = tracer;
         let modified = false;
 
         if (!content.includes('serverless-datadog')) {
-          const plugins = content.includes('plugins:') 
+          const plugins = content.includes('plugins:')
             ? content.replace('plugins:', 'plugins:\n  - serverless-datadog')
             : content + '\nplugins:\n  - serverless-datadog';
-          
+
           content = plugins + `
 
 custom:
@@ -621,28 +627,30 @@ custom:
     }
 
     const sections: string[] = [];
-    
+
     for (const monitor of monitors) {
-      sections.push(theme.emphasis(`${formatServiceStatus(monitor.overall_state)} Monitor: ${monitor.name}`));
-      
+      sections.push(
+        theme.emphasis(`${formatServiceStatus(monitor.overall_state)} Monitor: ${monitor.name}`),
+      );
+
       const monitorTable = new Table()
         .border(true)
         .padding(1);
-      
+
       monitorTable.push([`${theme.symbols.info} ID`, monitor.id.toString()]);
       monitorTable.push([`${theme.symbols.metrics} Status`, formatServiceStatus(monitor.status)]);
-      
+
       if (monitor.message) {
         monitorTable.push([`${theme.symbols.documentation} Message`, monitor.message]);
       }
-      
+
       if (monitor.tags.length > 0) {
         monitorTable.push([`${theme.symbols.documentation} Tags`, monitor.tags.join(', ')]);
       }
-      
+
       monitorTable.push([`${theme.symbols.time} Created`, formatTimestamp(monitor.created_at)]);
       monitorTable.push([`${theme.symbols.time} Modified`, formatTimestamp(monitor.modified_at)]);
-      
+
       sections.push(monitorTable.toString());
       sections.push('');
     }
@@ -656,30 +664,36 @@ custom:
     }
 
     const sections: string[] = [];
-    
+
     for (const dashboard of dashboards) {
       sections.push(theme.emphasis(`${theme.symbols.metrics} Dashboard: ${dashboard.title}`));
-      
+
       const dashboardTable = new Table()
         .border(true)
         .padding(1);
-      
+
       dashboardTable.push([`${theme.symbols.info} ID`, dashboard.id]);
-      
+
       if (dashboard.description) {
         dashboardTable.push([`${theme.symbols.documentation} Description`, dashboard.description]);
       }
-      
+
       dashboardTable.push([`${theme.symbols.documentation} Type`, dashboard.layout_type]);
       dashboardTable.push([`${theme.symbols.documentation} URL`, dashboard.url]);
-      
+
       if (dashboard.author) {
-        dashboardTable.push([`${theme.symbols.team} Author`, dashboard.author.name || dashboard.author.email || 'Unknown']);
+        dashboardTable.push([
+          `${theme.symbols.team} Author`,
+          dashboard.author.name || dashboard.author.email || 'Unknown',
+        ]);
       }
-      
+
       dashboardTable.push([`${theme.symbols.time} Created`, formatTimestamp(dashboard.created_at)]);
-      dashboardTable.push([`${theme.symbols.time} Modified`, formatTimestamp(dashboard.modified_at)]);
-      
+      dashboardTable.push([
+        `${theme.symbols.time} Modified`,
+        formatTimestamp(dashboard.modified_at),
+      ]);
+
       sections.push(dashboardTable.toString());
       sections.push('');
     }
@@ -721,31 +735,31 @@ custom:
     };
 
     const sections: string[] = [];
-    
+
     for (const event of events) {
       sections.push(theme.emphasis(`${getAlertTypeEmoji(event.alert_type)} Event: ${event.title}`));
-      
+
       const eventTable = new Table()
         .border(true)
         .padding(1);
-      
+
       eventTable.push(['🆔 ID', event.id.toString()]);
       eventTable.push(['📝 Text', event.text]);
-      
+
       if (event.priority) {
         eventTable.push([`${getPriorityEmoji(event.priority)} Priority`, event.priority]);
       }
-      
+
       if (event.alert_type) {
         eventTable.push(['🚨 Type', event.alert_type]);
       }
-      
+
       if (event.tags && event.tags.length > 0) {
         eventTable.push(['🏷️ Tags', event.tags.join(', ')]);
       }
-      
+
       eventTable.push(['🕒 Date', new Date(event.date_happened * 1000).toLocaleString()]);
-      
+
       sections.push(eventTable.toString());
       sections.push('');
     }
@@ -758,7 +772,7 @@ custom:
     try {
       this.logger.debug('Calling teams API...');
       const response = await this.teamsApi.listTeams({
-        include: ['team_links', 'user_team_permissions']
+        include: ['team_links', 'user_team_permissions'],
       });
 
       if (!response.data) {
@@ -776,19 +790,21 @@ custom:
         }> = [];
 
         try {
-          const linksResponse = await this.teamsApi.getTeamLinks({ teamId: team.id }) as TeamLinkResponse;
+          const linksResponse = await this.teamsApi.getTeamLinks({
+            teamId: team.id,
+          }) as TeamLinkResponse;
           if (linksResponse.data) {
-            teamLinks.push(...linksResponse.data.map(link => ({
+            teamLinks.push(...linksResponse.data.map((link) => ({
               id: link.id,
               label: String(link.attributes.label || ''),
               url: String(link.attributes.url || ''),
-              position: link.attributes.position || 0
+              position: link.attributes.position || 0,
             })));
           }
         } catch (error) {
           this.logger.warn(`Failed to fetch links for team ${team.id}:`, error);
         }
-        
+
         return {
           id: team.id,
           name: team.attributes.name,
@@ -796,8 +812,12 @@ custom:
           handle: team.attributes.handle,
           avatar: team.attributes.avatar,
           banner: team.attributes.banner,
-          created_at: team.attributes.createdAt ? new Date(team.attributes.createdAt).toISOString() : '',
-          modified_at: team.attributes.modifiedAt ? new Date(team.attributes.modifiedAt).toISOString() : '',
+          created_at: team.attributes.createdAt
+            ? new Date(team.attributes.createdAt).toISOString()
+            : '',
+          modified_at: team.attributes.modifiedAt
+            ? new Date(team.attributes.modifiedAt).toISOString()
+            : '',
           user_count: team.attributes.userCount || 0,
           links: teamLinks,
         };
@@ -822,30 +842,30 @@ custom:
     }
 
     const sections: string[] = [];
-    
+
     for (const team of teams) {
       sections.push(theme.emphasis(`${theme.symbols.team} Team: ${team.name}`));
-      
+
       const teamTable = new Table()
         .border(true)
         .padding(1);
-      
+
       teamTable.push([`${theme.symbols.info} ID`, team.id]);
-      
+
       if (team.description) {
         teamTable.push([`${theme.symbols.documentation} Description`, team.description]);
       }
-      
+
       teamTable.push([`${theme.symbols.team} Handle`, team.handle]);
       teamTable.push([`${theme.symbols.team} Members`, team.user_count.toString()]);
-      
+
       if (team.links && team.links.length > 0) {
         teamTable.push([`${theme.symbols.documentation} Links`, team.links.length.toString()]);
       }
-      
+
       teamTable.push([`${theme.symbols.time} Created`, formatTimestamp(team.created_at)]);
       teamTable.push([`${theme.symbols.time} Modified`, formatTimestamp(team.modified_at)]);
-      
+
       sections.push(teamTable.toString());
       sections.push('');
     }
@@ -853,12 +873,14 @@ custom:
     return sections.join('\n');
   }
 
-  async searchMetrics(query: string, timeRange: string): Promise<Array<{
-    name: string;
-    id: string;
-    type: string;
-    value: number;
-  }>> {
+  async searchMetrics(query: string, timeRange: string): Promise<
+    Array<{
+      name: string;
+      id: string;
+      type: string;
+      value: number;
+    }>
+  > {
     try {
       const end = Math.floor(Date.now() / 1000);
       const start = end - this.parseTimeRange(timeRange);
@@ -875,15 +897,15 @@ custom:
         body: JSON.stringify({
           query,
           from: start,
-          to: end
-        })
+          to: end,
+        }),
       });
 
-      return response.metrics.map(metric => ({
+      return response.metrics.map((metric) => ({
         name: metric.metric,
         id: metric.id,
         type: metric.type,
-        value: metric.values[metric.values.length - 1]?.[1] || 0
+        value: metric.values[metric.values.length - 1]?.[1] || 0,
       }));
     } catch (error) {
       this.logger.error('Failed to search metrics:', error);
@@ -891,12 +913,14 @@ custom:
     }
   }
 
-  async searchLogs(query: string, timeRange: string): Promise<Array<{
-    id: string;
-    name: string;
-    type: string;
-    value: string;
-  }>> {
+  async searchLogs(query: string, timeRange: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      type: string;
+      value: string;
+    }>
+  > {
     try {
       const end = Math.floor(Date.now() / 1000);
       const start = end - this.parseTimeRange(timeRange);
@@ -912,15 +936,15 @@ custom:
         method: 'POST',
         body: JSON.stringify({
           query,
-          time: { from: start, to: end }
-        })
+          time: { from: start, to: end },
+        }),
       });
 
-      return response.logs.map(log => ({
+      return response.logs.map((log) => ({
         id: log.id,
         name: log.service,
         type: 'log',
-        value: log.content
+        value: log.content,
       }));
     } catch (error) {
       this.logger.error('Failed to search logs:', error);
@@ -932,10 +956,14 @@ custom:
     const value = parseInt(timeRange);
     const unit = timeRange.slice(-1);
     switch (unit) {
-      case 'h': return value * 3600;
-      case 'd': return value * 86400;
-      case 'w': return value * 604800;
-      default: return 3600; // Default to 1 hour
+      case 'h':
+        return value * 3600;
+      case 'd':
+        return value * 86400;
+      case 'w':
+        return value * 604800;
+      default:
+        return 3600; // Default to 1 hour
     }
   }
 
@@ -945,16 +973,16 @@ custom:
   } = {}): Promise<T> {
     const baseUrl = 'https://api.datadoghq.eu';
     const url = `${baseUrl}${endpoint}`;
-    
+
     try {
       const response = await fetch(url, {
         method: options.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
           'DD-API-KEY': this.config.datadog!.api_key,
-          'DD-APPLICATION-KEY': this.config.datadog!.app_key
+          'DD-APPLICATION-KEY': this.config.datadog!.app_key,
         },
-        body: options.body
+        body: options.body,
       });
 
       if (!response.ok) {

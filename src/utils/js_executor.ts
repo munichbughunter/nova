@@ -1,6 +1,6 @@
 /**
  * JavaScript Executor Utility
- * 
+ *
  * Provides utilities for generating and executing JavaScript code safely in a Deno environment.
  */
 
@@ -29,18 +29,18 @@ export interface SandboxOptions {
 
 /**
  * Generate JavaScript code using an LLM provider
- * 
+ *
  * @param llmProvider The LLM provider to use for code generation
  * @param description Description of what the code should do
  * @returns Generated JavaScript code
  */
 export async function generateJavaScriptCode(
   llmProvider: LLMProvider,
-  description: string
+  description: string,
 ): Promise<string> {
   try {
     const codeSchema = z.object({
-      code: z.string()
+      code: z.string(),
     });
 
     const prompt = `
@@ -56,22 +56,24 @@ export async function generateJavaScriptCode(
     const response = await llmProvider.generateObject<{ code: string }>(prompt, codeSchema);
     return response.code;
   } catch (error) {
-    throw new Error(`Failed to generate JavaScript code: ${
-      error instanceof Error ? error.message : String(error)
-    }`);
+    throw new Error(
+      `Failed to generate JavaScript code: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
 /**
  * Execute JavaScript code in a sandboxed environment using Deno's built-in sandbox
- * 
+ *
  * @param code JavaScript code to execute
  * @param options Sandbox options
  * @returns Result of the execution
  */
 export async function executeJavaScriptSandboxed(
   code: string,
-  options: SandboxOptions = {}
+  options: SandboxOptions = {},
 ): Promise<JavaScriptExecutionResult> {
   const {
     timeout = 5000,
@@ -119,11 +121,11 @@ export async function executeJavaScriptSandboxed(
 
       // Execute the code in a controlled environment
       // Request minimum required permissions
-      await Deno.permissions.request({ name: "read" });
+      await Deno.permissions.request({ name: 'read' });
       if (allowNetwork) {
-        await Deno.permissions.request({ name: "net" });
+        await Deno.permissions.request({ name: 'net' });
       }
-      
+
       // Import and execute the module with signal for timeout
       const module = await import(url + `#${Date.now()}`);
       const result = await Promise.race([
@@ -162,7 +164,7 @@ export async function executeJavaScriptSandboxed(
 
 /**
  * Generate and execute JavaScript code
- * 
+ *
  * @param llmProvider LLM provider for code generation (optional if existingCode is provided)
  * @param description Description of what the code should do
  * @param options Sandbox options
@@ -173,24 +175,24 @@ export async function generateAndExecuteJavaScript(
   llmProvider: LLMProvider | undefined | null,
   description: string,
   options: SandboxOptions = {},
-  existingCode?: string
+  existingCode?: string,
 ): Promise<JavaScriptExecutionResult> {
   try {
     // If no existing code is provided, we need an LLM provider to generate code
     if (!existingCode && !llmProvider) {
       return {
         success: false,
-        error: "No code provided and no LLM provider available for generation",
-        usedCode: "",
+        error: 'No code provided and no LLM provider available for generation',
+        usedCode: '',
       };
     }
-    
+
     // Generate or use existing code
     const code = existingCode || await generateJavaScriptCode(llmProvider!, description);
-    
+
     // Execute the code
     const result = await executeJavaScriptSandboxed(code, options);
-    
+
     return {
       ...result,
       generatedCode: existingCode ? undefined : code,
@@ -201,7 +203,7 @@ export async function generateAndExecuteJavaScript(
       error: `JavaScript generation and execution failed: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      usedCode: existingCode || "",
+      usedCode: existingCode || '',
     };
   }
-} 
+}

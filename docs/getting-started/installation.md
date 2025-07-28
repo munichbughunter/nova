@@ -1,21 +1,21 @@
 # Installation Guide
 
-!!! tip "Quick Start"
-    For a standard installation: `brew install tbh`
+!!! tip "Quick Start" For a standard installation: `brew install tbh`
 
-This guide walks you through installing and setting up nova CLI, with different options depending on your needs.
+This guide walks you through installing and setting up nova CLI, with different options depending on
+your needs.
 
 ## Prerequisites
+
 !!! Core Requirements
 
     - [Deno](https://deno.land/) 2.3.6 or higher
     - Git
     - macOS, Linux, or WSL (Windows Subsystem for Linux)
 
-!!! LLM Features
-    - [Ollama](https://ollama.ai/) (for local LLM support)
-    - Required Ollama models downloaded
-    
+!!! LLM Features - [Ollama](https://ollama.ai/) (for local LLM support) - Required Ollama models
+downloaded
+
     ```sh
     # Download recommended models
     ollama pull llama3
@@ -28,35 +28,34 @@ Choose the installation method that best fits your needs:
 
 <div class="grid cards" markdown>
 
-- :package: __Homebrew Installation__
-    tbd
-    ---
+- ## :package: **Homebrew Installation** tbd
 
-    The recommended way to install nova CLI
-    
-    [➡️ Installation steps](#homebrew-installation)
+  The recommended way to install nova CLI
 
+  [➡️ Installation steps](#homebrew-installation)
 
-- :wrench: __Local Development__
+- :wrench: **Local Development**
 
-    ---
+  ---
 
-    Clone and run from source for development
-    
-    [➡️ Development setup](#local-development)
+  Clone and run from source for development
 
-- :rocket: __CI/CD Installation__
+  [➡️ Development setup](#local-development)
 
-    ---
+- :rocket: **CI/CD Installation**
 
-    Automated installation for CI/CD pipelines
-    
-    [➡️ CI/CD setup](#cicd-installation)
+  ---
+
+  Automated installation for CI/CD pipelines
+
+  [➡️ CI/CD setup](#cicd-installation)
 
 </div>
 
 ### Homebrew Installation
+
 IN THEORY --> THAT MUST BE SET UP PLEASE DONT USE THAT AT THE MOMENT
+
 ```mermaid
 graph LR
     A[Tap Repository] --> B[Install nova]
@@ -68,7 +67,7 @@ graph LR
 
 1. Tap the repository:
    ```bash
-   brew tap nova-cli/tap 
+   brew tap nova-cli/tap
    ```
 
 2. Install nova:
@@ -141,21 +140,17 @@ After installation, run the setup assistant:
     ```
 
     This interactive wizard will guide you through:
-    
+
     - Configuring service credentials (GitLab, GitHub, Jira, Confluence, etc.)
     - Setting up LLM preferences
     - Testing connections
     - Setting default options
 
-!!! "Basic Setup"
-    ```bash
-    nova setup
-    ```
+!!! "Basic Setup" `bash
+    nova setup`
 
-!!! "Skip Tests"
-    ```bash
-    nova setup --skip-tests
-    ```
+!!! "Skip Tests" `bash
+    nova setup --skip-tests`
 
 ## Verification
 
@@ -172,7 +167,7 @@ Verify your installation with these commands:
         ```
         nova 0.1.0
         ```
-    
+
     !!! "Test Setup"
         ```bash
         nova
@@ -189,33 +184,29 @@ Verify your installation with these commands:
 
 nova CLI supports various environment configurations:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
+| Variable           | Description            | Example                                              |
+| ------------------ | ---------------------- | ---------------------------------------------------- |
 | `NOVA_CONFIG_PATH` | Custom config location | `export NOVA_CONFIG_PATH=~/.config/nova/config.json` |
-| `NOVA_DEBUG` | Enable debug logging | `export NOVA_DEBUG=true` |
+| `NOVA_DEBUG`       | Enable debug logging   | `export NOVA_DEBUG=true`                             |
 
 ## Troubleshooting
 
 If you encounter issues during installation or setup, try these solutions:
 
-!!! failure "Permission Errors"
-    ```bash
+!!! failure "Permission Errors" `bash
     # Fix Deno permissions
-    deno install -A -f main.ts
-    ```
-    
+    deno install -A -f main.ts`
+
     If using Homebrew:
     ```bash
     brew doctor
     brew reinstall nova
     ```
 
-!!! failure "Shell Integration"
-    ```bash
+!!! failure "Shell Integration" `bash
     # Reload shell
-    source ~/.zshrc  # or ~/.bashrc
-    ```
-    
+    source ~/.zshrc  # or ~/.bashrc`
+
     Check PATH setup:
     ```bash
     echo $PATH
@@ -223,24 +214,20 @@ If you encounter issues during installation or setup, try these solutions:
     ```
 
 !!! failure "Completion Issues"
-    ```bash
+`bash
     # Rebuild completions
     nova completions zsh > ~/.zsh/_nova
-    compinit
-    ```
-    
+    compinit`
+
     Or for bash:
     ```bash
     nova completions bash > ~/.bash_completion.d/nova.bash
     source ~/.bash_completion.d/nova.bash
     ```
 
-!!! failure "Dependency Problems"
-    Check Deno installation:
-    ```bash
-    deno --version
-    ```
-    
+!!! failure "Dependency Problems" Check Deno installation: `bash
+    deno --version`
+
     Ensure you have Deno 2.3.6 or higher:
     ```bash
     curl -fsSL https://deno.land/x/install/install.sh | sh
@@ -250,28 +237,28 @@ If you encounter issues during installation or setup, try these solutions:
 
 <div class="grid cards" markdown>
 
-- :book: __Basic Configuration__
+- :book: **Basic Configuration**
 
-    ---
+  ---
 
-    Learn how to configure nova for your workflow
-    
-    [➡️ Configuration Guide](configuration.md)
+  Learn how to configure nova for your workflow
 
-- :rocket: __First Commands__
+  [➡️ Configuration Guide](configuration.md)
 
-    ---
+- :rocket: **First Commands**
 
-    Start using nova with basic commands
-    
-    [➡️ Introduction](introduction.md)
+  ---
 
-- :gear: __Integration Setup__
+  Start using nova with basic commands
 
-    ---
+  [➡️ Introduction](introduction.md)
 
-    Connect nova to your services
-    
-    [➡️ Integrations](../user-guide/integrations/)
+- :gear: **Integration Setup**
+
+  ---
+
+  Connect nova to your services
+
+  [➡️ Integrations](../user-guide/integrations/)
 
 </div>

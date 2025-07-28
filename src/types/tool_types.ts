@@ -7,7 +7,11 @@ import { z } from 'zod';
 
 // Forward declarations of service classes to avoid circular imports
 declare class MCPService {
-  executeTool(toolName: string, params: Record<string, unknown>, context: MCPToolContext): Promise<MCPToolResult>;
+  executeTool(
+    toolName: string,
+    params: Record<string, unknown>,
+    context: MCPToolContext,
+  ): Promise<MCPToolResult>;
   getTools(): MCPToolFunction[];
   static getInstance(config: unknown): MCPService;
 }
@@ -148,7 +152,7 @@ export interface JiraServiceType {
  * Confluence service interface
  */
 export interface ConfluenceServiceType {
-  advancedSearch(options: { query: string; spaceKey?: string; limit?: number }): Promise<{ 
+  advancedSearch(options: { query: string; spaceKey?: string; limit?: number }): Promise<{
     results: Array<{
       title: string;
       space: { name: string };
@@ -157,11 +161,11 @@ export interface ConfluenceServiceType {
       excerpt?: string;
     }>;
   }>;
-  createPage(options: { 
-    space: string; 
-    title: string; 
-    content: string; 
-    parentId?: string 
+  createPage(options: {
+    space: string;
+    title: string;
+    content: string;
+    parentId?: string;
   }): Promise<{
     id: string;
     title: string;
@@ -184,7 +188,11 @@ export interface DatadogServiceType {
  * DORA service interface
  */
 export interface DoraServiceType {
-  getDoraMetrics(jiraProjectKey: string, gitlabProjectPath: string, timeRange: string): Promise<unknown>;
+  getDoraMetrics(
+    jiraProjectKey: string,
+    gitlabProjectPath: string,
+    timeRange: string,
+  ): Promise<unknown>;
   [key: string]: unknown;
 }
 
@@ -192,7 +200,11 @@ export interface DoraServiceType {
  * MCP service interface
  */
 export interface MCPServiceType {
-  executeTool(toolName: string, params: Record<string, unknown>, context: MCPToolContext): Promise<MCPToolResult>;
+  executeTool(
+    toolName: string,
+    params: Record<string, unknown>,
+    context: MCPToolContext,
+  ): Promise<MCPToolResult>;
   getTools(): MCPToolFunction[];
   [key: string]: unknown;
 }

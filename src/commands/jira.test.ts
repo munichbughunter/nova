@@ -2,9 +2,7 @@ import { Command } from '@cliffy/command';
 import { assert, assertEquals, assertExists } from '@std/assert';
 import { assertSpyCalls, stub } from '@std/testing/mock';
 import { Config, configManager } from '../config/mod.ts';
-import {
-    JiraService,
-} from '../services/jira_service.ts';
+import { JiraService } from '../services/jira_service.ts';
 import { jiraCommand } from './jira.ts';
 
 // Mock data
@@ -38,33 +36,33 @@ const mockProjectMetrics: JiraProjectMetrics = {
     technicalDebt: 25,
     byStatus: {},
     byType: {},
-    byMember: {}
+    byMember: {},
   },
   members: [
     {
       displayName: 'Test Lead',
       emailAddress: 'test@example.com',
       accountId: 'test-account-1',
-      active: true
+      active: true,
     },
     {
       displayName: 'Member 1',
       emailAddress: 'member1@example.com',
       accountId: 'test-account-2',
-      active: true
+      active: true,
     },
     {
       displayName: 'Member 2',
       emailAddress: 'member2@example.com',
       accountId: 'test-account-3',
-      active: true
-    }
+      active: true,
+    },
   ],
   timeline: {
     created: [{ count: 5 }, { count: 5 }],
     resolved: [{ count: 2 }, { count: 0 }],
     updated: [{ count: 150 }],
-    comments: [{ count: 20 }]
+    comments: [{ count: 20 }],
   },
   bottlenecks: [],
   healthScore: {
@@ -74,9 +72,9 @@ const mockProjectMetrics: JiraProjectMetrics = {
     trends: {
       velocity: 'stable',
       completion: 'improving',
-      scope: 'stable'
-    }
-  }
+      scope: 'stable',
+    },
+  },
 };
 
 const mockConfig: Config = {
@@ -127,8 +125,8 @@ const mockIssue = {
     },
     project: {
       key: 'TEST',
-      name: 'Test Project'
-    }
+      name: 'Test Project',
+    },
   },
 };
 
@@ -145,9 +143,9 @@ const mockMetrics: JiraProjectMetrics = {
     lead: {
       accountId: '123',
       displayName: 'Test User',
-      emailAddress: 'test@example.com'
+      emailAddress: 'test@example.com',
     },
-    description: 'Test project description'
+    description: 'Test project description',
   },
   issues: {
     total: 100,
@@ -160,33 +158,33 @@ const mockMetrics: JiraProjectMetrics = {
     technicalDebt: 25,
     byStatus: {},
     byType: {},
-    byMember: {}
+    byMember: {},
   },
   members: [
     {
       displayName: 'John Doe',
       emailAddress: 'john@example.com',
       accountId: 'user123',
-      active: true
+      active: true,
     },
     {
       displayName: 'Jane Smith',
       emailAddress: 'jane@example.com',
       accountId: 'user456',
-      active: true
+      active: true,
     },
     {
       displayName: 'Bob Wilson',
       emailAddress: 'bob@example.com',
       accountId: 'user789',
-      active: true
-    }
+      active: true,
+    },
   ],
   timeline: {
     created: [{ count: 10 }],
     resolved: [{ count: 8 }],
     updated: [{ count: 15 }],
-    comments: [{ count: 25 }]
+    comments: [{ count: 25 }],
   },
   bottlenecks: [],
   healthScore: {
@@ -196,9 +194,9 @@ const mockMetrics: JiraProjectMetrics = {
     trends: {
       velocity: 'stable',
       completion: 'improving',
-      scope: 'stable'
-    }
-  }
+      scope: 'stable',
+    },
+  },
 };
 
 Deno.test('Jira command - basic structure', () => {
@@ -463,7 +461,7 @@ Deno.test('Jira Command Tests', async (t) => {
       // Get the last console.log call which should contain the JSON
       const lastOutput = consoleLogStub.calls[consoleLogStub.calls.length - 1].args[0];
       const jsonOutput = JSON.parse(lastOutput);
-      
+
       // Handle potentially nested array structure
       const projectData = Array.isArray(jsonOutput[0]) ? jsonOutput[0][0] : jsonOutput[0];
       assertEquals(projectData.key, mockProject.key);

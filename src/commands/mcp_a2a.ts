@@ -3,7 +3,7 @@ import { Command } from '@cliffy/command';
 import { Input } from '@cliffy/prompt';
 import { agentCapabilities } from '../agent/a2a/capabilities.ts';
 import { executeShellCommand } from '../agent/a2a/executor.ts';
-import { CommandResult as A2ACommandResult, CommandExecuteParams } from '../agent/a2a/types.ts';
+import { CommandExecuteParams, CommandResult as A2ACommandResult } from '../agent/a2a/types.ts';
 import { connectAgentWebSocket } from '../agent/a2a/websocket.ts';
 import { configManager } from '../config/mod.ts';
 import type { AgentConfig } from '../config/types.ts';
@@ -47,7 +47,7 @@ async function _callMcp(method: string, params: Record<string, unknown>) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json, text/event-stream'
+      'Accept': 'application/json, text/event-stream',
     },
     body: JSON.stringify({
       jsonrpc: '2.0',
@@ -62,7 +62,11 @@ async function _callMcp(method: string, params: Record<string, unknown>) {
   return data.result;
 }
 
-async function _authenticateAgent(token: string, apiUrl: string, verbose: boolean): Promise<string> {
+async function _authenticateAgent(
+  token: string,
+  apiUrl: string,
+  verbose: boolean,
+): Promise<string> {
   log(colors.blue(`Authenticating with token: ${token}`), false, { verbose });
   const res = await fetch(`${apiUrl}/v1/agents/authenticate`, {
     method: 'POST',
@@ -111,55 +115,57 @@ function _getSystemInfo() {
     platform: Deno.build.os,
     arch: Deno.build.arch,
     nodeVersion: Deno.version.deno,
-    hostname: (typeof Deno.hostname === "function" ? Deno.hostname() : "unknown"),
-    cpus: (typeof navigator !== "undefined" && navigator.hardwareConcurrency) ? navigator.hardwareConcurrency : 1,
+    hostname: (typeof Deno.hostname === 'function' ? Deno.hostname() : 'unknown'),
+    cpus: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency)
+      ? navigator.hardwareConcurrency
+      : 1,
     memory: {
-      total: (typeof Deno.systemMemoryInfo === "function" ? Deno.systemMemoryInfo().total : 0),
-      free: (typeof Deno.systemMemoryInfo === "function" ? Deno.systemMemoryInfo().free : 0)
+      total: (typeof Deno.systemMemoryInfo === 'function' ? Deno.systemMemoryInfo().total : 0),
+      free: (typeof Deno.systemMemoryInfo === 'function' ? Deno.systemMemoryInfo().free : 0),
     },
     uptime: 0,
     network: {}, // Not available in Deno
-    success: true
+    success: true,
   };
 }
 
 function getAgentCard(agentId: string) {
   return {
-    name: "nova CLI Agent",
-    description: "A local nova agent for automation and chat.",
+    name: 'nova CLI Agent',
+    description: 'A local nova agent for automation and chat.',
     url: `http://localhost:3000/agent/${agentId}`,
     provider: {
-      organization: "nova",
-      url: "https://nova.ai"
+      organization: 'nova',
+      url: 'https://nova.ai',
     },
     version: NOVA_VERSION,
-    documentationUrl: "https://nova.ai/docs/cli",
+    documentationUrl: 'https://nova.ai/docs/cli',
     capabilities: {
       streaming: true,
       pushNotifications: false,
-      stateTransitionHistory: true
+      stateTransitionHistory: true,
     },
     authentication: {
-      schemes: ["token"],
-      credentials: null
+      schemes: ['token'],
+      credentials: null,
     },
-    defaultInputModes: ["text"],
-    defaultOutputModes: ["text"],
+    defaultInputModes: ['text'],
+    defaultOutputModes: ['text'],
     skills: [
       {
-        id: "shell",
-        name: "Shell Command Execution",
-        description: "Run shell commands on the host machine.",
-        tags: ["shell", "automation"],
-        examples: ["ls -la", "git status"]
+        id: 'shell',
+        name: 'Shell Command Execution',
+        description: 'Run shell commands on the host machine.',
+        tags: ['shell', 'automation'],
+        examples: ['ls -la', 'git status'],
       },
       {
-        id: "chat",
-        name: "Chat",
-        description: "Interact with the agent via chat.",
-        tags: ["chat", "conversation"]
-      }
-    ]
+        id: 'chat',
+        name: 'Chat',
+        description: 'Interact with the agent via chat.',
+        tags: ['chat', 'conversation'],
+      },
+    ],
   };
 }
 
@@ -195,7 +201,13 @@ async function handleCommand(cmd: CommandData, agentId: string, apiUrl: string, 
   await postCommandResult(cmd, execResult, agentId, apiUrl, !!verbose);
 }
 
-async function postCommandResult(cmd: CommandData, result: CommandResult, agentId: string, apiUrl: string, verbose: boolean) {
+async function postCommandResult(
+  cmd: CommandData,
+  result: CommandResult,
+  agentId: string,
+  apiUrl: string,
+  verbose: boolean,
+) {
   const payload = {
     commandId: cmd.id,
     agentId,
@@ -214,12 +226,18 @@ async function postCommandResult(cmd: CommandData, result: CommandResult, agentI
   } else {
     const errorText = await res.text();
     console.error('Failed to send result:', res.status, errorText);
-    log(colors.red(`Failed to send result for command ${cmd.id}: ${res.status} ${errorText}`), true, { verbose });
+    log(
+      colors.red(`Failed to send result for command ${cmd.id}: ${res.status} ${errorText}`),
+      true,
+      { verbose },
+    );
   }
 }
 
 export const mcpWebCommand = new Command()
-  .description('Connect this CLI as an A2A to the Commander API. Requires a pairing code (token) from the web UI.')
+  .description(
+    'Connect this CLI as an A2A to the Commander API. Requires a pairing code (token) from the web UI.',
+  )
   .option('--agent-id <agentId:string>', 'Agent ID from the /pair endpoint')
   .option('--token <token:string>', 'Pairing code (token) from the web UI')
   .option('--verbose', 'Enable verbose logging')
@@ -236,18 +254,22 @@ export const mcpWebCommand = new Command()
     // Prompt for agentId if missing
     if (!agentId) {
       agentId = await Input.prompt({
-        message: 'Enter your Agent ID (from the web UI):'
+        message: 'Enter your Agent ID (from the web UI):',
       });
     }
     // Prompt for token if missing
     if (!token) {
       token = await Input.prompt({
-        message: 'Enter your pairing code (token) from the web UI:'
+        message: 'Enter your pairing code (token) from the web UI:',
       });
     }
 
     if (!agentId || !token) {
-      console.error(colors.red('Both agent ID and pairing code (token) are required. Get these from the /pair endpoint in the web UI.'));
+      console.error(
+        colors.red(
+          'Both agent ID and pairing code (token) are required. Get these from the /pair endpoint in the web UI.',
+        ),
+      );
       Deno.exit(1);
     }
     // Save agent config for future runs
@@ -269,12 +291,12 @@ export const mcpWebCommand = new Command()
           // Fix options to use args properly according to CommandExecuteParams type
           const result = await executeShellCommand({
             command: cmdName,
-            args: [],  // CommandExecuteParams doesn't have args property, so default to empty array
+            args: [], // CommandExecuteParams doesn't have args property, so default to empty array
             cwd: options?.cwd,
             timeoutMs: options?.timeout,
             env: options?.env,
           });
-          
+
           // Transform to expected CommandResult format
           return {
             id: Math.random().toString(36).substring(2, 9),
@@ -282,8 +304,8 @@ export const mcpWebCommand = new Command()
             output: {
               stdout: result.stdout,
               stderr: result.stderr,
-              exitCode: result.exitCode
-            }
+              exitCode: result.exitCode,
+            },
           };
         },
         logger: (msg, ..._args) => log(msg, false, { verbose: !!verbose }),
@@ -293,4 +315,4 @@ export const mcpWebCommand = new Command()
       console.error(colors.red(`Agent error: ${err instanceof Error ? err.message : String(err)}`));
       Deno.exit(1);
     }
-  }); 
+  });

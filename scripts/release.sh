@@ -3,7 +3,7 @@
 set -e
 
 VERSION=${1:-"0.1.0"}
-REPO_URL="https://github.com/munichbughunter/nova-cli"
+REPO_URL="https://github.com/munichbughunter/nova"
 
 echo "🚀 Preparing Nova CLI release v$VERSION"
 
@@ -64,4 +64,4 @@ echo "✅ Release v$VERSION prepared successfully!"
 echo "📋 Next steps:"
 echo "   1. GitHub Actions will automatically create the release"
 echo "   2. Homebrew formula will be updated automatically"
-echo "   3. Users can install with: brew install munichbughunter/nova/nova"
+echo "   3. Users can install with: brew install munichbughunter/nova"

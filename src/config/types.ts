@@ -130,4 +130,3 @@ export interface DatadogConfig {
   app_key: string;
   site: string;
 }
-

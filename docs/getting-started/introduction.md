@@ -1,17 +1,14 @@
 # What is Nova? 🚀
 
-!!! abstract "Overview"
-    Nova is an intelligent CLI tool that enhances project management and development workflows. It provides:
-    - 🔄 Seamless integration with development platforms (Jira, GitLab, GitHub, Confluence)
-    - 🔑 Unified authentication and profile management
-    - 📊 Project analytics and insights
-    - 📝 Documentation access and search
+!!! abstract "Overview" Nova is an intelligent CLI tool that enhances project management and
+development workflows. It provides: - 🔄 Seamless integration with development platforms (Jira,
+GitLab, GitHub, Confluence) - 🔑 Unified authentication and profile management - 📊 Project
+analytics and insights - 📝 Documentation access and search
 
 ## Core Features
 
-!!! "Platform Integration
-    !!! info Unified Platform Access
-        Nova centralizes access to your development platforms:
+!!! "Platform Integration !!! info Unified Platform Access Nova centralizes access to your
+development platforms:
 
         - **Jira**: Project and issue tracking
         - **GitLab**: Repository and CI/CD management
@@ -30,9 +27,8 @@
         nova confluence search "query"
         ```
 
-!!! "+ Analytics and Insights :chart_with_upwards_trend:
-    !!! info Project Metrics
-        Get insights across your development ecosystem:
+!!! "+ Analytics and Insights :chart_with_upwards_trend: !!! info Project Metrics Get insights
+across your development ecosystem:
 
         - Project health metrics
         - Engineering analytics
@@ -50,19 +46,17 @@
 
 ## Getting Started
 
-!!! tip Quick Start
-    For a standard installation: `brew tap ... to be done`
+!!! tip Quick Start For a standard installation: `brew tap ... to be done`
 
 ## Configuration
 
-!!! note "Config Options"
-    Nova can be configured through:
-    
+!!! note "Config Options" Nova can be configured through:
+
     1. Interactive setup:
        ```bash
        nova setup
        ```
-    
+
     2. Environment variables:
        ```bash
        export ATLASSIAN_TOKEN="your-token"
@@ -71,16 +65,12 @@
 
 ## Common Workflows
 
-!!! example "Example Usage"
-    1. Project Overview:
-       ```bash
-       # Check Jira status
-       nova jira dashboard
-       
+!!! example "Example Usage" 1. Project Overview: ```bash # Check Jira status nova jira dashboard
+
        # View GitLab metrics
        nova gitlab dashboard
        ```
-    
+
     2. Documentation:
        ```bash
        # List Confluence spaces
@@ -92,8 +82,5 @@
 
 ## Support
 
-!!! question Need Help?
-    - Use `nova <command> --help` for command details
-    - Check documentation at `/docs`
-    - Enable shell completions for command hints
-    - Use `--format json` for programmatic output
+!!! question Need Help? - Use `nova <command> --help` for command details - Check documentation at
+`/docs` - Enable shell completions for command hints - Use `--format json` for programmatic output

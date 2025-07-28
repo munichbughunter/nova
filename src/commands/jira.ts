@@ -121,10 +121,10 @@ export const jiraCommand = new Command()
   })
   .option('--show-completed', 'Show completed issues', { default: false })
   .action(
-    async (options: { 
-      project?: string; 
-      query?: string; 
-      limit: number; 
+    async (options: {
+      project?: string;
+      query?: string;
+      limit: number;
       format: OutputFormat;
       showCompleted: boolean;
     }) => {
@@ -179,9 +179,12 @@ export const jiraCommand = new Command()
           });
         }
 
-        logger.passThrough('log', colors.blue(
-          `\nFetching Jira issues${projectKey ? ` for project ${projectKey}` : ''}...\n`,
-        ));
+        logger.passThrough(
+          'log',
+          colors.blue(
+            `\nFetching Jira issues${projectKey ? ` for project ${projectKey}` : ''}...\n`,
+          ),
+        );
 
         // Build JQL query if not provided
         if (!jql && projectKey) {
@@ -281,7 +284,10 @@ export const jiraCommand = new Command()
       const project = await jiraService.getProject(selectedProjectKey);
 
       // After metrics are generated and before ingest:
-      if (options.ingest && options.apiUrl && options.token && selectedProjectKey && metrics && project) {
+      if (
+        options.ingest && options.apiUrl && options.token && selectedProjectKey && metrics &&
+        project
+      ) {
         const payload = {
           eventType: 'project_metrics',
           timestamp: new Date().toISOString(),
@@ -298,8 +304,8 @@ export const jiraCommand = new Command()
               accountId: project.lead?.accountId,
               displayName: project.lead?.displayName,
               emailAddress: project.lead?.emailAddress,
-              active: true
-            }
+              active: true,
+            },
           },
           issues: {
             total: metrics.issues.total || 0,
@@ -312,7 +318,7 @@ export const jiraCommand = new Command()
             technicalDebt: metrics.issues.technicalDebt || 0,
             byStatus: metrics.issues.byStatus || {},
             byType: metrics.issues.byType || {},
-            byMember: metrics.issues.byMember || {}
+            byMember: metrics.issues.byMember || {},
           },
           metrics,
           department: 'engineering',
@@ -327,7 +333,11 @@ export const jiraCommand = new Command()
           });
           logger.passThrough('log', colors.green('✓ Metrics ingested to Commander4!'));
         } catch (err) {
-          logger.error(colors.red(`✗ Failed to ingest metrics: ${err instanceof Error ? err.message : String(err)}`));
+          logger.error(
+            colors.red(
+              `✗ Failed to ingest metrics: ${err instanceof Error ? err.message : String(err)}`,
+            ),
+          );
         }
       }
     } catch (error: unknown) {
@@ -360,7 +370,7 @@ export const jiraCommand = new Command()
       ) {
         logger.error(colors.red('\nJira is not configured. Please run:'));
         logger.passThrough('log', colors.blue('\nnova setup\n'));
-        
+
         Deno.exit(1);
       }
 
@@ -416,4 +426,4 @@ export const jiraCommand = new Command()
       );
       Deno.exit(1);
     }
-  })
+  });

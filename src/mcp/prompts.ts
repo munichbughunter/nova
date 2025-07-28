@@ -1,11 +1,11 @@
 /**
  * MCP Prompts
- * 
+ *
  * This file defines the prompts available in the MCP server based on
  * the Model Context Protocol specification.
  */
 
-import { z } from "zod";
+import { z } from 'zod';
 
 // Define types for MCP prompts
 export interface MCPStaticPrompt {
@@ -13,7 +13,7 @@ export interface MCPStaticPrompt {
   description: string;
   argsSchema: z.ZodObject<Record<string, z.ZodString>>;
   messages: Array<{
-    role: "user" | "assistant";
+    role: 'user' | 'assistant';
     content: {
       type: string;
       text: string;
@@ -26,7 +26,7 @@ export interface MCPDynamicPrompt {
   description: string;
   argsSchema: z.ZodObject<Record<string, z.ZodString | z.ZodOptional<z.ZodString>>>;
   getMessages: (args: Record<string, string>) => Array<{
-    role: "user" | "assistant";
+    role: 'user' | 'assistant';
     content: {
       type: string;
       text: string;
@@ -74,7 +74,10 @@ const promptsMap: Record<string, MCPPrompt> = {
     getMessages: (args) => [
       {
         role: 'user',
-        content: { type: 'text', text: `Generate a commit message for this diff:\n${args["diff"]}` },
+        content: {
+          type: 'text',
+          text: `Generate a commit message for this diff:\n${args['diff']}`,
+        },
       },
     ],
   },
@@ -85,7 +88,12 @@ const promptsMap: Record<string, MCPPrompt> = {
     getMessages: (args) => [
       {
         role: 'user',
-        content: { type: 'text', text: `Explain this code:\n${args["code"]}${args["language"] ? `\nLanguage: ${args["language"]}` : ''}` },
+        content: {
+          type: 'text',
+          text: `Explain this code:\n${args['code']}${
+            args['language'] ? `\nLanguage: ${args['language']}` : ''
+          }`,
+        },
       },
     ],
   },
@@ -96,7 +104,12 @@ const promptsMap: Record<string, MCPPrompt> = {
     getMessages: (args) => [
       {
         role: 'user',
-        content: { type: 'text', text: `Create a JIRA ticket:\nDescription: ${args["description"]}${args["type"] ? `\nType: ${args["type"]}` : ''}${args["project"] ? `\nProject: ${args["project"]}` : ''}` },
+        content: {
+          type: 'text',
+          text: `Create a JIRA ticket:\nDescription: ${args['description']}${
+            args['type'] ? `\nType: ${args['type']}` : ''
+          }${args['project'] ? `\nProject: ${args['project']}` : ''}`,
+        },
       },
     ],
   },
@@ -107,11 +120,16 @@ const promptsMap: Record<string, MCPPrompt> = {
     getMessages: (args) => [
       {
         role: 'user',
-        content: { type: 'text', text: `Review this code diff:\n${args["diff"]}${args["context"] ? `\nContext: ${args["context"]}` : ''}` },
+        content: {
+          type: 'text',
+          text: `Review this code diff:\n${args['diff']}${
+            args['context'] ? `\nContext: ${args['context']}` : ''
+          }`,
+        },
       },
     ],
-  }
+  },
 };
 
 export const prompts = promptsMap;
-export default prompts; 
+export default prompts;

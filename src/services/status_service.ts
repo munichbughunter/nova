@@ -1,6 +1,6 @@
 import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
-import process from "node:process";
+import process from 'node:process';
 import { Config } from '../config/mod.ts';
 import { formatServiceStatus, formatTimestamp, ProgressIndicator, theme } from '../utils.ts';
 import { Logger } from '../utils/logger.ts';
@@ -65,7 +65,9 @@ export class StatusService {
         return false;
       }
     } catch (error) {
-      this.logger.error(`Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return false;
     }
   }
@@ -118,8 +120,10 @@ export class StatusService {
     if (results.gitlab !== undefined) {
       statuses.push({
         name: 'GitLab',
-        status: results.gitlab 
-          ? `Connected${results.gitlab_username ? ` as ${results.gitlab_username}` : ''} ${theme.symbols.success}` 
+        status: results.gitlab
+          ? `Connected${
+            results.gitlab_username ? ` as ${results.gitlab_username}` : ''
+          } ${theme.symbols.success}`
           : `Not Connected ${theme.symbols.error}`,
         source: process.env.GITLAB_TOKEN ? 'env' : 'config',
       });
@@ -166,8 +170,10 @@ export class StatusService {
     const ollamaStatus = await this.checkOllama();
     statuses.push({
       name: 'Ollama',
-      status: ollamaStatus 
-        ? `Connected${config.ai?.ollama?.model ? ` (${config.ai.ollama.model})` : ''} ${theme.symbols.success}`
+      status: ollamaStatus
+        ? `Connected${
+          config.ai?.ollama?.model ? ` (${config.ai.ollama.model})` : ''
+        } ${theme.symbols.success}`
         : `Not Connected ${theme.symbols.error}`,
       source: 'config',
     });
@@ -175,7 +181,9 @@ export class StatusService {
     const copilotStatus = await this.checkGitHubCopilot();
     statuses.push({
       name: 'GitHub Copilot',
-      status: copilotStatus ? `Connected ${theme.symbols.success}` : `Not Connected ${theme.symbols.error}`,
+      status: copilotStatus
+        ? `Connected ${theme.symbols.success}`
+        : `Not Connected ${theme.symbols.error}`,
       source: 'gh cli',
     });
 
@@ -222,19 +230,17 @@ export class StatusService {
       .padding(1);
 
     // First add non-AI services
-    const regularServices = statuses.filter(s => 
+    const regularServices = statuses.filter((s) =>
       !['OpenAI', 'Azure OpenAI', 'Ollama', 'GitHub Copilot'].includes(s.name)
     );
 
     // Get AI services
-    const aiServices = statuses.filter(s => 
+    const aiServices = statuses.filter((s) =>
       ['OpenAI', 'Azure OpenAI', 'Ollama', 'GitHub Copilot'].includes(s.name)
     );
 
     for (const status of regularServices) {
-      const statusText = status.details 
-        ? `${status.status} ${status.details}`
-        : status.status;
+      const statusText = status.details ? `${status.status} ${status.details}` : status.status;
 
       let coloredStatus = statusText;
       if (statusText.includes('Configured')) {
@@ -261,9 +267,7 @@ export class StatusService {
 
     // Then add AI services
     for (const status of aiServices) {
-      const statusText = status.details 
-        ? `${status.status} ${status.details}`
-        : status.status;
+      const statusText = status.details ? `${status.status} ${status.details}` : status.status;
 
       let coloredStatus = statusText;
       if (statusText.includes('Configured')) {
@@ -314,7 +318,7 @@ export class StatusService {
     progress.stop();
 
     // Clear previous table (move cursor up)
-    this.logger.passThrough('log', '\x1b[2A\x1b[J');  // Move up 2 lines and clear to end
+    this.logger.passThrough('log', '\x1b[2A\x1b[J'); // Move up 2 lines and clear to end
 
     // Display final table with results
     this.displayStatusTable(statuses);
@@ -326,32 +330,38 @@ export class StatusService {
     }
 
     const sections: string[] = [];
-    
+
     for (const service of services) {
       sections.push(theme.emphasis(`${formatServiceStatus(service.status)} ${service.name}`));
-      
+
       const serviceTable = new Table()
         .border(true)
         .padding(1);
-      
+
       serviceTable.push([`${theme.symbols.metrics} Status`, formatServiceStatus(service.status)]);
-      
+
       if (service.description) {
         serviceTable.push([`${theme.symbols.documentation} Description`, service.description]);
       }
-      
+
       if (service.message) {
         serviceTable.push([`${theme.symbols.documentation} Message`, service.message]);
       }
-      
+
       if (service.lastChecked) {
-        serviceTable.push([`${theme.symbols.time} Last Checked`, formatTimestamp(service.lastChecked)]);
+        serviceTable.push([
+          `${theme.symbols.time} Last Checked`,
+          formatTimestamp(service.lastChecked),
+        ]);
       }
-      
+
       if (service.lastIncident) {
-        serviceTable.push([`${theme.symbols.time} Last Incident`, formatTimestamp(service.lastIncident)]);
+        serviceTable.push([
+          `${theme.symbols.time} Last Incident`,
+          formatTimestamp(service.lastIncident),
+        ]);
       }
-      
+
       sections.push(serviceTable.toString());
       sections.push('');
     }
@@ -369,24 +379,30 @@ export class StatusService {
     meanTimeToRecover: number;
   }): string {
     const sections: string[] = [];
-    
+
     sections.push(theme.emphasis(`${theme.symbols.metrics} Health Metrics`));
-    
+
     const healthTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     healthTable.push(['Total Services', metrics.total.toString()]);
     healthTable.push(['Healthy', metrics.healthy.toString()]);
     healthTable.push(['Degraded', metrics.degraded.toString()]);
     healthTable.push(['Unhealthy', metrics.unhealthy.toString()]);
     healthTable.push(['Uptime', `${(metrics.uptime * 100).toFixed(2)}%`]);
-    healthTable.push(['Mean Time Between Failures', `${(metrics.meanTimeBetweenFailures / 60).toFixed(2)} hours`]);
-    healthTable.push(['Mean Time To Recover', `${(metrics.meanTimeToRecover / 60).toFixed(2)} hours`]);
-    
+    healthTable.push([
+      'Mean Time Between Failures',
+      `${(metrics.meanTimeBetweenFailures / 60).toFixed(2)} hours`,
+    ]);
+    healthTable.push([
+      'Mean Time To Recover',
+      `${(metrics.meanTimeToRecover / 60).toFixed(2)} hours`,
+    ]);
+
     sections.push(healthTable.toString());
-    
+
     return sections.join('\n');
   }
 }

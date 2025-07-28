@@ -1,6 +1,6 @@
-import { GitLabService } from "../../../services/gitlab_service.ts";
-import { AgentContext } from "../../base_agent.ts";
-import { TestStep } from "../types.ts";
+import { GitLabService } from '../../../services/gitlab_service.ts';
+import { AgentContext } from '../../base_agent.ts';
+import { TestStep } from '../types.ts';
 
 export interface QAAgentContext extends AgentContext {
   gitlab: GitLabService;
@@ -44,4 +44,4 @@ export interface StagehandOptions {
   slowMo?: number;
   modelId?: string;
   debug?: boolean;
-} 
+}

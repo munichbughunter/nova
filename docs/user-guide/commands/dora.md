@@ -1,13 +1,18 @@
 # DORA Metrics Command
 
-The `nova dora` command provides analysis of DORA (DevOps Research and Assessment) metrics for your software delivery performance, helping you measure and improve your development and deployment processes.
+The `nova dora` command provides analysis of DORA (DevOps Research and Assessment) metrics for your
+software delivery performance, helping you measure and improve your development and deployment
+processes.
 
-!!! info Performance Metrics
-    DORA metrics are recognized industry standards for measuring software delivery performance, including deployment frequency, lead time, change failure rate, and time to restore service.
+!!! info Performance Metrics DORA metrics are recognized industry standards for measuring software
+delivery performance, including deployment frequency, lead time, change failure rate, and time to
+restore service.
 
 ## Overview
 
-Nova's DORA metrics integration helps you track the four key metrics that indicate high-performing software teams, providing insights into your delivery pipelines and identifying areas for improvement.
+Nova's DORA metrics integration helps you track the four key metrics that indicate high-performing
+software teams, providing insights into your delivery pipelines and identifying areas for
+improvement.
 
 ```mermaid
 graph TD
@@ -27,7 +32,7 @@ graph TD
 Before using DORA commands, ensure:
 
 - You have appropriate access to your GitLab instance
-- You have appropriate access to your Jira instance 
+- You have appropriate access to your Jira instance
 - Both GitLab and Jira are configured in your nova setup
 
 ## Current Commands
@@ -72,14 +77,14 @@ Analyzes DORA metrics for your linked Jira and GitLab projects.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-j, --jira <string>` | Jira project key |
-| `-g, --gitlab <string>` | GitLab project path |
-| `-t, --time-range <timeRange>` | Time range (7d, 30d, 90d) [default: 30d] |
-| `-f, --format <format>` | Output format (text/json) [default: text] |
-| `--refresh` | Force refresh cached data |
-| `--clear-cache` | Clear all cached data before running |
+| Option                         | Description                               |
+| ------------------------------ | ----------------------------------------- |
+| `-j, --jira <string>`          | Jira project key                          |
+| `-g, --gitlab <string>`        | GitLab project path                       |
+| `-t, --time-range <timeRange>` | Time range (7d, 30d, 90d) [default: 30d]  |
+| `-f, --format <format>`        | Output format (text/json) [default: text] |
+| `--refresh`                    | Force refresh cached data                 |
+| `--clear-cache`                | Clear all cached data before running      |
 
 #### Example Output
 
@@ -103,8 +108,8 @@ Analyzing DORA metrics for:
 
 ## Planned Future Features
 
-!!! note Coming Soon
-    The following features are planned for future releases and are not currently available.
+!!! note Coming Soon The following features are planned for future releases and are not currently
+available.
 
 ### Analyze (Planned)
 
@@ -116,14 +121,14 @@ Will provide more granular analysis of specific DORA metrics.
 
 #### Planned Options
 
-| Option | Description |
-|--------|-------------|
-| `--metric <metric>` | Specific metric to analyze (deployment-frequency, lead-time, change-failure-rate, time-to-restore) |
-| `--from <date>` | Start date for analysis |
-| `--to <date>` | End date for analysis |
-| `--repository <path>` | Specific repository to analyze |
-| `--branch <branch>` | Specific branch to analyze |
-| `--benchmark` | Compare against industry benchmarks |
+| Option                | Description                                                                                        |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| `--metric <metric>`   | Specific metric to analyze (deployment-frequency, lead-time, change-failure-rate, time-to-restore) |
+| `--from <date>`       | Start date for analysis                                                                            |
+| `--to <date>`         | End date for analysis                                                                              |
+| `--repository <path>` | Specific repository to analyze                                                                     |
+| `--branch <branch>`   | Specific branch to analyze                                                                         |
+| `--benchmark`         | Compare against industry benchmarks                                                                |
 
 ### Report (Planned)
 
@@ -135,12 +140,12 @@ Will generate detailed reports on DORA metrics.
 
 #### Planned Options
 
-| Option | Description |
-|--------|-------------|
+| Option              | Description                                        |
+| ------------------- | -------------------------------------------------- |
 | `--period <period>` | Reporting period (weekly/monthly/quarterly/yearly) |
-| `--format <format>` | Output format (text/json/csv/pdf) |
-| `--output <file>` | Save report to file |
-| `--detailed` | Include detailed breakdown |
+| `--format <format>` | Output format (text/json/csv/pdf)                  |
+| `--output <file>`   | Save report to file                                |
+| `--detailed`        | Include detailed breakdown                         |
 
 ### Trends (Planned)
 
@@ -152,11 +157,11 @@ Will visualize trends in your DORA metrics over time.
 
 #### Planned Options
 
-| Option | Description |
-|--------|-------------|
-| `--metric <metric>` | Specific metric to trend |
+| Option              | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `--metric <metric>` | Specific metric to trend                    |
 | `--period <period>` | Trend period (3months/6months/12months/all) |
-| `--output <file>` | Save trend chart to file |
+| `--output <file>`   | Save trend chart to file                    |
 
 ### Compare (Planned)
 
@@ -168,13 +173,13 @@ Will compare DORA metrics across teams, projects, or time periods.
 
 #### Planned Options
 
-| Option | Description |
-|--------|-------------|
-| `--type <type>` | Comparison type (teams/periods/repositories) |
-| `--teams <teams>` | Teams to compare (comma-separated) |
-| `--repositories <repos>` | Repositories to compare (comma-separated) |
-| `--current <period>` | Current period for comparison |
-| `--previous <period>` | Previous period for comparison |
+| Option                   | Description                                  |
+| ------------------------ | -------------------------------------------- |
+| `--type <type>`          | Comparison type (teams/periods/repositories) |
+| `--teams <teams>`        | Teams to compare (comma-separated)           |
+| `--repositories <repos>` | Repositories to compare (comma-separated)    |
+| `--current <period>`     | Current period for comparison                |
+| `--previous <period>`    | Previous period for comparison               |
 
 ## Configuration
 
@@ -208,12 +213,12 @@ nova dora analyze --benchmark --format json | jq '.recommendations' | xargs -I{}
 
 ## DORA Metric Definitions
 
-| Metric | Definition | Elite Performance |
-|--------|------------|-------------------|
-| Deployment Frequency | How often code is deployed to production | Multiple times per day |
-| Lead Time for Changes | Time from commit to running in production | Less than one hour |
-| Change Failure Rate | Percentage of deployments causing failures | 0-15% |
-| Time to Restore Service | Time to restore service after an incident | Less than one hour |
+| Metric                  | Definition                                 | Elite Performance      |
+| ----------------------- | ------------------------------------------ | ---------------------- |
+| Deployment Frequency    | How often code is deployed to production   | Multiple times per day |
+| Lead Time for Changes   | Time from commit to running in production  | Less than one hour     |
+| Change Failure Rate     | Percentage of deployments causing failures | 0-15%                  |
+| Time to Restore Service | Time to restore service after an incident  | Less than one hour     |
 
 ## Troubleshooting
 
@@ -221,7 +226,8 @@ nova dora analyze --benchmark --format json | jq '.recommendations' | xargs -I{}
 
 If you encounter issues with data sources:
 
-1. Verify your GitLab and Jira configurations: `nova config get gitlab` and `nova config get atlassian`
+1. Verify your GitLab and Jira configurations: `nova config get gitlab` and
+   `nova config get atlassian`
 2. Ensure API tokens have appropriate permissions
 3. Check connectivity to the GitLab and Jira services
 4. Validate repository paths and project configurations

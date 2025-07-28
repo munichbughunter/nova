@@ -1,5 +1,5 @@
 import { Table } from '@cliffy/table';
-import { DOMParser, Element } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
+import { DOMParser, Element } from 'https://deno.land/x/deno_dom/deno-dom-wasm.ts';
 import { Config } from '../config/mod.ts';
 import { formatTimestamp, theme } from '../utils.ts';
 import { Logger } from '../utils/logger.ts';
@@ -34,30 +34,36 @@ export class ConfluenceService {
 
     try {
       this.logger.debug('Initializing Confluence service...');
-      
+
       // Verify connection and credentials
       await this.request<{ type: string }>('/space?limit=1');
-      
+
       // Initialize database for caching if needed
       const db = await DatabaseService.getInstance();
       await db.initializeConfluenceTables();
-      
+
       this.initialized = true;
       this.logger.debug('Confluence service initialized successfully');
     } catch (error) {
       this.logger.error('Failed to initialize Confluence service:', error);
-      throw new Error(`Failed to initialize Confluence service: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to initialize Confluence service: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 
   private async rateLimit(): Promise<void> {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
-    
+
     if (timeSinceLastRequest < this.rateLimitDelay) {
-      await new Promise(resolve => setTimeout(resolve, this.rateLimitDelay - timeSinceLastRequest));
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.rateLimitDelay - timeSinceLastRequest)
+      );
     }
-    
+
     this.lastRequestTime = Date.now();
   }
 
@@ -67,7 +73,7 @@ export class ConfluenceService {
     body?: string;
   } = {}): Promise<T> {
     await this.rateLimit();
-    
+
     const credentials = btoa(
       `${this.config.atlassian!.username}:${this.config.atlassian!.confluence_token}`,
     );
@@ -87,7 +93,7 @@ export class ConfluenceService {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         this.logger.debug(`Making request to ${url} (attempt ${attempt}/${this.maxRetries})`);
-        
+
         const response = await fetch(url.toString(), {
           method: options.method || 'GET',
           headers: {
@@ -95,7 +101,7 @@ export class ConfluenceService {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
           },
-          ...(options.body && { body: options.body })
+          ...(options.body && { body: options.body }),
         });
 
         if (!response.ok) {
@@ -103,7 +109,7 @@ export class ConfluenceService {
           if (response.status === 429) {
             const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
             this.logger.warn(`Rate limited. Waiting ${retryAfter} seconds before retry...`);
-            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            await new Promise((resolve) => setTimeout(resolve, retryAfter * 1000));
             continue;
           }
 
@@ -119,11 +125,11 @@ export class ConfluenceService {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         this.logger.error(`Request attempt ${attempt} failed:`, lastError);
-        
+
         if (attempt < this.maxRetries) {
           const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
           this.logger.debug(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
@@ -199,14 +205,16 @@ export class ConfluenceService {
    */
   async getPagesInSpace(spaceKey: string): Promise<ConfluencePage[]> {
     await this.initialize();
-    
+
     try {
       // First verify if the space exists
       try {
         await this.getSpace(spaceKey);
       } catch (error) {
         if (error instanceof Error && error.message.includes('404')) {
-          throw new Error(`Space "${spaceKey}" not found. Please check the space key and try again.`);
+          throw new Error(
+            `Space "${spaceKey}" not found. Please check the space key and try again.`,
+          );
         }
         throw error;
       }
@@ -214,7 +222,7 @@ export class ConfluenceService {
       // Try to get from cache first
       const db = await DatabaseService.getInstance();
       const cached = await db.getCachedConfluencePages(spaceKey);
-      
+
       if (cached) {
         this.logger.info(`Using cached pages (${cached.length} pages found)`);
         return cached;
@@ -237,7 +245,9 @@ export class ConfluenceService {
           `/content?spaceKey=${spaceKey}&type=page&limit=${limit}&start=${start}&expand=version,body.storage,history,_links,children.page`,
         );
 
-        this.logger.debug(`Response from API: ${response.results?.length || 0} pages in this batch`);
+        this.logger.debug(
+          `Response from API: ${response.results?.length || 0} pages in this batch`,
+        );
 
         if (response.results) {
           allPages.push(...response.results);
@@ -256,7 +266,7 @@ export class ConfluenceService {
       for (const page of allPages) {
         if (page.children?.page?.results) {
           for (const childPage of page.children.page.results) {
-            if (!allPages.some(p => p.id === childPage.id)) {
+            if (!allPages.some((p) => p.id === childPage.id)) {
               allPages.push(childPage);
             }
           }
@@ -281,14 +291,14 @@ export class ConfluenceService {
    */
   async getPage(pageId: string, forceRefresh = false): Promise<ConfluencePage> {
     await this.initialize();
-    
+
     try {
       this.logger.debug(`Fetching page ${pageId}`);
-      
+
       // Try to get from cache first if not forcing refresh
       const db = await DatabaseService.getInstance();
       const cached = !forceRefresh ? await db.getCachedConfluencePage(pageId) : null;
-      
+
       if (cached) {
         this.logger.info('Using cached page');
         return cached;
@@ -321,16 +331,18 @@ export class ConfluenceService {
   /**
    * Search for content in Confluence
    */
-  public async search(query: string, space?: string): Promise<Array<{
-    id: string;
-    title: string;
-    space: { key: string; name: string };
-    lastModified: string;
-    url: string;
-  }>> {
+  public async search(query: string, space?: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      space: { key: string; name: string };
+      lastModified: string;
+      url: string;
+    }>
+  > {
     const params = new URLSearchParams({
       cql: `text ~ "${query}"${space ? ` AND space = "${space}"` : ''}`,
-      expand: 'space,version'
+      expand: 'space,version',
     });
 
     const response = await this.request<{
@@ -343,12 +355,12 @@ export class ConfluenceService {
       }>;
     }>(`/content/search?${params}`);
 
-    return response.results.map(result => ({
+    return response.results.map((result) => ({
       id: result.id,
       title: result.title,
       space: result.space,
       lastModified: result.version.when,
-      url: result._links.webui
+      url: result._links.webui,
     }));
   }
 
@@ -495,79 +507,92 @@ export class ConfluenceService {
     const { space, pageCount, blogCount, commentCount, contributorCount, lastUpdated } = stats;
 
     const sections: string[] = [];
-    
-    sections.push(theme.emphasis(`${theme.symbols.documentation} Confluence Space Dashboard: ${space.name} (${space.key})`));
-    
+
+    sections.push(
+      theme.emphasis(
+        `${theme.symbols.documentation} Confluence Space Dashboard: ${space.name} (${space.key})`,
+      ),
+    );
+
     // Main space info table
     const spaceTable = new Table()
       .border(true)
       .padding(1);
-    
-    spaceTable.push([`${theme.symbols.documentation} URL`, `${this.baseUrl}/wiki/spaces/${space.key}`]);
+
+    spaceTable.push([
+      `${theme.symbols.documentation} URL`,
+      `${this.baseUrl}/wiki/spaces/${space.key}`,
+    ]);
     spaceTable.push([`${theme.symbols.documentation} Type`, space.type || 'Unknown']);
-    
+
     sections.push(spaceTable.toString());
-    
+
     // Content statistics table
     sections.push(theme.emphasis('\n📊 Content Statistics'));
-    
+
     const statsTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     statsTable.push(['Pages', pageCount.toString()]);
     statsTable.push(['Blog Posts', blogCount.toString()]);
     statsTable.push(['Comments', commentCount.toString()]);
     statsTable.push(['Contributors', contributorCount.toString()]);
     statsTable.push(['Last Updated', formatTimestamp(lastUpdated)]);
-    
+
     sections.push(statsTable.toString());
-    
+
     // Top contributors table
     if (stats.topContributors && stats.topContributors.length > 0) {
       sections.push(theme.emphasis('\n👥 Top Contributors'));
-      
+
       const contributorsTable = new Table()
         .border(true)
         .padding(1)
         .header(['Name', 'Contributions']);
-      
-      stats.topContributors.forEach(contributor => {
-        contributorsTable.push([contributor.displayName, `${contributor.contributionCount} contributions`]);
+
+      stats.topContributors.forEach((contributor) => {
+        contributorsTable.push([
+          contributor.displayName,
+          `${contributor.contributionCount} contributions`,
+        ]);
       });
-      
+
       sections.push(contributorsTable.toString());
     }
-    
+
     // Recent activity table
     if (stats.recentActivity && stats.recentActivity.length > 0) {
       sections.push(theme.emphasis('\n🕒 Recent Activity'));
-      
+
       const activityTable = new Table()
         .border(true)
         .padding(1)
         .header(['Date', 'Activity']);
-      
-      stats.recentActivity.slice(0, 5).forEach(activity => {
+
+      stats.recentActivity.slice(0, 5).forEach((activity) => {
         const date = formatTimestamp(activity.date);
         const action = activity.type === 'create' ? 'Created' : 'Updated';
-        activityTable.push([date, `${action}: ${activity.content.title} (by ${activity.user.displayName})`]);
+        activityTable.push([
+          date,
+          `${action}: ${activity.content.title} (by ${activity.user.displayName})`,
+        ]);
       });
-      
+
       sections.push(activityTable.toString());
     }
-    
+
     // Tags section
     if (stats.tags && stats.tags.length > 0) {
       sections.push(theme.emphasis('\n🏷️ Top Tags'));
-      sections.push(stats.tags.map(tag => tag.name).slice(0, 5).join(', '));
+      sections.push(stats.tags.map((tag) => tag.name).slice(0, 5).join(', '));
     }
-    
+
     // Description section
     sections.push(theme.emphasis('\n📝 Space Description'));
     sections.push(space.description?.plain?.value || 'No description provided');
-    
+
     return sections.join('\n');
   }
 
@@ -577,91 +602,108 @@ export class ConfluenceService {
   formatPageInfo(page: ConfluencePage): string {
     // Get full content and parse HTML
     const content = page.body?.storage?.value || 'No content available';
-    
+
     // Create a temporary div to parse HTML
     const parser = new DOMParser();
     const doc = parser.parseFromString(content, 'text/html');
-    
+
     // Function to format table
     const formatTable = (table: Element): string => {
       const rows: string[][] = [];
-      
+
       // Get headers
-      const headers = Array.from(table.querySelectorAll('th')).map((th: Element) => th.textContent?.trim() || '');
+      const headers = Array.from(table.querySelectorAll('th')).map((th: Element) =>
+        th.textContent?.trim() || ''
+      );
       if (headers.length > 0) {
         rows.push(headers);
       }
-      
+
       // Get data rows
       table.querySelectorAll('tr').forEach((tr: Element) => {
-        const cells = Array.from(tr.querySelectorAll('td')).map((td: Element) => td.textContent?.trim() || '');
+        const cells = Array.from(tr.querySelectorAll('td')).map((td: Element) =>
+          td.textContent?.trim() || ''
+        );
         if (cells.length > 0) {
           rows.push(cells);
         }
       });
-      
+
       // Create table string
       if (rows.length === 0) return '';
-      
+
       const tableStr = new Table()
         .border(true)
         .padding(1);
-      
-      rows.forEach(row => tableStr.push(row));
-      
+
+      rows.forEach((row) => tableStr.push(row));
+
       return tableStr.toString();
     };
-    
+
     // Format ancestry path
     const ancestryPath = page.ancestors && page.ancestors.length > 0
       ? page.ancestors.map((a) => a.title).join(' > ') + ' > ' + page.title
       : page.title;
 
     const sections: string[] = [];
-    
+
     // Title section
     sections.push(theme.emphasis(`${theme.symbols.documentation} ${page.title}`));
-    
+
     // Basic info table
     const pageTable = new Table()
       .border(true)
       .padding(1);
-    
+
     if (ancestryPath) {
       pageTable.push([`${theme.symbols.documentation} Path`, ancestryPath]);
     }
-    
+
     // URL - handle missing links property
-    const pageUrl = page.links?.webui 
+    const pageUrl = page.links?.webui
       ? `${this.baseUrl}/wiki${page.links.webui}`
       : `${this.baseUrl}/wiki/spaces/${page.space?.key || 'unknown'}/pages/${page.id}`;
     pageTable.push([`${theme.symbols.documentation} URL`, pageUrl]);
-    
+
     // Add command to view this page
     pageTable.push([`${theme.symbols.documentation} Command`, `nova confluence page ${page.id}`]);
-    
+
     sections.push(pageTable.toString());
-    
+
     // Page details table
     sections.push(theme.emphasis('\n📊 Page Details'));
-    
+
     const detailsTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
-    detailsTable.push(['Space', `${page.space?.name || 'Unknown'} (${page.space?.key || 'Unknown'})`]);
+
+    detailsTable.push([
+      'Space',
+      `${page.space?.name || 'Unknown'} (${page.space?.key || 'Unknown'})`,
+    ]);
     detailsTable.push(['Version', `v${page.version?.number || 'Unknown'}`]);
-    
+
     // Format dates with proper error handling
-    const createdDate = page.history?.createdDate ? formatTimestamp(page.history.createdDate) : 'Unknown';
-    const updatedDate = page.version?.createdAt ? formatTimestamp(page.version.createdAt) : 'Unknown';
-    
-    detailsTable.push(['Created', `${createdDate} by ${page.history?.createdBy?.displayName || 'Unknown'}`]);
-    detailsTable.push(['Updated', `${updatedDate} by ${page.version?.by?.displayName || 'Unknown'}`]);
-    
+    const createdDate = page.history?.createdDate
+      ? formatTimestamp(page.history.createdDate)
+      : 'Unknown';
+    const updatedDate = page.version?.createdAt
+      ? formatTimestamp(page.version.createdAt)
+      : 'Unknown';
+
+    detailsTable.push([
+      'Created',
+      `${createdDate} by ${page.history?.createdBy?.displayName || 'Unknown'}`,
+    ]);
+    detailsTable.push([
+      'Updated',
+      `${updatedDate} by ${page.version?.by?.displayName || 'Unknown'}`,
+    ]);
+
     sections.push(detailsTable.toString());
-    
+
     // Child pages section
     if (page.children?.page?.results && page.children.page.results.length > 0) {
       sections.push(theme.emphasis('\n📑 Child Pages'));
@@ -669,40 +711,40 @@ export class ConfluenceService {
         .border(true)
         .padding(1)
         .header(['Title', 'Version']);
-      
-      page.children.page.results.forEach(child => {
+
+      page.children.page.results.forEach((child) => {
         childPagesTable.push([
           child.title,
-          `v${child.version?.number || 'Unknown'}`
+          `v${child.version?.number || 'Unknown'}`,
         ]);
       });
-      
+
       sections.push(childPagesTable.toString());
       sections.push(theme.dim(`\nTotal child pages: ${page.children.page.results.length}`));
     }
-    
+
     // Content section
     sections.push(theme.emphasis('\n📝 Content'));
-    
+
     // Process tables first
-    doc.querySelectorAll('table').forEach(table => {
+    doc.querySelectorAll('table').forEach((table) => {
       const tableStr = formatTable(table as Element);
       if (tableStr) {
         sections.push(tableStr);
       }
     });
-    
+
     // Process other content (excluding tables)
     const otherContent = Array.from(doc.body.children)
-      .filter(el => el.tagName !== 'TABLE')
-      .map(el => el.textContent?.trim())
-      .filter(text => text && text.length > 0)
+      .filter((el) => el.tagName !== 'TABLE')
+      .map((el) => el.textContent?.trim())
+      .filter((text) => text && text.length > 0)
       .join('\n');
-    
+
     if (otherContent) {
       sections.push(otherContent);
     }
-    
+
     return sections.join('\n');
   }
 
@@ -715,37 +757,45 @@ export class ConfluenceService {
     }
 
     const sections: string[] = [];
-    
+
     for (const result of results.results) {
-      sections.push(theme.emphasis(`${theme.symbols.documentation} ${result.type.charAt(0).toUpperCase() + result.type.slice(1)}: ${result.title}`));
-      
+      sections.push(
+        theme.emphasis(
+          `${theme.symbols.documentation} ${
+            result.type.charAt(0).toUpperCase() + result.type.slice(1)
+          }: ${result.title}`,
+        ),
+      );
+
       const resultTable = new Table()
         .border(true)
         .padding(1);
-      
+
       resultTable.push(['Space', `${result.space.name} (${result.space.key})`]);
-      
+
       if (result.lastModified) {
         resultTable.push([
-          'Last Modified', 
-          `${formatTimestamp(result.lastModified.when)}${result.lastModified.by?.displayName ? ` by ${result.lastModified.by.displayName}` : ''}`
+          'Last Modified',
+          `${formatTimestamp(result.lastModified.when)}${
+            result.lastModified.by?.displayName ? ` by ${result.lastModified.by.displayName}` : ''
+          }`,
         ]);
       }
-      
+
       resultTable.push(['URL', `${this.baseUrl}/wiki${result._links.webui}`]);
-      
+
       sections.push(resultTable.toString());
-      
+
       if (result.excerpt) {
         sections.push(theme.emphasis('\n📝 Excerpt'));
         sections.push(result.excerpt);
       }
-      
+
       sections.push(''); // Add a blank line between results
     }
-    
+
     sections.push(`\nTotal Results: ${results.size}`);
-    
+
     return sections.join('\n');
   }
 
@@ -781,8 +831,8 @@ export class ConfluenceService {
         params: {
           expand: 'description.plain,metadata.labels',
           limit: 10,
-          orderBy: 'lastModified'
-        }
+          orderBy: 'lastModified',
+        },
       });
 
       // @ts-ignore: lastModified is not a property of ConfluenceSpace
@@ -829,7 +879,9 @@ export class ConfluenceService {
       this.logger.debug('Executing CQL search:', cql);
 
       const response = await this.request<ConfluenceSearchResult>(
-        `/content/search?cql=${encodeURIComponent(cql)}&limit=${limit}&expand=space,_links,lastModified`,
+        `/content/search?cql=${
+          encodeURIComponent(cql)
+        }&limit=${limit}&expand=space,_links,lastModified`,
       );
 
       this.logger.info(`Found ${response.results?.length || 0} results`);
@@ -843,7 +895,10 @@ export class ConfluenceService {
   /**
    * Get page content in a specific format
    */
-  async getPageContent(pageId: string, format: 'storage' | 'view' | 'export_view' = 'storage'): Promise<string> {
+  async getPageContent(
+    pageId: string,
+    format: 'storage' | 'view' | 'export_view' = 'storage',
+  ): Promise<string> {
     await this.initialize();
 
     try {
@@ -862,19 +917,21 @@ export class ConfluenceService {
   /**
    * Get page history with detailed version information
    */
-  async getPageHistory(pageId: string): Promise<Array<{
-    version: number;
-    by: {
-      displayName: string;
-      email?: string;
-    };
-    createdAt: string;
-    changes?: Array<{
-      field: string;
-      oldValue: string;
-      newValue: string;
-    }>;
-  }>> {
+  async getPageHistory(pageId: string): Promise<
+    Array<{
+      version: number;
+      by: {
+        displayName: string;
+        email?: string;
+      };
+      createdAt: string;
+      changes?: Array<{
+        field: string;
+        oldValue: string;
+        newValue: string;
+      }>;
+    }>
+  > {
     await this.initialize();
 
     try {
@@ -894,11 +951,11 @@ export class ConfluenceService {
         }>;
       }>(`/content/${pageId}/history?expand=version`);
 
-      return (response.results || []).map(item => ({
+      return (response.results || []).map((item) => ({
         version: item.number,
         by: item.by,
         createdAt: item.createdAt,
-        changes: item.changes
+        changes: item.changes,
       }));
     } catch (error) {
       this.logger.error('Error getting page history:', error);
@@ -909,11 +966,13 @@ export class ConfluenceService {
   /**
    * Get page labels
    */
-  async getPageLabels(pageId: string): Promise<Array<{
-    prefix: string;
-    name: string;
-    id: string;
-  }>> {
+  async getPageLabels(pageId: string): Promise<
+    Array<{
+      prefix: string;
+      name: string;
+      id: string;
+    }>
+  > {
     await this.initialize();
 
     try {
@@ -956,13 +1015,13 @@ export class ConfluenceService {
       const pageTable = new Table()
         .border(true)
         .padding(1);
-      
+
       // Add a header row instead of using .title()
       pageTable.push([`${theme.symbols.documentation} ${theme.emphasis(page.title)}`]);
       pageTable.push(['Last Updated', formatTimestamp(page.version.createdAt)]);
       pageTable.push(['By', page.version.by.displayName]);
       pageTable.push(['Version', `v${page.version.number}`]);
-      
+
       return pageTable.toString();
     };
 
@@ -972,16 +1031,18 @@ export class ConfluenceService {
     ].join('\n\n');
   }
 
-  async searchContent(query: string, space?: string): Promise<Array<{
-    id: string;
-    title: string;
-    space: { key: string; name: string };
-    lastModified: string;
-  }>> {
+  async searchContent(query: string, space?: string): Promise<
+    Array<{
+      id: string;
+      title: string;
+      space: { key: string; name: string };
+      lastModified: string;
+    }>
+  > {
     try {
       const params = new URLSearchParams({
         cql: `text ~ "${query}"${space ? ` AND space = "${space}"` : ''}`,
-        expand: 'space,version'
+        expand: 'space,version',
       });
 
       const response = await this.request<{
@@ -993,11 +1054,11 @@ export class ConfluenceService {
         }>;
       }>(`/rest/api/content/search?${params}`);
 
-      return response.results.map(result => ({
+      return response.results.map((result) => ({
         id: result.id,
         title: result.title,
         space: result.space,
-        lastModified: result.version.when
+        lastModified: result.version.when,
       }));
     } catch (error) {
       this.logger.error('Failed to search content:', error);
@@ -1029,17 +1090,17 @@ export class ConfluenceService {
           body: {
             storage: {
               value: params.content,
-              representation: 'storage'
-            }
+              representation: 'storage',
+            },
           },
-          ...(params.parentId && { ancestors: [{ id: params.parentId }] })
-        })
+          ...(params.parentId && { ancestors: [{ id: params.parentId }] }),
+        }),
       });
 
       return {
         id: response.id,
         title: response.title,
-        url: response._links.webui
+        url: response._links.webui,
       };
     } catch (error) {
       this.logger.error('Failed to create page:', error);

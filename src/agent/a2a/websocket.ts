@@ -3,8 +3,18 @@ import { ToolService } from '../../services/tool_service.ts';
 import { Logger } from '../../utils/logger.ts';
 import type { JsonRpcRequest, JsonRpcResponse, WebSocketAgentOptions } from './types.ts';
 
-export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolService: ToolService }) {
-  const { agentId, token, wsUrl, capabilities, onCommandExecute, logger: _customLogger, toolService } = options;
+export function connectAgentWebSocket(
+  options: WebSocketAgentOptions & { toolService: ToolService },
+) {
+  const {
+    agentId,
+    token,
+    wsUrl,
+    capabilities,
+    onCommandExecute,
+    logger: _customLogger,
+    toolService,
+  } = options;
   let ws: WebSocket | null = null;
   let reconnectAttempts = 0;
   let authenticated = false;
@@ -37,7 +47,7 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
   function connect() {
     logger.info('Connecting to Commander...');
     ws = new WebSocket(wsUrl);
-    
+
     ws.onopen = () => {
       logger.debug('Connection established');
       const authMsg: JsonRpcRequest = {
@@ -71,16 +81,14 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
               ws?.close();
               Deno.exit(1);
             }
-          }
-          // Handle welcome message
+          } // Handle welcome message
           else if (msg.method === 'system/welcome') {
             logger.debug('Server info:', {
               version: msg.params.serverVersion,
               methods: msg.params.availableMethods,
-              capabilities: msg.params.capabilities
+              capabilities: msg.params.capabilities,
             });
-          }
-          // Handle ping request
+          } // Handle ping request
           else if (msg.method === 'ping') {
             logger.debug('Received ping request');
             const pongMsg: JsonRpcRequest = {
@@ -94,8 +102,7 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
             };
             logMessage('SEND', pongMsg);
             ws!.send(JSON.stringify(pongMsg));
-          }
-          // Handle command/execute
+          } // Handle command/execute
           else if (msg.method === 'command/execute' && msg.params) {
             logger.info(`Executing command: ${msg.params.command}`);
             const reqId = msg.id;
@@ -113,13 +120,12 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
             logMessage('SEND', resultMsg);
             ws!.send(JSON.stringify(resultMsg));
             logger.success('Command execution completed');
-          }
-          // --- MCP METHODS ---
+          } // --- MCP METHODS ---
           else if (msg.method === 'mcp/list') {
             logger.info('Received mcp/list request');
             // Get the real list of MCP tools
             const mcpTools = toolService.mcpService.getTools();
-            const tools = mcpTools.map(t => ({
+            const tools = mcpTools.map((t) => ({
               name: t.function.name,
               description: t.function.description,
               parameters: t.function.parameters,
@@ -131,28 +137,32 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
             };
             logMessage('SEND', response);
             ws!.send(JSON.stringify(response));
-          }
-          else if (msg.method === 'mcp/install') {
+          } else if (msg.method === 'mcp/install') {
             logger.info('Received mcp/install request');
             // For now, just simulate install (could be extended to actually install tools)
             const { toolName } = msg.params || {};
             // Optionally, check if tool exists
             const mcpTools = toolService.mcpService.getTools();
-            const found = mcpTools.some(t => t.function.name === toolName);
+            const found = mcpTools.some((t) => t.function.name === toolName);
             const response: JsonRpcResponse = {
               jsonrpc: '2.0',
-              result: { success: found, tool: toolName, message: found ? 'Tool already available.' : 'Tool not found.' },
+              result: {
+                success: found,
+                tool: toolName,
+                message: found ? 'Tool already available.' : 'Tool not found.',
+              },
               id: msg.id,
             };
             logMessage('SEND', response);
             ws!.send(JSON.stringify(response));
-          }
-          else if (msg.method === 'mcp/execute') {
+          } else if (msg.method === 'mcp/execute') {
             logger.info('Received mcp/execute request');
             const { toolName, method: _method, params } = msg.params || {};
             try {
               // Actually execute the tool using ToolService
-              const execResult = await toolService.executeMCPTool(toolName, params || {}, { mcpService: toolService.mcpService });
+              const execResult = await toolService.executeMCPTool(toolName, params || {}, {
+                mcpService: toolService.mcpService,
+              });
               const response: JsonRpcResponse = {
                 jsonrpc: '2.0',
                 result: execResult,
@@ -169,14 +179,15 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
               logMessage('SEND', response);
               ws!.send(JSON.stringify(response));
             }
-          }
-          // Handle error responses
+          } // Handle error responses
           else if (msg.error) {
             logger.error(`Server error: ${msg.error.message}`);
           }
         }
       } catch (err) {
-        logger.error(`Failed to process message: ${err instanceof Error ? err.message : String(err)}`);
+        logger.error(
+          `Failed to process message: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     };
 
@@ -193,9 +204,9 @@ export function connectAgentWebSocket(options: WebSocketAgentOptions & { toolSer
       // Reconnect with backoff if needed
       reconnectAttempts++;
       const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
-      logger.info(`Attempting to reconnect in ${Math.round(delay/1000)} seconds...`);
+      logger.info(`Attempting to reconnect in ${Math.round(delay / 1000)} seconds...`);
       setTimeout(connect, delay);
     };
   }
   connect();
-} 
+}

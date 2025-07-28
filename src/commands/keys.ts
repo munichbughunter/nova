@@ -39,7 +39,7 @@ keysCommand
           colors.dim(key.key), // Already masked
           new Date(key.created).toLocaleDateString(),
           key.lastUsed ? new Date(key.lastUsed).toLocaleDateString() : colors.dim('Never'),
-          key.description || colors.dim('No description')
+          key.description || colors.dim('No description'),
         ]);
       }
 
@@ -63,7 +63,7 @@ keysCommand
   .action(async (options) => {
     try {
       const keyService = KeyService.getInstance();
-      
+
       let apiKey: string;
       if (options.name) {
         // Non-interactive mode
@@ -75,25 +75,32 @@ keysCommand
 
       // Show the key to the user
       console.log(colors.yellow('\n⚠️  Save your API Key'));
-      console.log(colors.dim('Please save this secret key somewhere safe and accessible. For security'));
-      console.log(colors.dim('reasons, you will not be able to view it again through your nova account.'));
-      console.log(colors.dim('If you lose this secret key, you will need to generate a new one.\n'));
-      
+      console.log(
+        colors.dim('Please save this secret key somewhere safe and accessible. For security'),
+      );
+      console.log(
+        colors.dim('reasons, you will not be able to view it again through your nova account.'),
+      );
+      console.log(
+        colors.dim('If you lose this secret key, you will need to generate a new one.\n'),
+      );
+
       console.log(colors.bold('API Key:'));
       console.log(colors.green(apiKey));
       console.log();
 
       // Ask if they want to set it as default
-      if (options.setDefault || await Confirm.prompt({
-        message: 'Would you like to set this as your default API key?',
-        default: true
-      })) {
+      if (
+        options.setDefault || await Confirm.prompt({
+          message: 'Would you like to set this as your default API key?',
+          default: true,
+        })
+      ) {
         await keyService.setDefaultKey(options.name || apiKey);
       }
 
       formatSuccess('✅ API key created successfully!');
       formatInfo('💡 Tip: Use `nova keys list` to view all your keys');
-
     } catch (error) {
       formatError('Failed to create API key');
       logger.error(error instanceof Error ? error.message : String(error));
@@ -111,7 +118,7 @@ keysCommand
     try {
       const keyService = KeyService.getInstance();
       const key = await keyService.getKey(nameOrId);
-      
+
       if (!key) {
         formatError(`Key "${nameOrId}" not found`);
         return;
@@ -121,7 +128,7 @@ keysCommand
       if (!options.force) {
         const confirmed = await Confirm.prompt({
           message: `Are you sure you want to delete the key "${key.name}"?`,
-          default: false
+          default: false,
         });
 
         if (!confirmed) {
@@ -150,13 +157,13 @@ keysCommand
   .action(async (_options, nameOrId?: string) => {
     try {
       const keyService = KeyService.getInstance();
-      
+
       let selectedKey = nameOrId;
-      
+
       // If no key specified, show interactive selection
       if (!selectedKey) {
         const keys = await keyService.listKeys();
-        
+
         if (keys.length === 0) {
           formatInfo('No API keys found. Use `nova keys create` to create one.');
           return;
@@ -168,10 +175,10 @@ keysCommand
         } else {
           selectedKey = await Select.prompt({
             message: 'Select API key to set as default:',
-            options: keys.map(key => ({
+            options: keys.map((key) => ({
               name: `${key.name} - ${key.description || 'No description'} (${key.key})`,
-              value: key.name
-            }))
+              value: key.name,
+            })),
           });
         }
       }
@@ -194,7 +201,7 @@ keysCommand
     try {
       const keyService = KeyService.getInstance();
       const key = await keyService.getKey(nameOrId);
-      
+
       if (!key) {
         formatError(`Key "${nameOrId}" not found`);
         return;
@@ -202,10 +209,20 @@ keysCommand
 
       console.log(colors.cyan('\n📋 API Key Details:\n'));
       console.log(`${colors.bold('Name:')} ${key.name}`);
-      console.log(`${colors.bold('Key:')} ${colors.dim(key.key.substring(0, 8) + '***' + key.key.substring(key.key.length - 4))}`);
+      console.log(
+        `${colors.bold('Key:')} ${
+          colors.dim(key.key.substring(0, 8) + '***' + key.key.substring(key.key.length - 4))
+        }`,
+      );
       console.log(`${colors.bold('Created:')} ${new Date(key.created).toLocaleString()}`);
-      console.log(`${colors.bold('Last Used:')} ${key.lastUsed ? new Date(key.lastUsed).toLocaleString() : colors.dim('Never')}`);
-      console.log(`${colors.bold('Description:')} ${key.description || colors.dim('No description')}`);
+      console.log(
+        `${colors.bold('Last Used:')} ${
+          key.lastUsed ? new Date(key.lastUsed).toLocaleString() : colors.dim('Never')
+        }`,
+      );
+      console.log(
+        `${colors.bold('Description:')} ${key.description || colors.dim('No description')}`,
+      );
       console.log();
     } catch (error) {
       formatError('Failed to show API key details');

@@ -1,13 +1,15 @@
 # Update Command
 
-The `nova update` command allows you to update Nova CLI to the latest version, ensuring you have access to the newest features, bug fixes, and security updates.
+The `nova update` command allows you to update Nova CLI to the latest version, ensuring you have
+access to the newest features, bug fixes, and security updates.
 
-!!! tip Stay Current
-    Regularly updating Nova CLI helps ensure compatibility with service integrations and provides access to the latest features.
+!!! tip Stay Current Regularly updating Nova CLI helps ensure compatibility with service
+integrations and provides access to the latest features.
 
 ## Overview
 
-The update command checks for new versions of nova CLI and performs the update process with minimal interruption to your workflow. It can also update specific components or plugins.
+The update command checks for new versions of nova CLI and performs the update process with minimal
+interruption to your workflow. It can also update specific components or plugins.
 
 ```mermaid
 graph TD
@@ -31,13 +33,13 @@ nova update [options]
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `--check` | Only check for updates without installing |
-| `--force` | Force update even if already on latest version |
-| `--no-config` | Skip configuration migration |
-| `--version <version>` | Install a specific version |
-| `-h, --help` | Show help information |
+| Option                | Description                                    |
+| --------------------- | ---------------------------------------------- |
+| `--check`             | Only check for updates without installing      |
+| `--force`             | Force update even if already on latest version |
+| `--no-config`         | Skip configuration migration                   |
+| `--version <version>` | Install a specific version                     |
+| `-h, --help`          | Show help information                          |
 
 ## Examples
 
@@ -84,39 +86,41 @@ When you run the update command, Nova CLI performs the following steps:
 
     ```
     🤖 nova CLI Update
-    
+
     Current version: 1.4.2
     Latest version: 1.5.0
-    
+
     ✨ New version available! Updating...
-    
+
     Downloading nova CLI v1.5.0...
     ✓ Download complete
-    
+
     Installing...
     ✓ Installation complete
-    
+
     Migrating configuration...
     ✓ Configuration migrated successfully
-    
+
     Update completed successfully!
     New version: 1.5.0
     ```
 
 ## Configuration Migration
 
-During updates, Nova CLI automatically migrates your configuration to be compatible with the new version. This includes:
+During updates, Nova CLI automatically migrates your configuration to be compatible with the new
+version. This includes:
 
 - Updating configuration schema
 - Adding new default options
 - Converting deprecated settings to new formats
 
-!!! warning Configuration Backup
-    A backup of your configuration is always created before migration at `~/.nova/config.json.backup-[timestamp]`.
+!!! warning Configuration Backup A backup of your configuration is always created before migration
+at `~/.nova/config.json.backup-[timestamp]`.
 
 ## Automatic Updates
 
-Nova CLI periodically checks for updates when you run commands. When a new version is detected, you'll see a notification:
+Nova CLI periodically checks for updates when you run commands. When a new version is detected,
+you'll see a notification:
 
 ```
 🚀 A new version of nova CLI is available (1.5.0).
@@ -125,22 +129,21 @@ Run 'nova update' to update to the latest version.
 
 ## Troubleshooting
 
-!!! failure Permission Denied
-    If you encounter permission issues during the update:
-    
+!!! failure Permission Denied If you encounter permission issues during the update:
+
     ```
     Error: EACCES: permission denied
     ```
-    
+
     Try running the update command with sudo:
-    
+
     ```bash
     sudo nova update
     ```
 
-!!! failure Network Issues
-    If you're behind a corporate firewall or have network connectivity issues:
-    
+!!! failure Network Issues If you're behind a corporate firewall or have network connectivity
+issues:
+
     1. Check your internet connection
     2. Try using a network proxy if required:
        ```bash
@@ -149,14 +152,13 @@ Run 'nova update' to update to the latest version.
        nova update
        ```
 
-!!! failure Corrupted Installation
-    If your installation becomes corrupted during update:
-    
+!!! failure Corrupted Installation If your installation becomes corrupted during update:
+
     1. Uninstall nova CLI completely:
        ```bash
        npm uninstall -g nova
        ```
-    
+
     2. Reinstall from scratch:
        ```bash
        npm install -g nova
@@ -165,4 +167,4 @@ Run 'nova update' to update to the latest version.
 ## Related Commands
 
 - [`nova setup`](setup.md) - Run the setup wizard to configure Nova CLI
-- [`nova config`](config.md) - Manage your Nova CLI configuration 
+- [`nova config`](config.md) - Manage your Nova CLI configuration

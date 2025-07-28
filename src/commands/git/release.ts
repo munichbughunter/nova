@@ -2,22 +2,22 @@ import { colors } from '@cliffy/ansi/colors';
 import { Command } from '@cliffy/command';
 import { Confirm } from '@cliffy/prompt';
 import {
-    checkExistingSemanticRelease,
-    checkIfChangesExist,
-    classifyVersion,
-    convertTonovaConfig,
-    createDefaultReleaseConfig,
-    createTagAndPush,
-    detectTagPrefix,
-    generateReleaseNotes,
-    getCommits,
-    getCurrentVersion,
-    getNewVersion,
-    isRunningInCI,
-    loadReleaseConfig,
-    regenerateFullChangelog,
-    updateVersion,
-    writeChangelog,
+  checkExistingSemanticRelease,
+  checkIfChangesExist,
+  classifyVersion,
+  convertTonovaConfig,
+  createDefaultReleaseConfig,
+  createTagAndPush,
+  detectTagPrefix,
+  generateReleaseNotes,
+  getCommits,
+  getCurrentVersion,
+  getNewVersion,
+  isRunningInCI,
+  loadReleaseConfig,
+  regenerateFullChangelog,
+  updateVersion,
+  writeChangelog,
 } from '../../libs/release/index.ts';
 import type { ReleaseConfig } from '../../libs/release/types.ts';
 import { ProgressIndicator } from '../../utils.ts';
@@ -419,4 +419,4 @@ async function runRelease(options: ReleaseOptions) {
     );
     Deno.exit(1);
   }
-} 
+}

@@ -181,23 +181,23 @@ export class DatabaseService {
     try {
       // First delete if exists to update timestamp
       const deleteStmt = this.db.prepare(
-        'DELETE FROM recent_projects WHERE full_path = ?'
+        'DELETE FROM recent_projects WHERE full_path = ?',
       );
       deleteStmt.run(project.path_with_namespace);
 
       // Then insert new record
       const insertStmt = this.db.prepare(
-        'INSERT INTO recent_projects (full_path, name, last_viewed) VALUES (?, ?, ?)'
+        'INSERT INTO recent_projects (full_path, name, last_viewed) VALUES (?, ?, ?)',
       );
       insertStmt.run(
         project.path_with_namespace,
         project.name,
-        project.last_activity_at
+        project.last_activity_at,
       );
 
       // Maintain limit of 10 most recent
       const cleanupStmt = this.db.prepare(
-        'DELETE FROM recent_projects WHERE full_path NOT IN (SELECT full_path FROM recent_projects ORDER BY last_viewed DESC LIMIT 10)'
+        'DELETE FROM recent_projects WHERE full_path NOT IN (SELECT full_path FROM recent_projects ORDER BY last_viewed DESC LIMIT 10)',
       );
       cleanupStmt.run();
     } catch (error) {
@@ -209,7 +209,7 @@ export class DatabaseService {
   public getRecentProjects(): Promise<ProjectSchema[]> {
     try {
       const stmt = this.db.prepare(
-        'SELECT full_path, name, last_viewed FROM recent_projects ORDER BY last_viewed DESC LIMIT 10'
+        'SELECT full_path, name, last_viewed FROM recent_projects ORDER BY last_viewed DESC LIMIT 10',
       );
       const rows = stmt.all() as Array<{ full_path: string; name: string; last_viewed: string }>;
 
@@ -335,7 +335,7 @@ export class DatabaseService {
 
   addRecentConfluenceSpace(spaceKey: string, name: string): void {
     const stmt = this.db.prepare(
-      'INSERT OR REPLACE INTO recent_confluence_spaces (space_key, name, last_viewed) VALUES ($key, $name, datetime("now"))'
+      'INSERT OR REPLACE INTO recent_confluence_spaces (space_key, name, last_viewed) VALUES ($key, $name, datetime("now"))',
     );
     stmt.run({ $key: spaceKey, $name: name });
   }
@@ -721,7 +721,9 @@ export class DatabaseService {
 
     // Check if cache is older than 24 hours
     if (Date.now() - cached.timestamp.getTime() > 24 * 60 * 60 * 1000) {
-      this.logger.info(`Cache for Jira sprint data (${projectKey}) is older than 24 hours, removing it`);
+      this.logger.info(
+        `Cache for Jira sprint data (${projectKey}) is older than 24 hours, removing it`,
+      );
       this.clearJiraSprintDataCache(projectKey);
       return null;
     }
@@ -892,8 +894,12 @@ export class DatabaseService {
 
   getCachedConfluencePage(pageId: string): ConfluencePage | null {
     try {
-      const stmt = this.db.prepare('SELECT data, timestamp FROM confluence_pages_cache WHERE page_id LIKE $pattern');
-      const row = stmt.get({ $pattern: `%:${pageId}` }) as { data: string; timestamp: string } | undefined;
+      const stmt = this.db.prepare(
+        'SELECT data, timestamp FROM confluence_pages_cache WHERE page_id LIKE $pattern',
+      );
+      const row = stmt.get({ $pattern: `%:${pageId}` }) as
+        | { data: string; timestamp: string }
+        | undefined;
 
       if (!row) return null;
 
@@ -914,13 +920,13 @@ export class DatabaseService {
   public cacheConfluencePage(pageId: string, page: ConfluencePage): void {
     try {
       const stmt = this.db.prepare(
-        'INSERT OR REPLACE INTO confluence_pages_cache (page_id, data, timestamp) VALUES ($id, $data, $time)'
+        'INSERT OR REPLACE INTO confluence_pages_cache (page_id, data, timestamp) VALUES ($id, $data, $time)',
       );
 
       stmt.run({
         $id: `${page.space?.key || 'unknown'}:${pageId}`,
         $data: JSON.stringify(page),
-        $time: new Date().toISOString()
+        $time: new Date().toISOString(),
       });
     } catch (error) {
       this.logger.error('Error caching Confluence page:', error);
@@ -929,7 +935,9 @@ export class DatabaseService {
 
   public clearConfluencePageCache(pageId: string): void {
     try {
-      const stmt = this.db.prepare('DELETE FROM confluence_pages_cache WHERE page_id LIKE $pattern');
+      const stmt = this.db.prepare(
+        'DELETE FROM confluence_pages_cache WHERE page_id LIKE $pattern',
+      );
       stmt.run({ $pattern: `%:${pageId}` });
     } catch (error) {
       this.logger.error('Error clearing Confluence page cache:', error);
@@ -945,12 +953,12 @@ export class DatabaseService {
     sprintData: SprintData[];
   }): void {
     const stmt = this.db.prepare(
-      'INSERT OR REPLACE INTO jira_raw_data (project_key, data, timestamp) VALUES ($key, $data, $time)'
+      'INSERT OR REPLACE INTO jira_raw_data (project_key, data, timestamp) VALUES ($key, $data, $time)',
     );
     stmt.run({
       $key: projectKey,
       $data: JSON.stringify(data),
-      $time: new Date().toISOString()
+      $time: new Date().toISOString(),
     });
   }
 
@@ -967,15 +975,17 @@ export class DatabaseService {
   } | null {
     try {
       const stmt = this.db.prepare(
-        'SELECT data, timestamp FROM jira_raw_data WHERE project_key = $key'
+        'SELECT data, timestamp FROM jira_raw_data WHERE project_key = $key',
       );
-      const result = stmt.get({ $key: projectKey }) as { data: string; timestamp: string } | undefined;
-      
+      const result = stmt.get({ $key: projectKey }) as
+        | { data: string; timestamp: string }
+        | undefined;
+
       if (!result) return null;
-      
+
       return {
         data: JSON.parse(result.data),
-        timestamp: new Date(result.timestamp)
+        timestamp: new Date(result.timestamp),
       };
     } catch (error) {
       this.logger.error('Error getting cached Jira raw data:', error);
@@ -1023,9 +1033,11 @@ export class DatabaseService {
   public async getCachedConfluencePages(spaceKey: string): Promise<ConfluencePage[] | null> {
     try {
       const stmt = this.db.prepare(
-        'SELECT data, timestamp FROM confluence_pages_cache WHERE page_id LIKE $pattern'
+        'SELECT data, timestamp FROM confluence_pages_cache WHERE page_id LIKE $pattern',
       );
-      const rows = stmt.all({ $pattern: `${spaceKey}:%` }) as Array<{ data: string; timestamp: string }>;
+      const rows = stmt.all({ $pattern: `${spaceKey}:%` }) as Array<
+        { data: string; timestamp: string }
+      >;
 
       if (rows.length === 0) return null;
 
@@ -1037,7 +1049,7 @@ export class DatabaseService {
         return null;
       }
 
-      return rows.map(row => JSON.parse(row.data));
+      return rows.map((row) => JSON.parse(row.data));
     } catch (error) {
       this.logger.error('Error getting cached Confluence pages:', error);
       return null;
@@ -1047,12 +1059,14 @@ export class DatabaseService {
   public cacheConfluencePages(spaceKey: string, pages: ConfluencePage[]): Promise<void> {
     try {
       // Clear existing pages for this space
-      const stmt = this.db.prepare('DELETE FROM confluence_pages_cache WHERE page_id LIKE $pattern');
+      const stmt = this.db.prepare(
+        'DELETE FROM confluence_pages_cache WHERE page_id LIKE $pattern',
+      );
       stmt.run({ $pattern: `${spaceKey}:%` });
 
       // Insert new pages
       const insertStmt = this.db.prepare(
-        'INSERT INTO confluence_pages_cache (page_id, data, timestamp) VALUES ($id, $data, $time)'
+        'INSERT INTO confluence_pages_cache (page_id, data, timestamp) VALUES ($id, $data, $time)',
       );
 
       const timestamp = new Date().toISOString();
@@ -1060,7 +1074,7 @@ export class DatabaseService {
         insertStmt.run({
           $id: `${spaceKey}:${page.id}`,
           $data: JSON.stringify(page),
-          $time: timestamp
+          $time: timestamp,
         });
       }
       return Promise.resolve();

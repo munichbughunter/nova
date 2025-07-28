@@ -1,6 +1,7 @@
 # First Steps with Copilot MCP
 
-This guide will walk you through the process of setting up and using Copilot MCP integration in your development environment.
+This guide will walk you through the process of setting up and using Copilot MCP integration in your
+development environment.
 
 ## Prerequisites
 
@@ -21,6 +22,7 @@ nova mcp setup
 ```
 
 This command will:
+
 - Create the necessary MCP configuration files in your project
 - Set up `.vscode/mcp.json` and `.cursor/mcp.json` for editor integration
 - Update `.github/copilot-instructions.md` if it exists
@@ -36,7 +38,8 @@ ls -la .vscode/mcp.json
 ls -la .cursor/mcp.json
 ```
 
-The configuration files should contain the MCP server settings. If you want to review or modify them, you can open them in your editor.
+The configuration files should contain the MCP server settings. If you want to review or modify
+them, you can open them in your editor.
 
 ## Step 3: Start the MCP Server
 
@@ -84,6 +87,7 @@ Once the MCP server is running, you can start using Copilot with MCP tools in yo
 3. Ask Copilot to perform tasks that require MCP tools
 
 For example, you can ask Copilot:
+
 - "List my assigned Jira tickets"
 - "Create a GitLab issue for the bug I'm fixing"
 - "Search our Confluence for documentation about the authentication API"
@@ -137,8 +141,10 @@ Copilot: I've created a task file at tasks/search-feature/plan.md with an initia
 
 ## Troubleshooting
 
-If you encounter issues with Copilot MCP integration, see the [Troubleshooting](troubleshooting.md) guide for common issues and solutions.
+If you encounter issues with Copilot MCP integration, see the [Troubleshooting](troubleshooting.md)
+guide for common issues and solutions.
 
 ## Next Steps
 
-Now that you've set up Copilot MCP, check out the [Usage](usage.md) guide for more detailed information on what you can do with this integration. 
+Now that you've set up Copilot MCP, check out the [Usage](usage.md) guide for more detailed
+information on what you can do with this integration.

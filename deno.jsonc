@@ -49,7 +49,7 @@
   "compilerOptions": {
     "strict": true,
     "types": ["./src/types.d.ts"],
-    "lib": ["deno.ns","deno.window","esnext","dom"]
+    "lib": ["deno.ns", "deno.window", "esnext", "dom"]
   },
   "lint": {
     "include": ["src/"],

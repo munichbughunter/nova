@@ -1,11 +1,12 @@
 # VISON!!!
---- 
+
+---
 
 # Nova
 
-Nova is an intelligent CLI tool that enhances project management and development workflows through AI-powered agents.
-It integrates seamlessly with your development process, providing automated assistance for project management,
-code development. All commands are wrapped inside an MCP Server.
+Nova is an intelligent CLI tool that enhances project management and development workflows through
+AI-powered agents. It integrates seamlessly with your development process, providing automated
+assistance for project management, code development. All commands are wrapped inside an MCP Server.
 
 ## Quick Install
 
@@ -64,15 +65,14 @@ tbd
 - GitHub account with authentication (https://github.com/signup)
 - GitHub Copilot CLI extension (https://github.com/github/gh-copilot?tab=readme-ov-file#quickstart)
 - GitLab/GitHub Personal Access Token with API scope:
-    - GitHub
-      guide: [Creating fine-grained personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens?apiVersion=2022-11-28&versionId=free-pro-team%40latest#creating-a-fine-grained-personal-access-token)
-    - GitLab
-      guide: [Create a personal access token](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
+  - GitHub guide:
+    [Creating fine-grained personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens?apiVersion=2022-11-28&versionId=free-pro-team%40latest#creating-a-fine-grained-personal-access-token)
+  - GitLab guide:
+    [Create a personal access token](https://docs.gitlab.com/user/profile/personal_access_tokens/#create-a-personal-access-token)
 
 ## Installation
 
-Install the GitHub CLI and authenticate:
-On macOS, using [Homebrew](https://brew.sh/):
+Install the GitHub CLI and authenticate: On macOS, using [Homebrew](https://brew.sh/):
 
 ```shell
 $ brew install gh
@@ -109,10 +109,8 @@ nova setup
 
 The setup assistant will help you configure:
 
-GitHub authentication
-GitLab authentication and API access
-OpenAI API credentials
-Default project settings
+GitHub authentication GitLab authentication and API access OpenAI API credentials Default project
+settings
 
 ## Development
 
@@ -137,15 +135,15 @@ deno task dev --watch
 
 ### Snapshot Testing
 
-Nova uses snapshot testing for commands to ensure output stability and catch UI bugs caused by regressions.
-Snapshots capture command output for future comparison.
+Nova uses snapshot testing for commands to ensure output stability and catch UI bugs caused by
+regressions. Snapshots capture command output for future comparison.
 
 Creating Snapshot Tests
 
 Create a test file with a `.snapshot.test.ts` extension:
 
 ```typescript
-import {snapshotTest} from '@cliffy/testing';
+import { snapshotTest } from '@cliffy/testing';
 
 await snapshotTest({
   name: 'My Test',
@@ -156,7 +154,6 @@ await snapshotTest({
     console.log('Hello world!');
   },
 });
-
 ```
 
 Generate or update snapshots:
@@ -171,7 +168,7 @@ Run tests to validate against snapshots:
 deno test -A path/to/your.snapshot.test.ts
 ```
 
-Snapshots are stored in __snapshots__ directories and should be committed to version control.
+Snapshots are stored in **snapshots** directories and should be committed to version control.
 
 ## Installation
 
@@ -247,8 +244,8 @@ Most commands support additional options. Use `--help` with any command to see m
 
 ## Agents
 
-Project Manager Agent
-The Project Manager agent helps you maintain project oversight and coordination:
+Project Manager Agent The Project Manager agent helps you maintain project oversight and
+coordination:
 
 - Sprint status tracking and updates
 - Ticket management and prioritization
@@ -256,8 +253,7 @@ The Project Manager agent helps you maintain project oversight and coordination:
 - Project health monitoring
 - Integration with common project management tools
 
-Dev Agent
-The Dev Agent assists with technical tasks:
+Dev Agent The Dev Agent assists with technical tasks:
 
 - Code generation and review
 - Bug fixing and debugging
@@ -370,8 +366,9 @@ includes:
 - Clean code principles enforcement
 
 ### Shell Completions
-Use the development alias with shell completions. Nova supports shell completions for commands and arguments. Once
-configured, you can enter a nova command followed by the TAB key. To enable them:
+
+Use the development alias with shell completions. Nova supports shell completions for commands and
+arguments. Once configured, you can enter a nova command followed by the TAB key. To enable them:
 
 ```shell
 # for Zsh

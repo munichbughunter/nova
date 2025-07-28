@@ -34,16 +34,17 @@ const _mockConfig: Config = {
 // Mock for Deno.Command to avoid actual command execution
 function mockDenoCommand() {
   const originalCommand = Deno.Command;
-  
+
   // Create a mock Command with output method
-  const mockCmd = function(_cmd: string, _options?: Deno.CommandOptions) {
+  const mockCmd = function (_cmd: string, _options?: Deno.CommandOptions) {
     return {
-      output: () => Promise.resolve({
-        stdout: new TextEncoder().encode('success'),
-        stderr: new TextEncoder().encode(''),
-        success: true,
-        code: 0,
-      }),
+      output: () =>
+        Promise.resolve({
+          stdout: new TextEncoder().encode('success'),
+          stderr: new TextEncoder().encode(''),
+          success: true,
+          code: 0,
+        }),
       outputSync: () => ({
         stdout: new TextEncoder().encode('success'),
         stderr: new TextEncoder().encode(''),
@@ -60,10 +61,10 @@ function mockDenoCommand() {
       }),
     };
   };
-  
+
   // Replace Deno.Command with our mock
   (Deno as any).Command = mockCmd;
-  
+
   // Return a cleanup function
   return () => {
     (Deno as any).Command = originalCommand;
@@ -143,30 +144,34 @@ async function setupTest() {
 // Add a stub for the fetch function to handle Ollama health check
 function mockFetch() {
   const originalFetch = globalThis.fetch;
-  
+
   // Replace fetch with a mock that returns different responses based on URL
   globalThis.fetch = ((url: string | URL | Request, _options?: RequestInit) => {
     const urlString = url.toString();
-    
+
     // If it's an Ollama health check
     if (urlString.includes('ollama') || urlString.includes('localhost:11434')) {
-      return Promise.resolve(new Response(JSON.stringify({ version: '0.0.0' }), {
+      return Promise.resolve(
+        new Response(JSON.stringify({ version: '0.0.0' }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+    }
+
+    // Default response for any other URL
+    return Promise.resolve(
+      new Response(JSON.stringify({ success: true }), {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
         },
-      }));
-    }
-    
-    // Default response for any other URL
-    return Promise.resolve(new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }));
+      }),
+    );
   }) as typeof fetch;
-  
+
   // Return cleanup function
   return () => {
     globalThis.fetch = originalFetch;
@@ -209,10 +214,10 @@ Deno.test('Setup Command Tests', async (t) => {
         }
         return Promise.resolve('password');
       });
-      
+
       // Mock Deno.Command
       const cleanupCommandMock = mockDenoCommand();
-      
+
       // Mock fetch
       const cleanupFetchMock = mockFetch();
 
@@ -268,10 +273,10 @@ Deno.test('Setup Command Tests', async (t) => {
         }
         return Promise.resolve('password');
       });
-      
+
       // Mock Deno.Command
       const cleanupCommandMock = mockDenoCommand();
-      
+
       // Mock fetch
       const cleanupFetchMock = mockFetch();
 
@@ -303,7 +308,11 @@ Deno.test('Setup Command Tests', async (t) => {
     });
 
     await t.step('should show GitLab setup messages', async () => {
-      const loadConfigStub = stub(configManager, 'loadConfig', () => Promise.reject(new Error('No config found')));
+      const loadConfigStub = stub(
+        configManager,
+        'loadConfig',
+        () => Promise.reject(new Error('No config found')),
+      );
       const saveConfigStub = stub(configManager, 'saveConfig', () => Promise.resolve());
       const statusServiceStub = stub(
         StatusService.prototype,
@@ -324,10 +333,10 @@ Deno.test('Setup Command Tests', async (t) => {
         }
         return Promise.resolve('password');
       });
-      
+
       // Mock Deno.Command
       const cleanupCommandMock = mockDenoCommand();
-      
+
       // Mock fetch
       const cleanupFetchMock = mockFetch();
 
@@ -360,7 +369,11 @@ Deno.test('Setup Command Tests', async (t) => {
     });
 
     await t.step('should handle configuration save error', async () => {
-      const loadConfigStub = stub(configManager, 'loadConfig', () => Promise.reject(new Error('No config found')));
+      const loadConfigStub = stub(
+        configManager,
+        'loadConfig',
+        () => Promise.reject(new Error('No config found')),
+      );
       const saveConfigStub = stub(
         configManager,
         'saveConfig',
@@ -385,10 +398,10 @@ Deno.test('Setup Command Tests', async (t) => {
         }
         return Promise.resolve('password');
       });
-      
+
       // Mock Deno.Command
       const cleanupCommandMock = mockDenoCommand();
-      
+
       // Mock fetch
       const cleanupFetchMock = mockFetch();
 

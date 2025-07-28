@@ -29,13 +29,13 @@ export class AgentFactory {
           analysisDepth: 'normal',
           postToGitlab: false,
           path: '.',
-          name: 'Engineering'
+          name: 'Engineering',
         });
       case 'code-review':
         return new CodeReviewAgent(this.context as ReviewAgentContext, {
           analysisDepth: 'normal',
           postToGitlab: false,
-          path: '.'
+          path: '.',
         });
       default:
         throw new Error(`Unknown agent type: ${type}`);

@@ -32,4 +32,4 @@ export async function sendIngestPayload({
     throw new Error(`Ingest failed: ${res.status} ${errorText}`);
   }
   return await res.json();
-} 
+}

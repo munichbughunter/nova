@@ -17,8 +17,8 @@ import { agentCommand } from './src/commands/agent.ts';
  * Initialize Nova CLI
  */
 export const program = new Command()
-  .name("nova")
-  .description("Nova - AI-powered project management and development workflow tool")
+  .name('nova')
+  .description('Nova - AI-powered project management and development workflow tool')
   .version(NOVA_VERSION)
   .example('nova setup', 'Configure Nova')
   .example('nova config', 'Manage configuration')
@@ -30,9 +30,9 @@ export const program = new Command()
 
 // Register commands with subcommands directly (not lazy loaded)
 program
- // .command('gitlab', gitlabCommand)
- // .command('jira', jiraCommand)
- .command('agent', agentCommand)
+  // .command('gitlab', gitlabCommand)
+  // .command('jira', jiraCommand)
+  .command('agent', agentCommand)
   .command('config', configCommand)
   // .command('dora', doraCommand)
   // .command('confluence', confluenceCommand)
@@ -40,7 +40,7 @@ program
   // .command('git', gitCommand)
   // .command('update', updateCommand)
   .command('setup', setupCommand)
-  .command('mcp', mcpCommand)
+  .command('mcp', mcpCommand);
 
 // Add custom help command
 program.command(
@@ -85,4 +85,3 @@ program.error((error, cmd) => {
 if (import.meta.main) {
   await program.parse(Deno.args);
 }
-

@@ -33,7 +33,7 @@ const _showCmd = new Command()
             }
           });
         } else {
-            logger.passThrough('log', `  ${value}`);
+          logger.passThrough('log', `  ${value}`);
         }
         logger.passThrough('log', '');
       });
@@ -218,17 +218,20 @@ export const configCommand = new Command()
     logger.passThrough('log', colors.dim('  nova config set gitlab.token "your-token-here"'));
     logger.passThrough('log', '');
     logger.passThrough('log', 'JSON Output Examples:');
-    logger.passThrough('log', formatJsonExamples([
-      commonJsonExamples.saveToFile('nova config list --format json', 'config-backup.json'),
-      {
-        description: 'Get GitLab configuration',
-        command: 'nova config list --format json | jq -r ".gitlab"',
-      },
-      {
-        description: 'Get all URLs',
-        command: 'nova config list --format json | jq -r ".. | .url? // empty"',
-      },
-    ]));
+    logger.passThrough(
+      'log',
+      formatJsonExamples([
+        commonJsonExamples.saveToFile('nova config list --format json', 'config-backup.json'),
+        {
+          description: 'Get GitLab configuration',
+          command: 'nova config list --format json | jq -r ".gitlab"',
+        },
+        {
+          description: 'Get all URLs',
+          command: 'nova config list --format json | jq -r ".. | .url? // empty"',
+        },
+      ]),
+    );
     logger.passThrough('log', '');
   })
   .command('list', listCmd)

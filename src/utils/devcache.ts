@@ -51,11 +51,11 @@ export class DevCache {
     const data = new TextEncoder().encode(key);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hash = Array.from(
-      new Uint8Array(hashBuffer)
-    ).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+      new Uint8Array(hashBuffer),
+    ).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
 
     const subDir = queryType ? `${this.cacheDir}/${queryType}` : this.cacheDir;
-    
+
     try {
       await Deno.mkdir(subDir, { recursive: true });
     } catch (error) {
@@ -76,7 +76,7 @@ export class DevCache {
       const cacheFile = await this.getCacheFilePath(key, queryType);
       const content = await Deno.readTextFile(cacheFile);
       const cached = JSON.parse(content);
-      
+
       if (Date.now() - cached.timestamp < this.cacheDuration) {
         this.logger.debug(`Using cached data for ${queryType}_${key.slice(0, 50)}...`);
         return cached.data as T;
@@ -94,10 +94,13 @@ export class DevCache {
 
     try {
       const cacheFile = await this.getCacheFilePath(key, queryType);
-      await Deno.writeTextFile(cacheFile, JSON.stringify({
-        timestamp: Date.now(),
-        data
-      }));
+      await Deno.writeTextFile(
+        cacheFile,
+        JSON.stringify({
+          timestamp: Date.now(),
+          data,
+        }),
+      );
       this.logger.debug(`Cached data for ${queryType}_${key.slice(0, 50)}...`);
     } catch (error) {
       this.logger.error(`Failed to cache data for ${key}:`, error);
@@ -135,4 +138,4 @@ export class DevCache {
       this.logger.error('Failed to clear cache:', error);
     }
   }
-} 
+}

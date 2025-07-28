@@ -225,7 +225,7 @@ export const confluenceCommand = new Command()
         } else {
           // Add interactive page selection
           logger.passThrough('log', colors.blue('\nSelect a page to view details:'));
-          
+
           const pageChoices = pages.map((page) => ({
             name: `${page.title} (v${page.version.number})`,
             value: page.id,
@@ -286,7 +286,7 @@ export const confluenceCommand = new Command()
 
       const results = await confluence.advancedSearch({
         query,
-        limit: options.limit
+        limit: options.limit,
       });
 
       if (results.results.length === 0) {
@@ -340,7 +340,10 @@ export const confluenceCommand = new Command()
       if (options.recent && !spaceKey) {
         const recentSpaces = await confluence.getRecentSpaces();
         if (recentSpaces.length === 0) {
-          logger.passThrough('log', colors.yellow('\nNo recent spaces found. Falling back to selection menu.\n'));
+          logger.passThrough(
+            'log',
+            colors.yellow('\nNo recent spaces found. Falling back to selection menu.\n'),
+          );
         } else {
           const mostRecent = recentSpaces[0];
           try {
@@ -438,7 +441,7 @@ export const confluenceCommand = new Command()
                 description: stats.space.description?.plain?.value,
               },
               statistics: stats,
-            }
+            },
           );
         } else {
           logger.passThrough('log', confluence.formatSpaceStatistics(stats));

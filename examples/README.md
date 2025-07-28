@@ -87,16 +87,19 @@ deno run --allow-run --allow-read --allow-env examples/mcp-client-test-dev.ts
 
 # Tool Testing Progress
 
-This document tracks the testing progress of all MCP tools using `test_tools.ts` and `mcp-client-test-dev.ts`.
+This document tracks the testing progress of all MCP tools using `test_tools.ts` and
+`mcp-client-test-dev.ts`.
 
 ## How to Test
 
 Run a tool using:
+
 ```bash
 deno run --allow-all examples/mcp-client-test-dev.ts
 ```
 
 List all available tools:
+
 ```bash
 deno run --allow-all src/cli/test_tools.ts --list
 ```
@@ -104,6 +107,7 @@ deno run --allow-all src/cli/test_tools.ts --list
 ## Testing Progress
 
 ### File Operations
+
 - [x] `list_dir` - Lists contents of a directory
   - Tested with: `--param relative_workspace_path=.`
   - Status: ✅ Working
@@ -114,6 +118,7 @@ deno run --allow-all src/cli/test_tools.ts --list
   - Status: ⚠️ Parameter parsing issues
 
 ### Task Management
+
 - [x] `init_task` - Initialize a new task environment
   - Tested with: `--param taskName=test-task`
   - Status: ✅ Working
@@ -126,19 +131,23 @@ deno run --allow-all src/cli/test_tools.ts --list
   - Status: ✅ Working
 
 ### System Tools
+
 - [x] `terminal` - Execute shell commands
   - Tested with: `--param command="pwd"`
   - Status: ✅ Working
 - [x] `javascript_executor` - Generate and execute JavaScript code
-  - Tested with: `--param description="Calculate factorial of 5" --param code="function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); } return factorial(5);"`
+  - Tested with:
+    `--param description="Calculate factorial of 5" --param code="function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); } return factorial(5);"`
   - Status: ✅ Working (when code is provided directly)
   - Note: Code generation with LLM implemented and functional when AI config is available
 
 ### Browser Tools
+
 - [ ] `browser` - Access and interact with web pages
   - Status: ⚠️ Requires configuration
 
 ### GitLab Integration
+
 - [x] `gitlab_search` - Search through GitLab projects, issues, or merge requests
   - Status: ✅ Working
   - Tested with: `--param query="abx" --param scope="projects"`
@@ -146,6 +155,7 @@ deno run --allow-all src/cli/test_tools.ts --list
   - Status: ⚠️ Not tested yet
 
 ### Jira Integration
+
 - [x] `jira_search` - Search for Jira issues using JQL
   - Status: ✅ Working
   - Tested with: `--param jql='project = "WEB" AND status = "PEER REVIEW"'`
@@ -153,6 +163,7 @@ deno run --allow-all src/cli/test_tools.ts --list
   - Status: ⚠️ Not tested yet
 
 ### Confluence Integration
+
 - [x] `confluence_search` - Search for content in Confluence
   - Status: ✅ Working
   - Tested with: `--param query="project" --param space=""`
@@ -160,15 +171,18 @@ deno run --allow-all src/cli/test_tools.ts --list
   - Status: ⚠️ Not tested yet
 
 ### Monitoring & Alerts
+
 - [x] `datadog_search` - Search for metrics or logs in Datadog
   - Status: ⚠️ Requires configuration
-  - Tested with: `--param query="service:nova error:500" --param type="logs" --param timeRange="24h"`
+  - Tested with:
+    `--param query="service:nova error:500" --param type="logs" --param timeRange="24h"`
 - [ ] `dora_metrics` - Get DORA metrics for a project
   - Status: ⚠️ Requires configuration
 
 ## Test Results
 
 ### Successful Tests
+
 1. `list_dir` - Successfully listed directory contents with metadata
 2. `terminal` - Successfully executed shell commands
 3. `javascript_executor` - Successfully executed JavaScript code (with provided code)
@@ -182,20 +196,25 @@ deno run --allow-all src/cli/test_tools.ts --list
 11. `confluence_search` - Successfully searched Confluence content
 
 ### Requires Configuration
+
 1. `datadog_search` - Service available but requires specific configuration
 2. `dora_metrics` - Requires configuration for both Jira and GitLab
 3. `browser` - Requires additional headless browser configuration
 
 ### Not Tested Yet
+
 1. `gitlab_create_issue` - Implementation available but not fully tested
 2. `jira_create_issue` - Implementation available but not fully tested
 3. `confluence_create_page` - Implementation available but not fully tested
 
 ### Failed Tests
+
 1. `file_write` - Parameter parsing issues in the test tool (works in actual MCP client)
 
 ## Notes
-- We've fixed issues with accessing services directly in the context, rather than through a nested 'services' property
+
+- We've fixed issues with accessing services directly in the context, rather than through a nested
+  'services' property
 - The Confluence search now has more robust error handling and default behavior
 - All modifications are backwards compatible with existing implementations
 - The MCP client test now includes testing for Confluence search functionality

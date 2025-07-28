@@ -589,23 +589,23 @@ const dashboardCommand = new Command()
 
         if (options.format === 'json') {
           logger.json(
-              {
-                timestamp: new Date().toISOString(),
-                period: `${options.days}d`,
-                project: {
-                  id: selectedProject.id,
-                  name: selectedProject.name,
-                  path: selectedProject.path_with_namespace,
-                  description: selectedProject.description,
-                  visibility: selectedProject.visibility,
-                  url: selectedProject.web_url,
-                  status: selectedProject.archived ? 'archived' : 'active',
-                  lastActivity: new Date(selectedProject.last_activity_at).toISOString(),
-                },
-                metrics,
-                department: 'engineering',
-                qualityMetricsSource: 'project',
-              }
+            {
+              timestamp: new Date().toISOString(),
+              period: `${options.days}d`,
+              project: {
+                id: selectedProject.id,
+                name: selectedProject.name,
+                path: selectedProject.path_with_namespace,
+                description: selectedProject.description,
+                visibility: selectedProject.visibility,
+                url: selectedProject.web_url,
+                status: selectedProject.archived ? 'archived' : 'active',
+                lastActivity: new Date(selectedProject.last_activity_at).toISOString(),
+              },
+              metrics,
+              department: 'engineering',
+              qualityMetricsSource: 'project',
+            },
           );
         } else {
           logger.passThrough('log', gitlab.formatProjectMetrics(metrics));
@@ -646,7 +646,11 @@ const dashboardCommand = new Command()
             });
             logger.passThrough('log', colors.green('✓ Metrics ingested to Commander4!'));
           } catch (err) {
-            logger.error(colors.red(`✗ Failed to ingest metrics: ${err instanceof Error ? err.message : String(err)}`));
+            logger.error(
+              colors.red(
+                `✗ Failed to ingest metrics: ${err instanceof Error ? err.message : String(err)}`,
+              ),
+            );
           }
         }
       } catch (error) {
@@ -707,21 +711,21 @@ dashboardCommand.command('help')
       '  --token <token>         Commander4 API token',
     );
     const jsonExamplesString = formatJsonExamples([
-        commonJsonExamples.saveToFile('nova gitlab dashboard', 'metrics.json'),
-        {
-          description: 'Get pipeline metrics',
-          command: 'nova gitlab dashboard --format json | jq -r ".metrics.pipelineMetrics"',
-        },
-        {
-          description: 'Get code quality stats',
-          command: 'nova gitlab dashboard --format json | jq -r ".metrics.codeQuality"',
-        },
-        {
-          description: 'Export team metrics for analysis',
-          command:
-            'nova gitlab dashboard --format json | jq -r ".metrics.teamMetrics" > team-metrics.json',
-        },
-      ]);
+      commonJsonExamples.saveToFile('nova gitlab dashboard', 'metrics.json'),
+      {
+        description: 'Get pipeline metrics',
+        command: 'nova gitlab dashboard --format json | jq -r ".metrics.pipelineMetrics"',
+      },
+      {
+        description: 'Get code quality stats',
+        command: 'nova gitlab dashboard --format json | jq -r ".metrics.codeQuality"',
+      },
+      {
+        description: 'Export team metrics for analysis',
+        command:
+          'nova gitlab dashboard --format json | jq -r ".metrics.teamMetrics" > team-metrics.json',
+      },
+    ]);
     logger.passThrough('log', jsonExamplesString);
     logger.passThrough('log', '');
   });

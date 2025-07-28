@@ -5,14 +5,15 @@ This guide demonstrates common workflows that combine multiple nova integrations
 ## Project Setup Workflow
 
 ### 1. Configure Environment
+
 ```bash
 # Initial setup
 nova setup
 ```
 
 ### 2. Access Project Resources
-```bash
 
+```bash
 # View project Jira dashboard
 nova jira dashboard --recent
 
@@ -23,6 +24,7 @@ nova gitlab dashboard --recent
 ## Development Workflow
 
 ### 1. Project Documentation
+
 ```bash
 # Find project documentation
 nova confluence search "project-name"
@@ -32,6 +34,7 @@ nova confluence pages -s PROJECT
 ```
 
 ### 2. Project Status
+
 ```bash
 # Check Jira issues
 nova jira issues -p PROJECT -q "status = 'In Progress'"
@@ -43,6 +46,7 @@ nova gitlab dashboard --days 7
 ## Infrastructure Management
 
 ### 1. Documentation Access
+
 ```bash
 # Find infrastructure docs
 nova confluence search "infrastructure setup"
@@ -54,6 +58,7 @@ nova confluence spaces --recent
 ## Project Monitoring
 
 ### 1. Development Metrics
+
 ```bash
 # GitLab project health
 nova gitlab dashboard --refresh
@@ -63,6 +68,7 @@ nova jira dashboard --days 30
 ```
 
 ### 2. Documentation Health
+
 ```bash
 # Space analytics
 nova confluence dashboard --recent
@@ -71,16 +77,19 @@ nova confluence dashboard --recent
 ## Best Practices
 
 ### 1. Regular Updates
+
 - Check dashboards daily
 - Refresh metrics before meetings
 - Keep documentation current
 
 ### 2. Efficient Navigation
+
 - Use `--recent` for frequent access
 - Filter results with meaningful queries
 - Cache data when appropriate
 
 ### 3. Cross-Platform Integration
+
 - Link Jira issues to GitLab MRs
 - Reference Confluence docs in tickets
 - Maintain consistent project keys
@@ -88,6 +97,7 @@ nova confluence dashboard --recent
 ## Example Scenarios
 
 ### New Feature Development
+
 1. Check project status:
    ```bash
    nova jira dashboard
@@ -100,6 +110,7 @@ nova confluence dashboard --recent
    ```
 
 ### Production Deployment
+
 1. Verify project health:
    ```bash
    nova gitlab dashboard --refresh
@@ -114,15 +125,18 @@ nova confluence dashboard --recent
 ## Integration Tips
 
 ### Jira + GitLab
+
 - Use consistent project keys
 - Reference merge requests in issues
 - Track development progress
 
 ### Confluence + Jira
+
 - Link documentation to issues
 - Keep technical docs updated
 - Track documentation tasks
 
 ### Documentation
+
 - Maintain environment docs
 - Document profile usage

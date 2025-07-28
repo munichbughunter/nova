@@ -66,7 +66,7 @@ export class MCPService {
   private static readonly IDE_EXCLUDED_TOOLS = new Set([
     'file_read',
     'file_write',
-    'list_dir'
+    'list_dir',
   ]);
 
   // Helper function to create the JavaScript executor tool definition
@@ -75,26 +75,29 @@ export class MCPService {
       type: 'function',
       function: {
         name: 'javascript_executor',
-        description: 'Execute JavaScript code directly or generate and execute code based on a description.',
+        description:
+          'Execute JavaScript code directly or generate and execute code based on a description.',
         parameters: {
           type: 'object',
           properties: {
             description: {
               type: 'string',
-              description: 'Description of what the JavaScript code should do. Required if no code is provided.'
+              description:
+                'Description of what the JavaScript code should do. Required if no code is provided.',
             },
             code: {
               type: 'string',
-              description: 'JavaScript code to execute directly. If provided, no AI generation will be used.'
+              description:
+                'JavaScript code to execute directly. If provided, no AI generation will be used.',
             },
             context: {
               type: 'object',
-              description: 'Data to make available in the execution context'
-            }
+              description: 'Data to make available in the execution context',
+            },
           },
-          required: ['description']
-        }
-      }
+          required: ['description'],
+        },
+      },
     };
   }
 
@@ -126,31 +129,31 @@ export class MCPService {
               file: {
                 type: 'string',
                 description: 'Absolute path of the file to read',
-                example: '/Users/user/project/src/main.ts'
+                example: '/Users/user/project/src/main.ts',
               },
               start_line: {
                 type: 'number',
                 description: 'Starting line to read from, 0-based',
-                example: 10
+                example: 10,
               },
               end_line: {
                 type: 'number',
                 description: 'Ending line number (exclusive)',
-                example: 20
+                example: 20,
               },
               encoding: {
                 type: 'string',
                 description: 'File encoding',
-                example: 'utf8'
+                example: 'utf8',
               },
               sudo: {
                 type: 'boolean',
-                description: 'Whether to use sudo privileges'
-              }
+                description: 'Whether to use sudo privileges',
+              },
             },
-            required: ['file']
-          }
-        }
+            required: ['file'],
+          },
+        },
       },
       {
         type: 'function',
@@ -337,7 +340,7 @@ export class MCPService {
                 type: 'boolean',
                 description: 'Whether user approval is required before execution',
                 example: true,
-              }
+              },
             },
             required: ['command'],
           },
@@ -756,10 +759,8 @@ export class MCPService {
   ): Promise<MCPToolResult> {
     try {
       // Determine the tool name
-      const toolName = typeof toolNameOrTool === 'string' 
-        ? toolNameOrTool 
-        : toolNameOrTool.name;
-      
+      const toolName = typeof toolNameOrTool === 'string' ? toolNameOrTool : toolNameOrTool.name;
+
       // Find the tool by name in the switch statement
       switch (toolName) {
         case 'file_read':
@@ -825,7 +826,7 @@ export class MCPService {
       this.logger.error(`Error executing tool:`, error);
       return {
         success: false,
-        error: `Failed to execute tool: ${error instanceof Error ? error.message : String(error)}`
+        error: `Failed to execute tool: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -857,9 +858,9 @@ export class MCPService {
               selectedRange: {
                 start: start_line,
                 end: end_line,
-              }
-            }
-          }
+              },
+            },
+          },
         };
       }
 
@@ -870,9 +871,9 @@ export class MCPService {
           metadata: {
             totalLines: lines.length,
             size: new TextEncoder().encode(content).length,
-            encoding
-          }
-        }
+            encoding,
+          },
+        },
       };
     } catch (error) {
       return {
@@ -884,7 +885,7 @@ export class MCPService {
 
   private async executeFileWrite(params: Record<string, unknown>): Promise<MCPToolResult> {
     const { file, content, encoding = 'utf8', append = false } = params;
-    
+
     if (!file || content === undefined) {
       return {
         success: false,
@@ -920,8 +921,8 @@ export class MCPService {
           size: stats.size,
           modified: stats.mtime,
           created: stats.birthtime,
-          encoding
-        }
+          encoding,
+        },
       };
     } catch (error) {
       return {
@@ -933,7 +934,7 @@ export class MCPService {
 
   private async writeTaskFile(params: Record<string, unknown>): Promise<MCPToolResult> {
     const { taskDir, filename, content, encoding = 'utf8' } = params;
-    
+
     if (!taskDir || !filename || content === undefined) {
       return {
         success: false,
@@ -946,19 +947,21 @@ export class MCPService {
       return await this.executeFileWrite({
         file: filePath,
         content,
-        encoding
+        encoding,
       });
     } catch (error) {
       return {
         success: false,
-        error: `Failed to write task file: ${error instanceof Error ? error.message : String(error)}`,
+        error: `Failed to write task file: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
   }
 
   private async readTaskFile(params: Record<string, unknown>): Promise<MCPToolResult> {
     const { taskDir, filename, encoding = 'utf8' } = params;
-    
+
     if (!taskDir || !filename) {
       return {
         success: false,
@@ -970,12 +973,14 @@ export class MCPService {
       const filePath = this.getTaskOutputPath(taskDir as string, filename as string);
       return await this.executeFileRead({
         file: filePath,
-        encoding
+        encoding,
       });
     } catch (error) {
       return {
         success: false,
-        error: `Failed to read task file: ${error instanceof Error ? error.message : String(error)}`,
+        error: `Failed to read task file: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
   }
@@ -984,21 +989,21 @@ export class MCPService {
     try {
       const infoPath = this.getTaskOutputPath(taskDir, 'task-info.json');
       const result = await this.executeFileRead({
-        file: infoPath
+        file: infoPath,
       });
 
       if (!result.success || !result.data || typeof result.data !== 'object') {
         return {
           success: false,
-          error: 'Invalid task info data'
+          error: 'Invalid task info data',
         };
       }
 
       const data = result.data as { content: string };
-      
+
       return {
         success: true,
-        data: JSON.parse(data.content)
+        data: JSON.parse(data.content),
       };
     } catch (error) {
       return {
@@ -1018,7 +1023,7 @@ export class MCPService {
             name: entry.name,
             isDirectory: entry.isDirectory,
             isFile: entry.isFile,
-            isSymlink: entry.isSymlink
+            isSymlink: entry.isSymlink,
           });
           continue;
         }
@@ -1044,7 +1049,9 @@ export class MCPService {
             isDirectory: entry.isDirectory,
             isFile: entry.isFile,
             isSymlink: entry.isSymlink,
-            error: `Failed to get stats: ${statError instanceof Error ? statError.message : String(statError)}`
+            error: `Failed to get stats: ${
+              statError instanceof Error ? statError.message : String(statError)
+            }`,
           });
         }
       }
@@ -1056,9 +1063,9 @@ export class MCPService {
           metadata: {
             path: relative_workspace_path,
             totalEntries: entries.length,
-            includesStats: include_stats
-          }
-        }
+            includesStats: include_stats,
+          },
+        },
       };
     } catch (error) {
       return {
@@ -1119,7 +1126,7 @@ export class MCPService {
       if (!gitlabService) {
         return {
           success: false,
-          error: 'GitLab service not available. Please configure GitLab settings.'
+          error: 'GitLab service not available. Please configure GitLab settings.',
         };
       }
 
@@ -1152,13 +1159,13 @@ export class MCPService {
 
       return {
         success: true,
-        data: results
+        data: results,
       };
     } catch (error) {
       this.logger.error('GitLab search failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1174,7 +1181,7 @@ export class MCPService {
       if (!gitlabService) {
         return {
           success: false,
-          error: 'GitLab service not available. Please configure GitLab settings.'
+          error: 'GitLab service not available. Please configure GitLab settings.',
         };
       }
 
@@ -1188,18 +1195,18 @@ export class MCPService {
       const issue = await gitlabService.createIssue(project, {
         title,
         description,
-        labels: labels?.join(',')
+        labels: labels?.join(','),
       });
 
       return {
         success: true,
-        data: issue
+        data: issue,
       };
     } catch (error) {
       this.logger.error('Failed to create GitLab issue:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1216,7 +1223,7 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
@@ -1224,13 +1231,13 @@ export class MCPService {
       const results = await jiraService.searchIssues(jql);
       return {
         success: true,
-        data: results
+        data: results,
       };
     } catch (error) {
       this.logger.error('Jira search failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1246,7 +1253,7 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
@@ -1264,23 +1271,23 @@ export class MCPService {
           summary,
           description,
           issuetype: { name: issueType },
-          labels
-        }
+          labels,
+        },
       });
 
       return {
         success: true,
-        data: issue
+        data: issue,
       };
     } catch (error) {
       this.logger.error('Failed to create Jira issue:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
-  
+
   /**
    * List all Jira projects the user has access to
    */
@@ -1295,35 +1302,35 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
       const { forceRefresh = false } = params as { forceRefresh?: boolean };
-      
+
       // Type guard to handle the 'getProjects' method that's not in the interface
       if (typeof jiraService.getProjects !== 'function') {
         return {
           success: false,
-          error: 'Jira service does not implement getProjects method'
+          error: 'Jira service does not implement getProjects method',
         };
       }
-      
+
       const projects = await jiraService.getProjects(forceRefresh);
-      
+
       return {
         success: true,
-        data: projects
+        data: projects,
       };
     } catch (error) {
       this.logger.error('Failed to list Jira projects:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
-  
+
   /**
    * List all issues in a Jira project
    */
@@ -1338,38 +1345,38 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
-      const { projectKey } = params as { 
+      const { projectKey } = params as {
         projectKey: string;
       };
-      
+
       if (!projectKey) {
         return {
           success: false,
-          error: 'Project key is required'
+          error: 'Project key is required',
         };
       }
 
       const jql = `project = "${projectKey}" ORDER BY updated DESC`;
       // Remove the second parameter since the interface only expects one parameter
       const issues = await jiraService.searchIssues(jql);
-      
+
       return {
         success: true,
-        data: issues
+        data: issues,
       };
     } catch (error) {
       this.logger.error('Failed to list Jira issues:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
-  
+
   /**
    * Get details for a specific Jira issue
    */
@@ -1384,16 +1391,16 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
       const { issueKey } = params as { issueKey: string };
-      
+
       if (!issueKey) {
         return {
           success: false,
-          error: 'Issue key is required'
+          error: 'Issue key is required',
         };
       }
 
@@ -1401,25 +1408,25 @@ export class MCPService {
       if (typeof jiraService.getIssue !== 'function') {
         return {
           success: false,
-          error: 'Jira service does not implement getIssue method'
+          error: 'Jira service does not implement getIssue method',
         };
       }
-      
+
       const issue = await jiraService.getIssue(issueKey);
-      
+
       return {
         success: true,
-        data: issue
+        data: issue,
       };
     } catch (error) {
       this.logger.error('Failed to get Jira issue:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
-  
+
   /**
    * Get details of tickets that changed in the last N days
    */
@@ -1434,38 +1441,38 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
-      const { projectKey, days = 7 } = params as { 
+      const { projectKey, days = 7 } = params as {
         projectKey: string;
         days?: number;
       };
-      
+
       if (!projectKey) {
         return {
           success: false,
-          error: 'Project key is required'
+          error: 'Project key is required',
         };
       }
 
       const jql = `project = "${projectKey}" AND updated >= -${days}d ORDER BY updated DESC`;
       const issues = await jiraService.searchIssues(jql);
-      
+
       return {
         success: true,
-        data: issues
+        data: issues,
       };
     } catch (error) {
       this.logger.error('Failed to get recent Jira changes:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
-  
+
   /**
    * Get issues assigned to the current user
    */
@@ -1480,32 +1487,32 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
       const { projectKey } = params as { projectKey?: string };
-      
+
       let jql = 'assignee = currentUser() ORDER BY updated DESC';
       if (projectKey) {
         jql = `assignee = currentUser() AND project = "${projectKey}" ORDER BY updated DESC`;
       }
-      
+
       const issues = await jiraService.searchIssues(jql);
-      
+
       return {
         success: true,
-        data: issues
+        data: issues,
       };
     } catch (error) {
       this.logger.error('Failed to get assigned Jira issues:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
-  
+
   /**
    * Filter issues by type such as Bug or Change Request
    */
@@ -1520,35 +1527,35 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
-      const { projectKey, issueType } = params as { 
+      const { projectKey, issueType } = params as {
         projectKey: string;
         issueType: string;
       };
-      
+
       if (!projectKey || !issueType) {
         return {
           success: false,
-          error: 'Project key and issue type are required'
+          error: 'Project key and issue type are required',
         };
       }
 
       const jql = `project = "${projectKey}" AND issuetype = "${issueType}" ORDER BY updated DESC`;
       // Remove the second parameter since the interface only expects one parameter
       const issues = await jiraService.searchIssues(jql);
-      
+
       return {
         success: true,
-        data: issues
+        data: issues,
       };
     } catch (error) {
       this.logger.error('Failed to filter Jira issues by type:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1564,7 +1571,7 @@ export class MCPService {
       if (!jiraService) {
         return {
           success: false,
-          error: 'Jira service not available. Please configure Jira settings.'
+          error: 'Jira service not available. Please configure Jira settings.',
         };
       }
 
@@ -1573,7 +1580,7 @@ export class MCPService {
       if (!issueKey || !comment) {
         return {
           success: false,
-          error: 'Both issueKey and comment are required.'
+          error: 'Both issueKey and comment are required.',
         };
       }
 
@@ -1582,13 +1589,13 @@ export class MCPService {
 
       return {
         success: true,
-        data: result
+        data: result,
       };
     } catch (error) {
       this.logger.error('Failed to add Jira comment:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1605,7 +1612,7 @@ export class MCPService {
       if (!confluenceService) {
         return {
           success: false,
-          error: 'Confluence service not available. Please configure Confluence settings.'
+          error: 'Confluence service not available. Please configure Confluence settings.',
         };
       }
 
@@ -1620,12 +1627,16 @@ export class MCPService {
         this.logger.info('No search query provided, using default search (*) to find recent pages');
       }
 
-      this.logger.debug('Executing Confluence search with query:', query, space ? `in space: ${space}` : 'across all spaces');
-      
+      this.logger.debug(
+        'Executing Confluence search with query:',
+        query,
+        space ? `in space: ${space}` : 'across all spaces',
+      );
+
       const results = await confluenceService.advancedSearch({
         query,
         spaceKey: space,
-        limit: 10
+        limit: 10,
       });
 
       // Add a message if no results found
@@ -1634,20 +1645,22 @@ export class MCPService {
           success: true,
           data: {
             ...results,
-            message: `No Confluence pages found${space ? ` in space '${space}'` : ''} matching query: '${query}'`
-          }
+            message: `No Confluence pages found${
+              space ? ` in space '${space}'` : ''
+            } matching query: '${query}'`,
+          },
         };
       }
 
       return {
         success: true,
-        data: results
+        data: results,
       };
     } catch (error) {
       this.logger.error('Confluence search failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1663,7 +1676,7 @@ export class MCPService {
       if (!confluenceService) {
         return {
           success: false,
-          error: 'Confluence service not available. Please configure Confluence settings.'
+          error: 'Confluence service not available. Please configure Confluence settings.',
         };
       }
 
@@ -1678,18 +1691,18 @@ export class MCPService {
         space,
         title,
         content,
-        parentId
+        parentId,
       });
 
       return {
         success: true,
-        data: page
+        data: page,
       };
     } catch (error) {
       this.logger.error('Failed to create Confluence page:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1706,7 +1719,7 @@ export class MCPService {
       if (!datadogService) {
         return {
           success: false,
-          error: 'Datadog service not available. Please configure Datadog settings.'
+          error: 'Datadog service not available. Please configure Datadog settings.',
         };
       }
 
@@ -1716,19 +1729,19 @@ export class MCPService {
         timeRange?: string;
       };
 
-      const results = type === 'metrics' 
+      const results = type === 'metrics'
         ? await datadogService.searchMetrics(query, timeRange)
         : await datadogService.searchLogs(query, timeRange);
 
       return {
         success: true,
-        data: results
+        data: results,
       };
     } catch (error) {
       this.logger.error('Datadog search failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -1745,7 +1758,7 @@ export class MCPService {
       if (!doraService) {
         return {
           success: false,
-          error: 'DORA service not available. Please configure GitLab and Jira settings.'
+          error: 'DORA service not available. Please configure GitLab and Jira settings.',
         };
       }
 
@@ -1756,7 +1769,7 @@ export class MCPService {
       if (!project) {
         return {
           success: false,
-          error: 'Project parameter is required'
+          error: 'Project parameter is required',
         };
       }
 
@@ -1765,20 +1778,20 @@ export class MCPService {
 
       return {
         success: true,
-        data: metricsResult
+        data: metricsResult,
       };
     } catch (error) {
       this.logger.error('Failed to fetch DORA metrics:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       };
     }
   }
 
   private async executeTerminal(params: Record<string, unknown>): Promise<MCPToolResult> {
     const { command, workingDir, timeout, require_user_approval } = params;
-    
+
     try {
       // Handle user approval if required
       if (require_user_approval) {
@@ -1787,7 +1800,7 @@ export class MCPService {
 
       // Get the default shell
       const shell = Deno.env.get('SHELL') || '/bin/bash';
-      
+
       // Create the command options
       const isWindows = Deno.build.os === 'windows';
       const cmd = new Deno.Command(shell, {
@@ -1796,7 +1809,7 @@ export class MCPService {
         stdout: 'piped',
         stderr: 'piped',
       });
-      
+
       // Execute with timeout if specified
       const timeoutValue = timeout as number || 30000;
       const timeoutPromise = new Promise<MCPToolResult>((resolve) => {
@@ -1807,34 +1820,36 @@ export class MCPService {
           });
         }, timeoutValue);
       });
-      
+
       // Execute the command
-      const execPromise = cmd.output().then(output => {
+      const execPromise = cmd.output().then((output) => {
         const decoder = new TextDecoder();
         const stdout = decoder.decode(output.stdout);
         const stderr = decoder.decode(output.stderr);
-        
+
         return {
           success: output.code === 0,
           data: {
             commandOutput: stdout,
             commandExitCode: output.code,
-            error: stderr.length > 0 ? stderr : undefined
-          }
+            error: stderr.length > 0 ? stderr : undefined,
+          },
         } as MCPToolResult;
       });
-      
+
       // Race the execution against the timeout
       const result = await Promise.race([execPromise, timeoutPromise]);
 
       return {
         success: true,
-        data: result
+        data: result,
       };
     } catch (error) {
       return {
         success: false,
-        error: `Failed to execute terminal command: ${error instanceof Error ? error.message : String(error)}`
+        error: `Failed to execute terminal command: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
       };
     }
   }
@@ -1847,7 +1862,7 @@ export class MCPService {
       // Use existing AI service if available in context
       // Look for the llmProvider property in the ai context, with fallback to undefined
       let aiService: LLMProvider | undefined;
-      
+
       if (context.ai && typeof context.ai === 'object' && 'llmProvider' in context.ai) {
         aiService = context.ai.llmProvider as LLMProvider;
       }
@@ -1856,7 +1871,7 @@ export class MCPService {
       if (!aiService && context.config) {
         const config = context.config as Record<string, unknown>;
         const aiConfig = config.ai as Record<string, unknown> | undefined;
-        
+
         if (aiConfig) {
           try {
             aiService = new AIService(config as Config).getLLMProvider();
@@ -1866,10 +1881,10 @@ export class MCPService {
         }
       }
 
-      const { 
-        description, 
+      const {
+        description,
         code,
-        context: executionContext = {} 
+        context: executionContext = {},
       } = params as {
         description: string;
         code?: string;
@@ -1880,11 +1895,11 @@ export class MCPService {
       if (code) {
         try {
           this.logger.debug('Executing JavaScript code');
-          
+
           // Create a safer Function execution context with provided context variables
           const contextKeys = Object.keys(executionContext);
           const contextValues = Object.values(executionContext);
-          
+
           // Create a function with context variables as parameters
           // eslint-disable-next-line no-new-func
           const evalFn = new Function(
@@ -1900,47 +1915,47 @@ export class MCPService {
                 stack: error.stack || ''
               };
             }
-            `
+            `,
           );
-          
+
           // Execute the function with context values
           const result = evalFn(...contextValues);
-          
+
           if (result && typeof result === 'object' && 'success' in result) {
             if (!result.success) {
               return {
                 success: false,
                 error: result.error || 'JavaScript execution failed',
-                data: { 
+                data: {
                   code,
-                  stack: result.stack || ''
-                }
+                  stack: result.stack || '',
+                },
               };
             }
-            
+
             return {
               success: true,
               data: {
                 result: result.result,
-                code
-              }
+                code,
+              },
             };
           }
-          
+
           // Handle unexpected results
           return {
             success: true,
             data: {
               result,
-              code
-            }
+              code,
+            },
           };
         } catch (error: unknown) {
           this.logger.error('JavaScript execution failed:', error);
           return {
             success: false,
             error: error instanceof Error ? error.message : String(error),
-            data: { code }
+            data: { code },
           };
         }
       }
@@ -1949,7 +1964,7 @@ export class MCPService {
       if (!aiService) {
         return {
           success: false,
-          error: 'AI service not available. Please provide code directly or configure AI settings.'
+          error: 'AI service not available. Please provide code directly or configure AI settings.',
         };
       }
 
@@ -1966,8 +1981,8 @@ export class MCPService {
           3. Make sure your code handles errors gracefully
           4. Always return a valid JSON object with a 'code' property`,
           z.object({
-            code: z.string()
-          })
+            code: z.string(),
+          }),
         );
 
         if (!response || typeof response !== 'object' || !response.code) {
@@ -1979,22 +1994,24 @@ export class MCPService {
         this.logger.error('Failed to generate code:', error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : 'Failed to generate code from description',
-          data: { description }
+          error: error instanceof Error
+            ? error.message
+            : 'Failed to generate code from description',
+          data: { description },
         };
       }
 
       // Execute the generated code
       return this.executeJavaScriptExecutor({
         ...params,
-        code: generatedCode
+        code: generatedCode,
       }, context);
     } catch (error: unknown) {
       this.logger.error('JavaScript execution failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
-        data: { code: params.code as string || '' }
+        data: { code: params.code as string || '' },
       };
     }
   }
@@ -2006,12 +2023,12 @@ export class MCPService {
    */
   public getToolsForContext(context: 'ide' | 'cli'): MCPToolFunction[] {
     const allTools = Array.from(this.tools.values());
-    
+
     if (context === 'ide') {
       // Exclude file operation tools in IDE context
-      return allTools.filter(tool => !MCPService.IDE_EXCLUDED_TOOLS.has(tool.function.name));
+      return allTools.filter((tool) => !MCPService.IDE_EXCLUDED_TOOLS.has(tool.function.name));
     }
-    
+
     // Return all tools for CLI context
     return allTools;
   }
@@ -2030,7 +2047,7 @@ export class MCPService {
   private async initializeTaskEnvironment(taskName: string): Promise<MCPToolResult> {
     try {
       const resultsDir = 'results';
-      
+
       // Ensure results directory exists
       try {
         await Deno.mkdir(resultsDir, { recursive: true });
@@ -2043,7 +2060,7 @@ export class MCPService {
       // Generate unique task ID
       const taskId = crypto.randomUUID();
       const taskDir = `${resultsDir}/task-${taskId}`;
-      
+
       // Create task directory
       await Deno.mkdir(taskDir, { recursive: true });
 
@@ -2056,7 +2073,7 @@ export class MCPService {
 
       await Deno.writeTextFile(
         `${taskDir}/task-info.json`,
-        JSON.stringify(metadata, null, 2)
+        JSON.stringify(metadata, null, 2),
       );
 
       return {
@@ -2064,15 +2081,15 @@ export class MCPService {
         data: {
           taskDir,
           taskId,
-          metadata
-        }
+          metadata,
+        },
       };
     } catch (error) {
       return {
         success: false,
         error: `Failed to initialize task environment: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       };
     }
   }
@@ -2082,7 +2099,9 @@ export class MCPService {
     return `${taskDir}${separator}${filename}`;
   }
 
-  public async startServer(options: { stdio: boolean; sse: boolean; port: number; endpoint: string }) {
+  public async startServer(
+    options: { stdio: boolean; sse: boolean; port: number; endpoint: string },
+  ) {
     const { stdio, sse, port, endpoint } = options;
     const logger = this.logger;
     const server = new McpServer({
@@ -2090,7 +2109,7 @@ export class MCPService {
       version: '1.0.0',
       debug: Deno.env.get('NOVA_DEBUG') === 'true',
     });
-    
+
     // Use any[] instead of Server[] to avoid type conflicts
     // deno-lint-ignore no-explicit-any
     const activeServers: any[] = [];
@@ -2104,7 +2123,7 @@ export class MCPService {
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         logger.info('Connecting MCP server to stdio transport...');
-        
+
         // Connect stdio transport in background
         server.connect(stdioTransport).catch((transportError) => {
           logger.error('Error connecting to stdio transport:', transportError);
@@ -2121,9 +2140,9 @@ export class MCPService {
     if (sse) {
       try {
         logger.info(`Starting SSE server on port ${port} with endpoint ${endpoint}`);
-        
+
         const _activeTransports: Record<string, SSEServerTransportType> = {};
-        
+
         const sseServer = new Server(async (_req: unknown, _res: unknown) => {
           // Implementation of SSE server connection logic
         });

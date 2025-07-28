@@ -1,11 +1,11 @@
 # Welcome to Nova
 
-Nova is an intelligent CLI tool that enhances project management and development workflows through seamless integration with your development platforms and tools.
+Nova is an intelligent CLI tool that enhances project management and development workflows through
+seamless integration with your development platforms and tools.
 
 ## Quick Start
 
 ```bash
-
 #2. Tap the repository:
 tbd
 
@@ -28,14 +28,9 @@ nova --help
 
 ## Command Overview
 
-!!! note Project Management
-    !!! info Jira & GitLab Integration
-        ```bash
-        # Jira Commands
-        nova jira projects     # List Jira projects
-        nova jira issues       # List issues for a project
-        nova jira dashboard    # Show project metrics
-        nova jira open         # Open issue in browser
+!!! note Project Management !!! info Jira & GitLab Integration ```bash # Jira Commands nova jira
+projects # List Jira projects nova jira issues # List issues for a project nova jira dashboard #
+Show project metrics nova jira open # Open issue in browser
 
         # GitLab Commands
         nova gitlab projects   # List GitLab projects
@@ -45,50 +40,38 @@ nova --help
         nova dora metrics     # View DORA metrics
         ```
 
-!!! note Documentation
-    !!! info Confluence Integration
-        ```bash
+!!! note Documentation !!! info Confluence Integration
+`bash
         nova confluence spaces    # List spaces
         nova confluence pages     # List pages in space
         nova confluence search    # Search content
         nova confluence dashboard # Show space dashboard
-        nova confluence page      # View page details
-        ```
+        nova confluence page      # View page details`
 
-!!! Monitoring
-    !!! info Datadog Integration
-        ```bash
+!!! Monitoring !!! info Datadog Integration
+`bash
         nova datadog teams       # List/search teams
-        nova datadog dashboards  # List dashboards
-        ```
+        nova datadog dashboards  # List dashboards`
 
-!!! note AI Features
-    !!! info Code Review & Analysis
-        ```bash
-        # Code Review
-        nova agent eng review     # Review code changes
-        nova agent eng review-mr  # Review merge requests
+!!! note AI Features !!! info Code Review & Analysis ```bash # Code Review nova agent eng review #
+Review code changes nova agent eng review-mr # Review merge requests
 
-        # Coming Soon
-        nova agent eng documentor # Generate documentation
-        nova agent eng architect  # Architecture analysis
-        nova agent eng tester     # Test generation
-        nova agent eng refactor   # Code refactoring
-        nova agent eng security   # Security analysis
-        ```
+    # Coming Soon
+    nova agent eng documentor # Generate documentation
+    nova agent eng architect  # Architecture analysis
+    nova agent eng tester     # Test generation
+    nova agent eng refactor   # Code refactoring
+    nova agent eng security   # Security analysis
+    ```
 
-!!! note Configuration
-    !!! info Setup & Management
-        ```bash
-        # Setup
-        nova setup               # Interactive setup
-        
-        # Configuration
-        nova config list         # List all values
-        nova config get          # Get specific value
-        nova config set          # Set specific value
-        nova config test         # Test connections
-        ```
+!!! note Configuration !!! info Setup & Management ```bash # Setup nova setup # Interactive setup
+
+    # Configuration
+    nova config list         # List all values
+    nova config get          # Get specific value
+    nova config set          # Set specific value
+    nova config test         # Test connections
+    ```
 
 ## Key Features
 
@@ -147,6 +130,7 @@ Nova integrates with:
 ## Configuration
 
 First-time setup:
+
 ```bash
 nova setup                    # Full interactive setup
 ```

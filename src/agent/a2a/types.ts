@@ -41,4 +41,4 @@ export interface WebSocketAgentOptions {
   onCommandExecute: (command: CommandExecuteParams) => Promise<CommandResult>;
   onCommandCancel?: (commandId: string) => Promise<void>;
   logger?: (msg: string, ...args: unknown[]) => void;
-} 
+}

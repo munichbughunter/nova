@@ -32,4 +32,4 @@ export const agentCapabilities = {
     platform: Deno.build.os,
     architecture: Deno.build.arch,
   },
-}; 
+};

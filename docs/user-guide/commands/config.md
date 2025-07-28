@@ -2,12 +2,12 @@
 
 The `nova config` command allows you to view, manage, and test your Nova CLI configuration settings.
 
-!!! info Configuration Management
-    This command provides a convenient way to adjust settings without having to run the full setup wizard again.
+!!! info Configuration Management This command provides a convenient way to adjust settings without
+having to run the full setup wizard again.
 
 ## Overview
 
-The config command provides functionality to list, get, set, and test your nova configuration. 
+The config command provides functionality to list, get, set, and test your nova configuration.
 
 ```mermaid
 graph LR
@@ -126,7 +126,6 @@ Sets the value of a specific configuration key.
     nova config set openai.model "gpt-4-turbo"
     ```
 
-
 ### Test Connections
 
 ```bash
@@ -171,54 +170,54 @@ Creates a new configuration file with default values.
 
 ### Global Options
 
-| Option | Description |
-|--------|-------------|
-| `-f, --format <format>` | Output format (text/json) |
-| `--show-secrets` | Show sensitive values (use with caution) |
-| `-h, --help` | Show help information |
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `-f, --format <format>` | Output format (text/json)                |
+| `--show-secrets`        | Show sensitive values (use with caution) |
+| `-h, --help`            | Show help information                    |
 
 ### Test Options
 
-| Option | Description |
-|--------|-------------|
+| Option                | Description                     |
+| --------------------- | ------------------------------- |
 | `--service <service>` | Test only the specified service |
-| `--timeout <timeout>` | Connection timeout in seconds |
-| `--verbose` | Show detailed test output |
+| `--timeout <timeout>` | Connection timeout in seconds   |
+| `--verbose`           | Show detailed test output       |
 
 ## Available Configuration Keys
 
 ### GitLab
 
-| Key | Description | Example Value |
-|-----|-------------|---------------|
-| `gitlab.url` | GitLab instance URL | `"https://gitlab.example.com"` |
-| `gitlab.token` | Personal Access Token | `"glpat-xxxxxxx"` |
-| `gitlab.project_id` | Default project ID | `"12345"` |
+| Key                 | Description           | Example Value                  |
+| ------------------- | --------------------- | ------------------------------ |
+| `gitlab.url`        | GitLab instance URL   | `"https://gitlab.example.com"` |
+| `gitlab.token`      | Personal Access Token | `"glpat-xxxxxxx"`              |
+| `gitlab.project_id` | Default project ID    | `"12345"`                      |
 
 ### Jira
 
-| Key | Description | Example Value |
-|-----|-------------|---------------|
-| `jira.url` | Jira instance URL | `"https://example.atlassian.net"` |
-| `jira.username` | Jira username/email | `"user@example.com"` |
-| `jira.token` | Jira API token | `"xxxxx"` |
-| `jira.project_key` | Default project key | `"PROJ"` |
+| Key                | Description         | Example Value                     |
+| ------------------ | ------------------- | --------------------------------- |
+| `jira.url`         | Jira instance URL   | `"https://example.atlassian.net"` |
+| `jira.username`    | Jira username/email | `"user@example.com"`              |
+| `jira.token`       | Jira API token      | `"xxxxx"`                         |
+| `jira.project_key` | Default project key | `"PROJ"`                          |
 
 ### OpenAI
 
-| Key | Description | Example Value |
-|-----|-------------|---------------|
-| `openai.api_key` | OpenAI API key | `"sk-xxxxx"` |
-| `openai.model` | Default model | `"gpt-4-turbo"` |
+| Key              | Description         | Example Value                        |
+| ---------------- | ------------------- | ------------------------------------ |
+| `openai.api_key` | OpenAI API key      | `"sk-xxxxx"`                         |
+| `openai.model`   | Default model       | `"gpt-4-turbo"`                      |
 | `openai.api_url` | API URL (for Azure) | `"https://example.openai.azure.com"` |
 
 ### Local Settings
 
-| Key | Description | Example Value |
-|-----|-------------|---------------|
-| `local.format` | Default output format | `"text"` |
-| `local.cache_ttl` | Cache time-to-live in seconds | `3600` |
-| `local.log_level` | Logging level | `"info"` |
+| Key               | Description                   | Example Value |
+| ----------------- | ----------------------------- | ------------- |
+| `local.format`    | Default output format         | `"text"`      |
+| `local.cache_ttl` | Cache time-to-live in seconds | `3600`        |
+| `local.log_level` | Logging level                 | `"info"`      |
 
 ## Example Configuration
 
@@ -252,7 +251,8 @@ Creates a new configuration file with default values.
 
 ## Environment Variables
 
-All configuration settings can be overridden with environment variables using the `NOVA_` prefix and uppercase keys separated by underscores:
+All configuration settings can be overridden with environment variables using the `NOVA_` prefix and
+uppercase keys separated by underscores:
 
 ```bash
 # Set GitLab URL
@@ -265,4 +265,4 @@ export NOVA_OPENAI_API_KEY="sk-xxxxx"
 ## Related Commands
 
 - [`nova setup`](setup.md) - Interactive setup wizard
-- [`nova update`](update.md) - Update Nova CLI to the latest version 
+- [`nova update`](update.md) - Update Nova CLI to the latest version

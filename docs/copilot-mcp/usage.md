@@ -1,10 +1,12 @@
 # Using Copilot MCP
 
-This guide provides detailed information on how to effectively use GitHub Copilot with Nova's MCP integration to enhance your development workflow.
+This guide provides detailed information on how to effectively use GitHub Copilot with Nova's MCP
+integration to enhance your development workflow.
 
 ## Available MCP Tools
 
-When the MCP server is running, Copilot has access to a variety of tools that can interact with your services and project resources. Here are the main categories of tools available:
+When the MCP server is running, Copilot has access to a variety of tools that can interact with your
+services and project resources. Here are the main categories of tools available:
 
 ### File Operations
 
@@ -105,7 +107,7 @@ You can view and edit it at: https://yourcompany.atlassian.net/wiki/spaces/DEV/p
 
 Use Copilot to generate code based on your project's existing patterns and conventions:
 
-```
+````
 User: Generate a new controller for user profile management following our project's existing patterns
 
 [Copilot uses MCP tools to analyze existing code patterns]
@@ -146,7 +148,7 @@ export class UserProfileController {
     return this.userProfileService.remove(id);
   }
 }
-```
+````
 
 ### 5. Issue Management Across Services
 
@@ -168,17 +170,22 @@ GitLab issue: https://gitlab.com/yourproject/issues/78
 
 To get the most out of Copilot MCP, follow these best practices:
 
-1. **Keep the MCP Server Running**: Always start the MCP server before interacting with Copilot for tasks that require service integration.
+1. **Keep the MCP Server Running**: Always start the MCP server before interacting with Copilot for
+   tasks that require service integration.
 
-2. **Be Specific in Requests**: When asking Copilot to perform tasks, be as specific as possible about what you want to achieve.
+2. **Be Specific in Requests**: When asking Copilot to perform tasks, be as specific as possible
+   about what you want to achieve.
 
-3. **Provide Context**: When asking about code or systems, provide relevant context to help Copilot understand what you're working on.
+3. **Provide Context**: When asking about code or systems, provide relevant context to help Copilot
+   understand what you're working on.
 
 4. **Task-Based Workflow**: Organize complex work into tasks using the task management capabilities.
 
-5. **Check Results**: Always verify the output of service integrations like Jira ticket creation or GitLab issues.
+5. **Check Results**: Always verify the output of service integrations like Jira ticket creation or
+   GitLab issues.
 
-6. **Iterative Approach**: For complex tasks, work iteratively with Copilot, breaking down larger problems into smaller steps.
+6. **Iterative Approach**: For complex tasks, work iteratively with Copilot, breaking down larger
+   problems into smaller steps.
 
 ## Common Workflows
 
@@ -205,4 +212,5 @@ Here are some common workflows that work well with Copilot MCP:
 
 - [MCP Server Documentation](../MCP_SERVER.md) - More details on the Nova MCP server
 - [Nova GitHub Repository](https://github.com/yourusername/nova) - Source code and issue tracking
-- [Model Context Protocol](https://github.com/modelcontextprotocol/typescript-sdk) - Learn more about the underlying protocol
+- [Model Context Protocol](https://github.com/modelcontextprotocol/typescript-sdk) - Learn more
+  about the underlying protocol

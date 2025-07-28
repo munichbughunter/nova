@@ -196,14 +196,16 @@ await snapshotTest({
 
     mockDeployments.forEach((deployment) => {
       // Find project name
-      const project = mockProjects.find(p => p.id === deployment.projectId);
+      const project = mockProjects.find((p) => p.id === deployment.projectId);
       const projectName = project ? project.name : deployment.projectId;
-      
+
       table.push([
         projectName,
         deployment.environment,
         deployment.version,
-        deployment.status === 'success' ? colors.green(deployment.status) : colors.red(deployment.status),
+        deployment.status === 'success'
+          ? colors.green(deployment.status)
+          : colors.red(deployment.status),
         formatLocaleDate(deployment.timestamp),
         `${Math.floor(deployment.duration / 60)}m ${deployment.duration % 60}s`,
         deployment.committer,
@@ -223,18 +225,21 @@ await snapshotTest({
   // deno-lint-ignore require-await
   async fn() {
     const project = mockProjects[0];
-    const deployments = mockDeployments.filter(d => d.projectId === project.id);
+    const deployments = mockDeployments.filter((d) => d.projectId === project.id);
 
     console.log(colors.blue(`\nProject: ${project.name}\n`));
     console.log(colors.bold('ID:'), project.id);
     console.log(colors.bold('Description:'), project.description);
     console.log(colors.bold('Repository:'), project.repository);
     console.log(colors.bold('Branch:'), project.branch);
-    console.log(colors.bold('Status:'), project.status === 'running' ? colors.green(project.status) : colors.red(project.status));
+    console.log(
+      colors.bold('Status:'),
+      project.status === 'running' ? colors.green(project.status) : colors.red(project.status),
+    );
     console.log(colors.bold('Last Deployed:'), formatLocaleDate(project.lastDeployed));
-    
+
     console.log(colors.blue('\nDeployments:\n'));
-    
+
     if (deployments.length > 0) {
       const table = new Table()
         .header([
@@ -246,17 +251,19 @@ await snapshotTest({
         ])
         .border(true)
         .padding(1);
-        
-      deployments.forEach(deployment => {
+
+      deployments.forEach((deployment) => {
         table.push([
           deployment.environment,
           deployment.version,
-          deployment.status === 'success' ? colors.green(deployment.status) : colors.red(deployment.status),
+          deployment.status === 'success'
+            ? colors.green(deployment.status)
+            : colors.red(deployment.status),
           formatLocaleDate(deployment.timestamp),
           deployment.committer,
         ]);
       });
-      
+
       console.log(table.toString() + '\n');
     } else {
       console.log(colors.yellow('No deployments found for this project.\n'));
@@ -295,11 +302,15 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova mcp projects --format json | jq \'.[] | select(.status=="running")\'\n'));
-    
+    console.log(
+      colors.blue(
+        '\nPipeline Example: nova mcp projects --format json | jq \'.[] | select(.status=="running")\'\n',
+      ),
+    );
+
     // Simulate the jq filter operation
-    const runningProjects = mockProjects.filter(project => project.status === 'running');
-    
+    const runningProjects = mockProjects.filter((project) => project.status === 'running');
+
     console.log(JSON.stringify(runningProjects, null, 2));
     console.log(colors.dim(`\nFound ${runningProjects.length} running projects\n`));
   },
@@ -312,10 +323,14 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova mcp projects --format json | jq -r \'.[] | "\\(.name) - \\(.repository)"\'\n'));
-    
+    console.log(
+      colors.blue(
+        '\nPipeline Example: nova mcp projects --format json | jq -r \'.[] | "\\(.name) - \\(.repository)"\'\n',
+      ),
+    );
+
     // Simulate the jq string transformation
-    mockProjects.forEach(project => {
+    mockProjects.forEach((project) => {
       console.log(`${project.name} - ${project.repository}`);
     });
   },
@@ -328,16 +343,20 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova mcp projects --format json | jq \'group_by(.status) | map({status: .[0].status, count: length})\'\n'));
-    
+    console.log(
+      colors.blue(
+        "\nPipeline Example: nova mcp projects --format json | jq 'group_by(.status) | map({status: .[0].status, count: length})'\n",
+      ),
+    );
+
     // Simulate the jq grouping operation
     const statusCounts = Object.entries(
       mockProjects.reduce((acc, project) => {
         acc[project.status] = (acc[project.status] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>)
+      }, {} as Record<string, number>),
     ).map(([status, count]) => ({ status, count }));
-    
+
     console.log(JSON.stringify(statusCounts, null, 2));
   },
 });
@@ -349,20 +368,24 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: Complex JQ transformation to join project data with deployment history\n'));
-    
+    console.log(
+      colors.blue(
+        '\nPipeline Example: Complex JQ transformation to join project data with deployment history\n',
+      ),
+    );
+
     // Simulate a complex jq transformation that joins projects with their deployment history
-    const projectsWithDeployments = mockProjects.map(project => {
+    const projectsWithDeployments = mockProjects.map((project) => {
       const projectDeployments = mockDeployments
-        .filter(d => d.projectId === project.id)
-        .map(d => ({
+        .filter((d) => d.projectId === project.id)
+        .map((d) => ({
           environment: d.environment,
           version: d.version,
           timestamp: d.timestamp,
           status: d.status,
           committer: d.committer,
         }));
-      
+
       return {
         name: project.name,
         status: project.status,
@@ -371,7 +394,7 @@ await snapshotTest({
         deploymentCount: projectDeployments.length,
       };
     });
-    
+
     console.log(JSON.stringify(projectsWithDeployments, null, 2));
   },
 });
@@ -384,29 +407,29 @@ await snapshotTest({
   // deno-lint-ignore require-await
   async fn() {
     console.log(colors.blue('\nPipeline Example: Creating a deployment summary report with jq\n'));
-    
+
     // Simulate creating a deployment report with jq
     const deploymentReport = {
       totalDeployments: mockDeployments.length,
-      successfulDeployments: mockDeployments.filter(d => d.status === 'success').length,
-      failedDeployments: mockDeployments.filter(d => d.status === 'failed').length,
+      successfulDeployments: mockDeployments.filter((d) => d.status === 'success').length,
+      failedDeployments: mockDeployments.filter((d) => d.status === 'failed').length,
       averageDuration: Math.round(
-        mockDeployments.reduce((sum, d) => sum + d.duration, 0) / mockDeployments.length
+        mockDeployments.reduce((sum, d) => sum + d.duration, 0) / mockDeployments.length,
       ),
       environments: Object.entries(
         mockDeployments.reduce((acc, d) => {
           acc[d.environment] = (acc[d.environment] || 0) + 1;
           return acc;
-        }, {} as Record<string, number>)
+        }, {} as Record<string, number>),
       ).map(([env, count]) => ({ environment: env, deployments: count })),
       deployers: Object.entries(
         mockDeployments.reduce((acc, d) => {
           acc[d.committer] = (acc[d.committer] || 0) + 1;
           return acc;
-        }, {} as Record<string, number>)
+        }, {} as Record<string, number>),
       ).map(([committer, count]) => ({ committer, deployments: count })),
     };
-    
+
     console.log(JSON.stringify(deploymentReport, null, 2));
   },
-}); 
+});

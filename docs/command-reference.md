@@ -1,6 +1,7 @@
 # Command Reference
 
-This page provides a comprehensive reference of all commands available in Nova CLI. Use the search function or the table of contents to quickly find specific commands.
+This page provides a comprehensive reference of all commands available in Nova CLI. Use the search
+function or the table of contents to quickly find specific commands.
 
 ## Command Structure
 
@@ -186,17 +187,18 @@ nova mcp server
 
 These options are available for most commands:
 
-| Option | Description |
-|--------|-------------|
-| `-f, --format <format>` | Output format (text/json) |
-| `-r, --recent` | Use most recent project/space |
-| `--refresh` | Force refresh cached data |
-| `-h, --help` | Show help information |
-| `-v, --version` | Show version information |
+| Option                  | Description                   |
+| ----------------------- | ----------------------------- |
+| `-f, --format <format>` | Output format (text/json)     |
+| `-r, --recent`          | Use most recent project/space |
+| `--refresh`             | Force refresh cached data     |
+| `-h, --help`            | Show help information         |
+| `-v, --version`         | Show version information      |
 
 ## Command Completion
 
-Nova supports command completion for Bash and Zsh. To enable command completion, use the following commands:
+Nova supports command completion for Bash and Zsh. To enable command completion, use the following
+commands:
 
 ### Bash Completion
 
@@ -217,4 +219,4 @@ echo 'source ~/.nova_completions.zsh' >> ~/.zshrc
 For detailed documentation on planned features, see:
 
 - [GitHub Command (Planned Feature)](user-guide/commands/github.md)
-- [Slack Command (Planned Feature)](user-guide/commands/slack.md) 
+- [Slack Command (Planned Feature)](user-guide/commands/slack.md)

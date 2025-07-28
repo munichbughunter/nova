@@ -1,13 +1,16 @@
 # Confluence Command
 
-The `nova confluence` command provides a powerful interface to Atlassian Confluence directly from your terminal, allowing you to search, browse, and analyze content across your organization's knowledge base.
+The `nova confluence` command provides a powerful interface to Atlassian Confluence directly from
+your terminal, allowing you to search, browse, and analyze content across your organization's
+knowledge base.
 
-!!! info Knowledge Management
-    This command streamlines access to your organization's documentation and knowledge repositories without leaving the terminal.
+!!! info Knowledge Management This command streamlines access to your organization's documentation
+and knowledge repositories without leaving the terminal.
 
 ## Overview
 
-Nova's Confluence integration allows you to interact with your Confluence instance, making it easy to find information, view pages, and analyze space activity without opening a browser.
+Nova's Confluence integration allows you to interact with your Confluence instance, making it easy
+to find information, view pages, and analyze space activity without opening a browser.
 
 ```mermaid
 graph TD
@@ -63,8 +66,8 @@ Lists all Confluence spaces you have access to.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
 | `-f, --format <format>` | Output format (text/json, default: text) |
 
 #### Example Output
@@ -112,13 +115,13 @@ Lists and browses pages within a Confluence space, with interactive selection.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-s, --space <key>` | Space key to list pages from |
-| `-l, --limit <number>` | Maximum number of pages to return (default: 1000) |
-| `-f, --format <format>` | Output format (text/json, default: text) |
-| `-r, --recent` | Show pages from recently accessed spaces |
-| `--refresh` | Force refresh cached data |
+| Option                  | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| `-s, --space <key>`     | Space key to list pages from                      |
+| `-l, --limit <number>`  | Maximum number of pages to return (default: 1000) |
+| `-f, --format <format>` | Output format (text/json, default: text)          |
+| `-r, --recent`          | Show pages from recently accessed spaces          |
+| `--refresh`             | Force refresh cached data                         |
 
 #### Example Output
 
@@ -178,10 +181,10 @@ Searches for content across all accessible Confluence spaces.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-l, --limit <number>` | Maximum number of results to return (default: 10) |
-| `-f, --format <format>` | Output format (text/json, default: text) |
+| Option                  | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| `-l, --limit <number>`  | Maximum number of results to return (default: 10) |
+| `-f, --format <format>` | Output format (text/json, default: text)          |
 
 #### Example Output
 
@@ -236,12 +239,12 @@ Displays a dashboard with statistics and analytics for a Confluence space.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
-| `-s, --space <key>` | Space key to show dashboard for |
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `-s, --space <key>`     | Space key to show dashboard for          |
 | `-f, --format <format>` | Output format (text/json, default: text) |
-| `-r, --recent` | Use the most recent space |
-| `--refresh` | Force refresh cached data |
+| `-r, --recent`          | Use the most recent space                |
+| `--refresh`             | Force refresh cached data                |
 
 #### Example Output
 
@@ -313,10 +316,10 @@ Displays detailed information about a specific Confluence page.
 
 #### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description                              |
+| ----------------------- | ---------------------------------------- |
 | `-f, --format <format>` | Output format (text/json, default: text) |
-| `--refresh` | Force refresh cached data |
+| `--refresh`             | Force refresh cached data                |
 
 #### Example Output
 
@@ -362,10 +365,10 @@ Related Pages:
 
 These options are available across multiple Confluence commands:
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description               |
+| ----------------------- | ------------------------- |
 | `-f, --format <format>` | Output format (text/json) |
-| `--refresh` | Force refresh cached data |
+| `--refresh`             | Force refresh cached data |
 
 ## Cache Management
 
@@ -447,20 +450,16 @@ sequenceDiagram
 
 ## Tips and Best Practices
 
-!!! tip Finding Content Quickly
-    - Use specific search terms with `nova confluence search`
-    - When browsing pages, use `--limit` to show only recent pages
-    - Save commonly referenced page IDs in your notes for quick access
+!!! tip Finding Content Quickly - Use specific search terms with `nova confluence search` - When
+browsing pages, use `--limit` to show only recent pages - Save commonly referenced page IDs in your
+notes for quick access
 
-!!! tip Managing Large Spaces
-    - Use `--space` to narrow focus to specific areas
-    - Combine the `search` command with precise queries
-    - Use `dashboard` to identify most active/important pages
+!!! tip Managing Large Spaces - Use `--space` to narrow focus to specific areas - Combine the
+`search` command with precise queries - Use `dashboard` to identify most active/important pages
 
 ## Troubleshooting
 
-!!! warning Common Issues
-    Solutions for common Confluence command problems.
+!!! warning Common Issues Solutions for common Confluence command problems.
 
 ### Authentication Errors
 
@@ -492,4 +491,4 @@ If commands are slow:
 
 - [`nova jira`](jira.md) - Jira operations for issue tracking
 - [`nova setup`](setup.md) - Configure Confluence credentials
-- [`nova config`](config.md) - Manage Confluence configuration 
+- [`nova config`](config.md) - Manage Confluence configuration

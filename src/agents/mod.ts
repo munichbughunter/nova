@@ -36,20 +36,22 @@ export class AgentFactory {
   constructor(context: Partial<AgentContext>) {
     // Create a logger if not provided
     const logger = context.logger || new Logger('Agent', Deno.env.get('DEBUG') === 'true');
-    
+
     // Initialize Jira service if configured
     let jira: JiraService | undefined;
     try {
-      if (context.config?.atlassian?.jira_url && 
-          context.config.atlassian.jira_token && 
-          context.config.atlassian.username) {
+      if (
+        context.config?.atlassian?.jira_url &&
+        context.config.atlassian.jira_token &&
+        context.config.atlassian.username
+      ) {
         jira = new JiraService(context.config);
         logger.debug('Initialized Jira service');
       }
     } catch (error) {
       logger.warn('Failed to initialize Jira service:', error);
     }
-    
+
     this.context = {
       config: context.config!,
       gitlab: context.gitlab!,
@@ -61,7 +63,7 @@ export class AgentFactory {
       confluence: context.confluence,
       datadog: context.datadog,
       dora: context.dora,
-      mcpService: context.mcpService
+      mcpService: context.mcpService,
     };
   }
 
@@ -70,7 +72,7 @@ export class AgentFactory {
     const agentLogger = this.context.logger.child(type);
     const agentContext = {
       ...this.context,
-      logger: agentLogger
+      logger: agentLogger,
     };
 
     switch (type) {
@@ -85,11 +87,9 @@ export class AgentFactory {
         throw new Error(`Unknown agent type: ${type}`);
     }
   }
-
 }
 
 // Export all agents
 export * from './base_agent.ts';
 export * from './dev/mod.ts';
 export * from './workflow_agent.ts';
-

@@ -26,14 +26,14 @@ interface ProjectData {
   activity: {
     openIssues: number;
     openMergeRequests: number;
-    lastCommit: { id: string; created_at: string; } | null;
+    lastCommit: { id: string; created_at: string } | null;
     _cached_at?: string;
   };
   summary: {
-    latestTag: { name: string; createdAt: string; } | null;
+    latestTag: { name: string; createdAt: string } | null;
     hasChangelog: boolean;
-    lastDeployment: { environment: string; deployedAt: string; } | null;
-    pipeline: { stats: { success: number; failed: number; running: number; total: number; } } | null;
+    lastDeployment: { environment: string; deployedAt: string } | null;
+    pipeline: { stats: { success: number; failed: number; running: number; total: number } } | null;
   };
   lastCommitDate: Date;
   hasFullAccess: boolean;
@@ -54,7 +54,7 @@ const CACHE_CONFIG = {
   basePath: `${Deno.env.get('HOME')}/.cache/nova`,
   serviceName: 'ops-dashboard',
   logger,
-  cacheDuration: 24 * 60 * 60 * 1000 // 24 hours for dev cache
+  cacheDuration: 24 * 60 * 60 * 1000, // 24 hours for dev cache
 };
 
 // Add at the top with other constants
@@ -84,11 +84,11 @@ async function updateData(
   _progress: ProgressIndicator,
   projectsWithActivity: ProjectData[],
   _renderDashboard: (projects: ProjectData[]) => void,
-  cleanup: () => void
+  cleanup: () => void,
 ): Promise<ProjectData[]> {
   const userCache = await UserCache.getInstance();
   const devCache = new DevCache(CACHE_CONFIG);
-  
+
   // Try to get projects from UserCache first
   let allProjects: ProjectSchema[] = [];
   if (!options.refresh) {
@@ -101,13 +101,13 @@ async function updateData(
   // If no cached data or refresh requested, fetch from GitLab
   if (allProjects.length === 0 || options.refresh) {
     allProjects = await gitlab.getProjects(options.refresh);
-    
+
     // Cache the results in UserCache
     if (allProjects.length > 0) {
       await userCache.cacheProjectsList(allProjects);
     }
   }
-  
+
   if (allProjects.length === 0) {
     return projectsWithActivity; // Return existing list if no new data
   }
@@ -117,17 +117,19 @@ async function updateData(
 
   // First filter by date and query
   const filteredProjects = allProjects
-    .filter(p => new Date(p.last_activity_at) >= cutoffDate)
-    .filter(p => !options.query || 
+    .filter((p) => new Date(p.last_activity_at) >= cutoffDate)
+    .filter((p) =>
+      !options.query ||
       p.name.toLowerCase().includes(options.query.toLowerCase()) ||
-      p.path_with_namespace.toLowerCase().includes(options.query.toLowerCase()));
+      p.path_with_namespace.toLowerCase().includes(options.query.toLowerCase())
+    );
 
   // Sort projects
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     if (options.sort === 'name') {
-      return options.order === 'desc' ? 
-        b.path_with_namespace.localeCompare(a.path_with_namespace) : 
-        a.path_with_namespace.localeCompare(b.path_with_namespace);
+      return options.order === 'desc'
+        ? b.path_with_namespace.localeCompare(a.path_with_namespace)
+        : a.path_with_namespace.localeCompare(b.path_with_namespace);
     }
     const aValue = new Date(a.last_activity_at).getTime();
     const bValue = new Date(b.last_activity_at).getTime();
@@ -139,7 +141,7 @@ async function updateData(
     // Check memory cache first
     const cacheKey = `project_${project.id}`;
     const memCached = MEMORY_CACHE.get(cacheKey);
-    
+
     if (memCached && !options.refresh) {
       const now = Date.now();
       // Use memory cache if it's fresh (less than 5 minutes old)
@@ -147,18 +149,18 @@ async function updateData(
         return memCached.data;
       }
     }
-    
+
     // Try to get cached activity data from DevCache
     const devCacheKey = `project_activity_${project.id}`;
     const cachedActivity = await devCache.get<ProjectData>(devCacheKey, 'activity');
-    
+
     if (cachedActivity && !cachedActivity.isLoading && !options.refresh) {
       // Update memory cache
       MEMORY_CACHE.set(cacheKey, {
         data: cachedActivity,
         timestamp: Date.now(),
         lastChecked: Date.now(),
-        lastActivityAt: project.last_activity_at
+        lastActivityAt: project.last_activity_at,
       });
       return cachedActivity;
     }
@@ -166,11 +168,11 @@ async function updateData(
     // Create new loading state for this project
     const newProjectData: ProjectData = {
       project,
-      activity: { 
-        openIssues: 0, 
-        openMergeRequests: 0, 
+      activity: {
+        openIssues: 0,
+        openMergeRequests: 0,
         lastCommit: null,
-        _cached_at: undefined
+        _cached_at: undefined,
       },
       summary: {
         latestTag: null,
@@ -180,7 +182,7 @@ async function updateData(
       },
       lastCommitDate: new Date(project.last_activity_at),
       hasFullAccess: true,
-      isLoading: true
+      isLoading: true,
     };
 
     // Update memory cache
@@ -188,7 +190,7 @@ async function updateData(
       data: newProjectData,
       timestamp: Date.now(),
       lastChecked: Date.now(),
-      lastActivityAt: project.last_activity_at
+      lastActivityAt: project.last_activity_at,
     });
 
     return newProjectData;
@@ -203,7 +205,7 @@ async function updateData(
         const projectsToCache = cacheEntries
           .filter(([_, entry]) => !entry.data.isLoading)
           .map(([_, entry]) => entry.data.project);
-        
+
         if (projectsToCache.length > 0) {
           await userCache.cacheProjectsList(projectsToCache);
         }
@@ -231,9 +233,9 @@ function truncateString(str: string, maxLength: number): string {
 
 function _wrapText(text: string, maxLength: number): string {
   if (!text) return '';
-  
+
   // Split into words while preserving URLs
-  const words = text.split(' ').map(word => {
+  const words = text.split(' ').map((word) => {
     if (word.startsWith('http://') || word.startsWith('https://')) {
       // For URLs, try to break at logical points
       return word.replace(/([\/.])/g, '$1\n').split('\n').filter(Boolean);
@@ -244,7 +246,7 @@ function _wrapText(text: string, maxLength: number): string {
   const lines: string[] = [];
   let currentLine = '';
 
-  words.forEach(word => {
+  words.forEach((word) => {
     // If this word would make the line too long, start a new line
     if ((currentLine + ' ' + word).length > maxLength && currentLine) {
       lines.push(currentLine.trim());
@@ -253,7 +255,7 @@ function _wrapText(text: string, maxLength: number): string {
       currentLine += (currentLine ? ' ' : '') + word;
     }
   });
-  
+
   if (currentLine) {
     lines.push(currentLine.trim());
   }
@@ -263,25 +265,25 @@ function _wrapText(text: string, maxLength: number): string {
 
 function formatProjectUrl(url: string): string {
   if (!url) return '';
-  
+
   // Remove protocol and trailing slash
   let formatted = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  
+
   // If still too long, truncate middle
   if (formatted.length > MAX_URL_LENGTH) {
     const start = formatted.substring(0, Math.floor(MAX_URL_LENGTH / 2) - 2);
     const end = formatted.substring(formatted.length - Math.floor(MAX_URL_LENGTH / 2) + 2);
     formatted = `${start}...${end}`;
   }
-  
+
   return formatted;
 }
 
 function formatDescription(desc: string): string {
   if (!desc) return '';
-  
+
   // Replace emojis with shorter text representation
-  const withEmojis = desc.replace(/[\u{1F300}-\u{1F9FF}]/gu, match => {
+  const withEmojis = desc.replace(/[\u{1F300}-\u{1F9FF}]/gu, (match) => {
     const emojiMap: Record<string, string> = {
       '📚': '[doc]',
       '👾': '[api]',
@@ -289,23 +291,27 @@ function formatDescription(desc: string): string {
       '📦': '[pkg]',
       // Add more emoji mappings as needed
     };
-    return emojiMap[match] || '';  // Remove unmapped emojis
+    return emojiMap[match] || ''; // Remove unmapped emojis
   });
-  
+
   // Truncate and remove newlines
   return truncateString(withEmojis.replace(/\s+/g, ' ').trim(), MAX_DESC_LENGTH);
 }
 
-function _renderDashboard(projects: ProjectData[], options: DashboardOptions, selectedIndex: number) {
-  console.log('\x1b[2J\x1b[H');  // Clear screen
-  
+function _renderDashboard(
+  projects: ProjectData[],
+  options: DashboardOptions,
+  selectedIndex: number,
+) {
+  console.log('\x1b[2J\x1b[H'); // Clear screen
+
   // Calculate pagination
   const totalItems = projects.length;
   const _totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
   const currentPage = Math.floor(selectedIndex / ITEMS_PER_PAGE);
   const startIndex = currentPage * ITEMS_PER_PAGE;
   const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
-  
+
   // Create table
   const headers = [
     'Access',
@@ -316,7 +322,7 @@ function _renderDashboard(projects: ProjectData[], options: DashboardOptions, se
     'Activity',
     ...(options.pipeline ? ['Pipeline'] : []),
     'Changelog',
-    'Description'
+    'Description',
   ];
 
   const table = new Table()
@@ -340,14 +346,19 @@ function _renderDashboard(projects: ProjectData[], options: DashboardOptions, se
 
     const formattedUrl = formatProjectUrl(projectData.project.web_url);
     const projectPath = projectData.project.path_with_namespace;
-    const projectInfo = colors.blue(formattedUrl) + '\n' + 
-                       colors.green(projectPath) + 
-                       loadingIndicator;
+    const projectInfo = colors.blue(formattedUrl) + '\n' +
+      colors.green(projectPath) +
+      loadingIndicator;
 
-    const lastDeploy = projectData.isLoading ? 'Loading...' :
-      (projectData.summary.lastDeployment 
-        ? `${projectData.summary.lastDeployment.environment}\n${getTimeAgo(new Date(projectData.summary.lastDeployment.deployedAt))}`
-        : projectData.hasFullAccess ? 'No deployments' : '-');
+    const lastDeploy = projectData.isLoading
+      ? 'Loading...'
+      : (projectData.summary.lastDeployment
+        ? `${projectData.summary.lastDeployment.environment}\n${
+          getTimeAgo(new Date(projectData.summary.lastDeployment.deployedAt))
+        }`
+        : projectData.hasFullAccess
+        ? 'No deployments'
+        : '-');
 
     let latestTagDisplay;
     if (projectData.isLoading) {
@@ -355,7 +366,9 @@ function _renderDashboard(projects: ProjectData[], options: DashboardOptions, se
     } else if (projectData.summary.latestTag && projectData.summary.latestTag.name) {
       const tagDate = new Date(projectData.summary.latestTag.createdAt);
       const daysSinceTag = Math.floor((Date.now() - tagDate.getTime()) / (1000 * 60 * 60 * 24));
-      const daysSinceUpdate = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceUpdate = Math.floor(
+        (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24),
+      );
       const shouldHighlight = daysSinceTag > 90 && daysSinceUpdate < 30;
       latestTagDisplay = shouldHighlight
         ? colors.yellow(`${projectData.summary.latestTag.name} ⚠️`)
@@ -364,25 +377,39 @@ function _renderDashboard(projects: ProjectData[], options: DashboardOptions, se
       latestTagDisplay = projectData.hasFullAccess ? colors.yellow('No tags ⚠️') : '-';
     }
 
-    const activityInfo = projectData.isLoading ? 'Loading...' :
-      (projectData.hasFullAccess ? [
-        projectData.activity.lastCommit ? `Last: ${projectData.activity.lastCommit.id.substring(0, 8)}` : 'No commits',
+    const activityInfo = projectData.isLoading ? 'Loading...' : (projectData.hasFullAccess
+      ? [
+        projectData.activity.lastCommit
+          ? `Last: ${projectData.activity.lastCommit.id.substring(0, 8)}`
+          : 'No commits',
         `MRs: ${projectData.activity.openMergeRequests}`,
-        `Issues: ${projectData.activity.openIssues}`
-      ].join('\n') : 'Limited access');
+        `Issues: ${projectData.activity.openIssues}`,
+      ].join('\n')
+      : 'Limited access');
 
-    const pipelineInfo = projectData.isLoading ? 'Loading...' :
-      (projectData.hasFullAccess ? (projectData.summary.pipeline?.stats ? 
-        [
-          colors.green(`${projectData.summary.pipeline.stats.success}✓`),
-          colors.yellow(`${projectData.summary.pipeline.stats.failed}!`),
-          projectData.summary.pipeline.stats.running > 0 ? colors.blue(`${projectData.summary.pipeline.stats.running}○`) : '',
-          `${Math.round((projectData.summary.pipeline.stats.success / Math.max(projectData.summary.pipeline.stats.total, 1)) * 100)}%`
-        ].filter(Boolean).join(' ') :
-        'No pipelines') : '-');
+    const pipelineInfo = projectData.isLoading
+      ? 'Loading...'
+      : (projectData.hasFullAccess
+        ? (projectData.summary.pipeline?.stats
+          ? [
+            colors.green(`${projectData.summary.pipeline.stats.success}✓`),
+            colors.yellow(`${projectData.summary.pipeline.stats.failed}!`),
+            projectData.summary.pipeline.stats.running > 0
+              ? colors.blue(`${projectData.summary.pipeline.stats.running}○`)
+              : '',
+            `${
+              Math.round(
+                (projectData.summary.pipeline.stats.success /
+                  Math.max(projectData.summary.pipeline.stats.total, 1)) * 100,
+              )
+            }%`,
+          ].filter(Boolean).join(' ')
+          : 'No pipelines')
+        : '-');
 
-    const changelog = projectData.isLoading ? 'Loading...' :
-      (projectData.hasFullAccess 
+    const changelog = projectData.isLoading
+      ? 'Loading...'
+      : (projectData.hasFullAccess
         ? (projectData.summary.hasChangelog ? colors.green('✓') : colors.red('✗'))
         : '-');
 
@@ -397,25 +424,41 @@ function _renderDashboard(projects: ProjectData[], options: DashboardOptions, se
       activityInfo,
       ...(options.pipeline ? [pipelineInfo] : []),
       changelog,
-      description
+      description,
     ];
 
     // Apply row styling
-    const styledRow = rowData.map(cell => rowStyle(cell));
+    const styledRow = rowData.map((cell) => rowStyle(cell));
     table.push(styledRow);
   });
 
   // Print help and navigation
-  console.log(colors.blue(`\nProjects Dashboard (${totalItems} projects) - Page ${currentPage + 1}/${_totalPages}`));
-  console.log(colors.dim('Navigation: ↑/↓ move cursor, ←/→ or PgUp/PgDn change pages, \'r\' refresh, \'q\' quit\n'));
+  console.log(
+    colors.blue(
+      `\nProjects Dashboard (${totalItems} projects) - Page ${currentPage + 1}/${_totalPages}`,
+    ),
+  );
+  console.log(
+    colors.dim(
+      "Navigation: ↑/↓ move cursor, ←/→ or PgUp/PgDn change pages, 'r' refresh, 'q' quit\n",
+    ),
+  );
   console.log(table.toString());
-  
+
   // Print status line with more detailed information
   const now = new Date();
-  const loadingCount = projects.filter(p => p.isLoading).length;
-  const statusLine = loadingCount > 0 ? 
-    colors.dim(`Last updated: ${now.toLocaleTimeString()} (Loading data for ${loadingCount} projects... Page ${currentPage + 1}/${_totalPages}, showing ${startIndex + 1}-${endIndex} of ${totalItems})`) :
-    colors.dim(`Last updated: ${now.toLocaleTimeString()} (Page ${currentPage + 1}/${_totalPages}, showing ${startIndex + 1}-${endIndex} of ${totalItems})`);
+  const loadingCount = projects.filter((p) => p.isLoading).length;
+  const statusLine = loadingCount > 0
+    ? colors.dim(
+      `Last updated: ${now.toLocaleTimeString()} (Loading data for ${loadingCount} projects... Page ${
+        currentPage + 1
+      }/${_totalPages}, showing ${startIndex + 1}-${endIndex} of ${totalItems})`,
+    )
+    : colors.dim(
+      `Last updated: ${now.toLocaleTimeString()} (Page ${currentPage + 1}/${_totalPages}, showing ${
+        startIndex + 1
+      }-${endIndex} of ${totalItems})`,
+    );
   console.log(statusLine);
 }
 
@@ -433,24 +476,26 @@ export const dashboardCommand = new Command()
   })
   .option('--refresh', 'Force refresh cached data', { default: false })
   .option('-q, --query <string>', 'Filter projects by name or path')
-  .option('-l, --limit <number:number>', 'Limit number of projects to show', { default: DEFAULT_LIMIT })
-  .option('--sort <field:string>', 'Sort by field (updated, name, activity)', { 
+  .option('-l, --limit <number:number>', 'Limit number of projects to show', {
+    default: DEFAULT_LIMIT,
+  })
+  .option('--sort <field:string>', 'Sort by field (updated, name, activity)', {
     default: 'activity' as const,
     value: (val: string): 'updated' | 'name' | 'activity' => {
       if (val !== 'updated' && val !== 'name' && val !== 'activity') {
         throw new Error('Sort must be either "updated", "name", or "activity"');
       }
       return val;
-    }
+    },
   })
-  .option('--order <order:string>', 'Sort order (asc, desc)', { 
+  .option('--order <order:string>', 'Sort order (asc, desc)', {
     default: 'desc' as const,
     value: (val: string): 'asc' | 'desc' => {
       if (val !== 'asc' && val !== 'desc') {
         throw new Error('Order must be either "asc" or "desc"');
       }
       return val;
-    }
+    },
   })
   .option('-d, --days <number:number>', 'Number of days to look back', { default: DEFAULT_DAYS })
   .option('--pipeline', 'Include pipeline statistics (slower)', { default: false })
@@ -474,7 +519,7 @@ export const dashboardCommand = new Command()
     };
 
     // Handle cleanup and exit
-    Deno.addSignalListener("SIGINT", () => {
+    Deno.addSignalListener('SIGINT', () => {
       cleanupFn();
       Deno.exit(0);
     });
@@ -488,10 +533,12 @@ export const dashboardCommand = new Command()
 
     function needsRefresh(projectData: ProjectData): boolean {
       if (projectData.isLoading) return false;
-      
+
       const now = Date.now();
       const lastUpdated = new Date(projectData.project.last_activity_at).getTime();
-      const lastCached = projectData.activity._cached_at ? new Date(projectData.activity._cached_at).getTime() : 0;
+      const lastCached = projectData.activity._cached_at
+        ? new Date(projectData.activity._cached_at).getTime()
+        : 0;
 
       // If we have no cache, definitely need refresh
       if (!lastCached) {
@@ -512,26 +559,28 @@ export const dashboardCommand = new Command()
 
     async function updateProjectBatch(
       projects: ProjectData[],
-      gitlab: GitLabService
+      gitlab: GitLabService,
     ): Promise<void> {
       // Filter out projects that don't need updates
       const projectsToUpdate = projects.filter(needsRefresh);
-      
+
       // Process projects in concurrent batches
       for (let i = 0; i < projectsToUpdate.length; i += MAX_CONCURRENT_REQUESTS) {
         const batch = projectsToUpdate.slice(i, i + MAX_CONCURRENT_REQUESTS);
-        
+
         await Promise.all(batch.map(async (project) => {
           try {
             const [activity, summary] = await Promise.all([
               gitlab.getProjectActivityLightRest(project.project.id),
               gitlab.getProjectSummary(project.project, {
                 includeDeployments: true,
-                includePipelines: options.pipeline
-              })
+                includePipelines: options.pipeline,
+              }),
             ]);
 
-            const index = projectsWithActivity.findIndex(p => p.project.id === project.project.id);
+            const index = projectsWithActivity.findIndex((p) =>
+              p.project.id === project.project.id
+            );
             if (index !== -1) {
               projectsWithActivity[index] = {
                 ...project,
@@ -539,28 +588,30 @@ export const dashboardCommand = new Command()
                   openIssues: activity.openIssues,
                   openMergeRequests: activity.openMergeRequests,
                   lastCommit: activity.lastCommit ?? null,
-                  _cached_at: new Date().toISOString()
+                  _cached_at: new Date().toISOString(),
                 },
                 summary,
-                isLoading: false
+                isLoading: false,
               };
             }
           } catch (error) {
             logger.error(`Error updating project ${project.project.path_with_namespace}:`, error);
             // On error, just mark as not loading but keep existing data
-            const index = projectsWithActivity.findIndex(p => p.project.id === project.project.id);
+            const index = projectsWithActivity.findIndex((p) =>
+              p.project.id === project.project.id
+            );
             if (index !== -1) {
               projectsWithActivity[index] = {
                 ...projectsWithActivity[index],
-                isLoading: false
+                isLoading: false,
               };
             }
           }
         }));
 
         // Small delay between batches to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // Re-render after each batch
         _renderDashboard(projectsWithActivity, options, selectedIndex);
       }
@@ -573,12 +624,12 @@ export const dashboardCommand = new Command()
 
         // Get visible range
         const { startIndex, endIndex } = getVisibleRange();
-        
+
         // Split projects into visible and non-visible
         const visibleProjects = projectsWithActivity.slice(startIndex, endIndex);
         const nonVisibleProjects = [
           ...projectsWithActivity.slice(0, startIndex),
-          ...projectsWithActivity.slice(endIndex)
+          ...projectsWithActivity.slice(endIndex),
         ];
 
         // Update visible projects first
@@ -593,7 +644,11 @@ export const dashboardCommand = new Command()
         if (staleBackgroundProjects.length > 0) {
           for (let i = 0; i < staleBackgroundProjects.length; i += BATCH_SIZE) {
             const batch = staleBackgroundProjects.slice(i, i + BATCH_SIZE);
-            _progress.start(`Updating background projects (${i + 1}-${Math.min(i + BATCH_SIZE, staleBackgroundProjects.length)} of ${staleBackgroundProjects.length})...`);
+            _progress.start(
+              `Updating background projects (${i + 1}-${
+                Math.min(i + BATCH_SIZE, staleBackgroundProjects.length)
+              } of ${staleBackgroundProjects.length})...`,
+            );
             await updateProjectBatch(batch, gitlab);
             _progress.stop();
           }
@@ -601,7 +656,7 @@ export const dashboardCommand = new Command()
 
         // Always re-render after updates
         _renderDashboard(projectsWithActivity, options, selectedIndex);
-      }
+      },
     };
 
     try {
@@ -619,14 +674,14 @@ export const dashboardCommand = new Command()
       (async () => {
         isLoading = true;
         _progress.start('Loading initial project list...');
-        
+
         const initialProjects = await updateData(
           gitlab,
           options,
           _progress,
           projectsWithActivity,
           (projects) => _renderDashboard(projects, options, selectedIndex),
-          () => cleanupFn()
+          () => cleanupFn(),
         );
 
         if (initialProjects.length > 0) {
@@ -635,7 +690,7 @@ export const dashboardCommand = new Command()
           // Load initial data for visible projects first
           const { startIndex, endIndex } = getVisibleRange();
           const visibleProjects = projectsWithActivity.slice(startIndex, endIndex);
-          
+
           _progress.start('Loading data for visible projects...');
           await Promise.all(visibleProjects.map(async (project) => {
             try {
@@ -643,11 +698,13 @@ export const dashboardCommand = new Command()
                 gitlab.getProjectActivityLightRest(project.project.id),
                 gitlab.getProjectSummary(project.project, {
                   includeDeployments: true,
-                  includePipelines: options.pipeline
-                })
+                  includePipelines: options.pipeline,
+                }),
               ]);
 
-              const index = projectsWithActivity.findIndex(p => p.project.id === project.project.id);
+              const index = projectsWithActivity.findIndex((p) =>
+                p.project.id === project.project.id
+              );
               if (index !== -1) {
                 projectsWithActivity[index] = {
                   ...project,
@@ -655,19 +712,22 @@ export const dashboardCommand = new Command()
                     openIssues: activity.openIssues,
                     openMergeRequests: activity.openMergeRequests,
                     lastCommit: activity.lastCommit ?? null,
-                    _cached_at: new Date().toISOString()
+                    _cached_at: new Date().toISOString(),
                   },
                   summary,
-                  isLoading: false
+                  isLoading: false,
                 };
               }
               _renderDashboard(projectsWithActivity, options, selectedIndex);
             } catch (error) {
-              logger.error(`Error loading initial data for ${project.project.path_with_namespace}:`, error);
+              logger.error(
+                `Error loading initial data for ${project.project.path_with_namespace}:`,
+                error,
+              );
             }
           }));
         }
-        
+
         isLoading = false;
         _progress.stop();
 
@@ -702,62 +762,62 @@ export const dashboardCommand = new Command()
 
           // Handle navigation
           switch (event.value.sequence) {
-            case "\x1b[A": { // Up arrow
+            case '\x1b[A': { // Up arrow
               selectedIndex = Math.max(0, selectedIndex - 1);
               break;
             }
 
-            case "\x1b[B": { // Down arrow
+            case '\x1b[B': { // Down arrow
               selectedIndex = Math.min(totalItems - 1, selectedIndex + 1);
               break;
             }
 
-            case "\x1b[D": { // Left arrow
+            case '\x1b[D': { // Left arrow
               selectedIndex = Math.max(0, selectedIndex - ITEMS_PER_PAGE);
               break;
             }
 
-            case "\x1b[C": { // Right arrow
+            case '\x1b[C': { // Right arrow
               selectedIndex = Math.min(totalItems - 1, selectedIndex + ITEMS_PER_PAGE);
               break;
             }
 
-            case "g": {
+            case 'g': {
               selectedIndex = 0;
               break;
             }
 
-            case "G": {
+            case 'G': {
               selectedIndex = totalItems - 1;
               break;
             }
 
-            case "q": {
+            case 'q': {
               cleanupFn();
               Deno.exit(0);
               break;
             }
 
-            case "r": {
+            case 'r': {
               const selectedProject = projectsWithActivity[selectedIndex];
               if (selectedProject) {
                 // Set loading state immediately
                 projectsWithActivity[selectedIndex] = {
                   ...selectedProject,
-                  isLoading: true
+                  isLoading: true,
                 };
                 _renderDashboard(projectsWithActivity, options, selectedIndex);
-                
+
                 _progress.start(`Refreshing ${selectedProject.project.name}...`);
-                
+
                 try {
                   // Get fresh activity data
                   const [activity, summary] = await Promise.all([
                     gitlab.getProjectActivityLightRest(selectedProject.project.id),
                     gitlab.getProjectSummary(selectedProject.project, {
                       includeDeployments: true,
-                      includePipelines: options.pipeline
-                    })
+                      includePipelines: options.pipeline,
+                    }),
                   ]);
 
                   projectsWithActivity[selectedIndex] = {
@@ -766,10 +826,10 @@ export const dashboardCommand = new Command()
                       openIssues: activity.openIssues,
                       openMergeRequests: activity.openMergeRequests,
                       lastCommit: activity.lastCommit ?? null,
-                      _cached_at: new Date().toISOString()
+                      _cached_at: new Date().toISOString(),
                     },
                     summary,
-                    isLoading: false
+                    isLoading: false,
                   };
 
                   // Update memory cache
@@ -778,7 +838,7 @@ export const dashboardCommand = new Command()
                     data: projectsWithActivity[selectedIndex],
                     timestamp: Date.now(),
                     lastChecked: Date.now(),
-                    lastActivityAt: selectedProject.project.last_activity_at
+                    lastActivityAt: selectedProject.project.last_activity_at,
                   });
 
                   _renderDashboard(projectsWithActivity, options, selectedIndex);
@@ -787,7 +847,7 @@ export const dashboardCommand = new Command()
                   // On error, revert loading state but keep existing data
                   projectsWithActivity[selectedIndex] = {
                     ...selectedProject,
-                    isLoading: false
+                    isLoading: false,
                   };
                   _renderDashboard(projectsWithActivity, options, selectedIndex);
                 } finally {
@@ -805,12 +865,15 @@ export const dashboardCommand = new Command()
           _renderDashboard(projectsWithActivity, options, selectedIndex);
 
           // Debug output at the bottom
-          logger.debug(colors.bgBlue(`Key pressed: sequence="${event.value.sequence}" key="${event.value.key}"`));
+          logger.debug(
+            colors.bgBlue(
+              `Key pressed: sequence="${event.value.sequence}" key="${event.value.key}"`,
+            ),
+          );
         } catch (error) {
           logger.error('Error in keyboard handler:', error);
         }
       }
-
     } catch (error) {
       cleanupFn();
       logger.error('Error in dashboard:', error instanceof Error ? error.message : String(error));
@@ -823,26 +886,28 @@ function getTimeAgo(date: Date): string {
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) return 'just now';
-  
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) return `${diffInHours}h ago`;
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) return `${diffInDays}d ago`;
-  
+
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) return `${diffInMonths}mo ago`;
-  
+
   const diffInYears = Math.floor(diffInMonths / 12);
   return `${diffInYears}y ago`;
 }
 
-function _formatPipelineStatus(stats: { success: number; failed: number; running: number; total: number }): string {
+function _formatPipelineStatus(
+  stats: { success: number; failed: number; running: number; total: number },
+): string {
   const parts = [];
-  
+
   if (stats.running > 0) {
     parts.push(colors.blue(`${stats.running}○`));
   }
@@ -852,10 +917,10 @@ function _formatPipelineStatus(stats: { success: number; failed: number; running
   if (stats.failed > 0) {
     parts.push(colors.yellow(`${stats.failed}!`));
   }
-  
+
   if (parts.length === 0) {
     return colors.dim('No pipelines');
   }
-  
+
   return parts.join(' ') + `\n${Math.round((stats.success / stats.total) * 100)}% success`;
-} 
+}

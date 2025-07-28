@@ -13,17 +13,19 @@ async function runTests() {
 
   console.log('\n\n==== TESTING WITH SSE TRANSPORT ====');
   await testMcpServer('sse');
-  
+
   console.log('\nAll tests completed!');
 }
 
 async function testMcpServer(transportType = 'stdio') {
-  console.log(`Connecting to local nova MCP server using ${transportType.toUpperCase()} transport...`);
+  console.log(
+    `Connecting to local nova MCP server using ${transportType.toUpperCase()} transport...`,
+  );
 
   // Create transport based on the specified type
   let transport;
   let client;
-  
+
   if (transportType === 'stdio') {
     // Create stdio transport that launches the MCP server directly from the local code
     transport = new StdioClientTransport({
@@ -38,7 +40,7 @@ async function testMcpServer(transportType = 'stdio') {
         'main.ts',
         'mcp',
         'server',
-        '--no-sse'
+        '--no-sse',
       ],
     });
   } else {
@@ -213,7 +215,11 @@ async function testMcpServer(transportType = 'stdio') {
                     }
                   } catch (error: any) {
                     console.error('Error calling read_task_file tool:', error.message);
-                    testResults.push({ tool: 'read_task_file', success: false, error: error.message });
+                    testResults.push({
+                      tool: 'read_task_file',
+                      success: false,
+                      error: error.message,
+                    });
                   }
                 }
               }
@@ -236,79 +242,83 @@ async function testMcpServer(transportType = 'stdio') {
         const jsResult = await client.callTool({
           name: 'javascript_executor',
           arguments: {
-            description: "Calculate the factorial of 5",
-            code: "function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); } return factorial(5);",
+            description: 'Calculate the factorial of 5',
+            code:
+              'function factorial(n) { return n <= 1 ? 1 : n * factorial(n-1); } return factorial(5);',
           },
         });
 
         if (jsResult.content && jsResult.content.length > 0) {
           const resultText = jsResult.content[0].text;
-          console.log("JavaScript execution result:", resultText);
-          
+          console.log('JavaScript execution result:', resultText);
+
           // Check if this is a configuration issue
-          if (resultText.includes("not available") || resultText.includes("configure")) {
-            testResults.push({ 
-              tool: "javascript_executor", 
-              success: false, 
+          if (resultText.includes('not available') || resultText.includes('configure')) {
+            testResults.push({
+              tool: 'javascript_executor',
+              success: false,
               configRequired: true,
-              message: resultText
+              message: resultText,
             });
           } else {
-            testResults.push({ tool: "javascript_executor", success: true });
+            testResults.push({ tool: 'javascript_executor', success: true });
           }
         } else {
-          console.log("No content returned from javascript_executor tool");
-          testResults.push({ tool: "javascript_executor", success: false });
+          console.log('No content returned from javascript_executor tool');
+          testResults.push({ tool: 'javascript_executor', success: false });
         }
       } catch (error: any) {
-        console.error("Error calling javascript_executor tool:", error.message);
-        testResults.push({ tool: "javascript_executor", success: false, error: error.message });
+        console.error('Error calling javascript_executor tool:', error.message);
+        testResults.push({ tool: 'javascript_executor', success: false, error: error.message });
       }
     }
-    
+
     // Test GitLab search tool
     if (tools.tools.some((t) => t.name === 'gitlab_search')) {
       console.log('\nTesting gitlab_search tool:');
       try {
         const gitlabResult = await client.callTool({
-          name: "gitlab_search",
+          name: 'gitlab_search',
           arguments: {
-            query: "abx",
-            scope: "projects",
+            query: 'abx',
+            scope: 'projects',
           },
         });
 
         if (gitlabResult.content && gitlabResult.content.length > 0) {
           const resultText = gitlabResult.content[0].text;
-          console.log("GitLab search result:", resultText.substring(0, 100) + (resultText.length > 100 ? "..." : ""));
-          
+          console.log(
+            'GitLab search result:',
+            resultText.substring(0, 100) + (resultText.length > 100 ? '...' : ''),
+          );
+
           // Check if this is a configuration issue
-          if (resultText.includes("not available") || resultText.includes("configure")) {
-            testResults.push({ 
-              tool: "gitlab_search", 
-              success: false, 
+          if (resultText.includes('not available') || resultText.includes('configure')) {
+            testResults.push({
+              tool: 'gitlab_search',
+              success: false,
               configRequired: true,
-              message: resultText
+              message: resultText,
             });
           } else {
-            testResults.push({ tool: "gitlab_search", success: true });
+            testResults.push({ tool: 'gitlab_search', success: true });
           }
         } else {
-          console.log("No content returned from gitlab_search tool");
-          testResults.push({ tool: "gitlab_search", success: false });
+          console.log('No content returned from gitlab_search tool');
+          testResults.push({ tool: 'gitlab_search', success: false });
         }
       } catch (error: any) {
-        console.error("Error calling gitlab_search tool:", error.message);
-        testResults.push({ tool: "gitlab_search", success: false, error: error.message });
+        console.error('Error calling gitlab_search tool:', error.message);
+        testResults.push({ tool: 'gitlab_search', success: false, error: error.message });
       }
     }
-    
+
     // Test Jira search tool
     if (tools.tools.some((t) => t.name === 'jira_search')) {
       console.log('\nTesting jira_search tool:');
       try {
         const jiraResult = await client.callTool({
-          name: "jira_search",
+          name: 'jira_search',
           arguments: {
             jql: 'project = "WEB" AND status = "PEER REVIEW"',
           },
@@ -316,114 +326,124 @@ async function testMcpServer(transportType = 'stdio') {
 
         if (jiraResult.content && jiraResult.content.length > 0) {
           const resultText = jiraResult.content[0].text;
-          console.log("Jira search result:", resultText.substring(0, 50) + (resultText.length > 50 ? "..." : ""));
+          console.log(
+            'Jira search result:',
+            resultText.substring(0, 50) + (resultText.length > 50 ? '...' : ''),
+          );
           const jiraIssues = JSON.parse(resultText).issues;
           // Check if this is a configuration issue
           if (jiraIssues.length === 0) {
-            testResults.push({ 
-              tool: "jira_search", 
-              success: false, 
+            testResults.push({
+              tool: 'jira_search',
+              success: false,
               configRequired: true,
-              message: resultText
+              message: resultText,
             });
           } else {
-            testResults.push({ tool: "jira_search", success: true });
+            testResults.push({ tool: 'jira_search', success: true });
           }
         } else {
-          console.log("No content returned from jira_search tool");
-          testResults.push({ tool: "jira_search", success: false });
+          console.log('No content returned from jira_search tool');
+          testResults.push({ tool: 'jira_search', success: false });
         }
       } catch (error: any) {
-        console.error("Error calling jira_search tool:", error.message);
-        testResults.push({ tool: "jira_search", success: false, error: error.message });
+        console.error('Error calling jira_search tool:', error.message);
+        testResults.push({ tool: 'jira_search', success: false, error: error.message });
       }
     }
-    
+
     // Test Datadog search tool
     if (tools.tools.some((t) => t.name === 'datadog_search')) {
       console.log('\nTesting datadog_search tool:');
       try {
         const datadogResult = await client.callTool({
-          name: "datadog_search",
+          name: 'datadog_search',
           arguments: {
-            query: "service:nova error:500",
-            type: "logs",
-            timeRange: "24h",
+            query: 'service:nova error:500',
+            type: 'logs',
+            timeRange: '24h',
           },
         });
 
         if (datadogResult.content && datadogResult.content.length > 0) {
           const resultText = datadogResult.content[0].text;
-          console.log("Datadog search result:", resultText.substring(0, 100) + (resultText.length > 100 ? "..." : ""));
-          
+          console.log(
+            'Datadog search result:',
+            resultText.substring(0, 100) + (resultText.length > 100 ? '...' : ''),
+          );
+
           // Check if this is a configuration issue
-          if (resultText.includes("not available") || resultText.includes("configure")) {
-            testResults.push({ 
-              tool: "datadog_search", 
-              success: false, 
+          if (resultText.includes('not available') || resultText.includes('configure')) {
+            testResults.push({
+              tool: 'datadog_search',
+              success: false,
               configRequired: true,
-              message: resultText
+              message: resultText,
             });
           } else {
-            testResults.push({ tool: "datadog_search", success: true });
+            testResults.push({ tool: 'datadog_search', success: true });
           }
         } else {
-          console.log("No content returned from datadog_search tool");
-          testResults.push({ tool: "datadog_search", success: false });
+          console.log('No content returned from datadog_search tool');
+          testResults.push({ tool: 'datadog_search', success: false });
         }
       } catch (error: any) {
-        console.error("Error calling datadog_search tool:", error.message);
-        testResults.push({ tool: "datadog_search", success: false, error: error.message });
+        console.error('Error calling datadog_search tool:', error.message);
+        testResults.push({ tool: 'datadog_search', success: false, error: error.message });
       }
     }
-    
+
     // Test Confluence search tool
     if (tools.tools.some((t) => t.name === 'confluence_search')) {
       console.log('\nTesting confluence_search tool:');
       try {
         const confluenceResult = await client.callTool({
-          name: "confluence_search",
+          name: 'confluence_search',
           arguments: {
-            query: "project", // Generic search term likely to find results
-            space: "", // Search across all spaces
+            query: 'project', // Generic search term likely to find results
+            space: '', // Search across all spaces
           },
         });
 
         if (confluenceResult.content && confluenceResult.content.length > 0) {
           const resultText = confluenceResult.content[0].text;
-          console.log("Confluence search result:", resultText.substring(0, 100) + (resultText.length > 100 ? "..." : ""));
-          
+          console.log(
+            'Confluence search result:',
+            resultText.substring(0, 100) + (resultText.length > 100 ? '...' : ''),
+          );
+
           // Check if this is a configuration issue
-          if (resultText.includes("not available") || resultText.includes("configure")) {
-            testResults.push({ 
-              tool: "confluence_search", 
-              success: false, 
+          if (resultText.includes('not available') || resultText.includes('configure')) {
+            testResults.push({
+              tool: 'confluence_search',
+              success: false,
               configRequired: true,
-              message: resultText
+              message: resultText,
             });
           } else {
             // Even if we get a "no results found" message, if it's properly formatted it's a success
             // since that means the service is working but just didn't find any matching content
             const parsedResult = JSON.parse(resultText);
-            const isNoResultsMessage = parsedResult.message && parsedResult.message.includes("No Confluence pages found");
-            
+            const isNoResultsMessage = parsedResult.message &&
+              parsedResult.message.includes('No Confluence pages found');
+
             if (isNoResultsMessage || (parsedResult.results && parsedResult.results.length >= 0)) {
-              testResults.push({ tool: "confluence_search", success: true });
+              testResults.push({ tool: 'confluence_search', success: true });
             } else {
-              testResults.push({ 
-                tool: "confluence_search", 
+              testResults.push({
+                tool: 'confluence_search',
                 success: false,
-                message: "Unexpected response format"
+                message: 'Unexpected response format',
               });
             }
           }
         } else {
-          console.log("No content returned from confluence_search tool");
-          testResults.push({ tool: "confluence_search", success: false });
+          console.log('No content returned from confluence_search tool');
+          testResults.push({ tool: 'confluence_search', success: false });
         }
       } catch (error: any) {
-        console.error("Error calling confluence_search tool:", error.message);
-        testResults.push({ tool: "confluence_search", success: false, error: error.message });
+        console.error('Error calling confluence_search tool:', error.message);
+        testResults.push({ tool: 'confluence_search', success: false, error: error.message });
       }
     }
 
@@ -462,12 +482,12 @@ async function testMcpServer(transportType = 'stdio') {
     console.log('✅ Resource Reading (help): Success');
     console.log('✅ Resource Reading (system): Success');
     console.log('✅ Tool Listing: Success');
-    
+
     // Track counts for summary
     let successCount = 0;
     let configRequiredCount = 0;
     let failureCount = 0;
-    
+
     // Output tool test results
     for (const result of testResults) {
       if (result.success) {
@@ -477,21 +497,23 @@ async function testMcpServer(transportType = 'stdio') {
         console.log(`⚙️  Tool Execution (${result.tool}): Configuration Required`);
         configRequiredCount++;
       } else {
-        console.log(`❌ Tool Execution (${result.tool}): Failed${result.error ? ' - ' + result.error : ''}`);
+        console.log(
+          `❌ Tool Execution (${result.tool}): Failed${result.error ? ' - ' + result.error : ''}`,
+        );
         failureCount++;
       }
     }
-    
+
     console.log('✅ File Access via Resource: Success');
-    
+
     // Final summary
     console.log('\nTest Results Summary:');
     console.log(`- ${successCount} tools executed successfully`);
     console.log(`- ${configRequiredCount} tools require configuration`);
     console.log(`- ${failureCount} tools failed execution`);
-    
+
     if (failureCount === 0) {
-      console.log('\nAll tests completed successfully or require configuration!')
+      console.log('\nAll tests completed successfully or require configuration!');
     } else {
       console.log('\n⚠️ Some tool tests failed. Check logs for details.');
     }

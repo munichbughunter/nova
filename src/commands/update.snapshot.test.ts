@@ -13,18 +13,24 @@ const mockReleases = {
       links: [
         {
           name: 'nova-macos',
-          url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos',
-          direct_asset_url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos',
+          url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos',
+          direct_asset_url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos',
         },
         {
           name: 'nova-macos-arm64',
-          url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos-arm64',
-          direct_asset_url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos-arm64',
+          url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos-arm64',
+          direct_asset_url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-macos-arm64',
         },
         {
           name: 'nova-linux',
-          url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-linux',
-          direct_asset_url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-linux',
+          url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-linux',
+          direct_asset_url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova/1.2.0/nova-linux',
         },
       ],
     },
@@ -38,13 +44,17 @@ const mockReleases = {
       links: [
         {
           name: 'nova-macos',
-          url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos',
-          direct_asset_url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos',
+          url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos',
+          direct_asset_url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos',
         },
         {
           name: 'nova-macos-arm64',
-          url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos-arm64',
-          direct_asset_url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos-arm64',
+          url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos-arm64',
+          direct_asset_url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-beta/1.3.0-rc1/nova-macos-arm64',
         },
       ],
     },
@@ -58,8 +68,10 @@ const mockReleases = {
       links: [
         {
           name: 'nova-macos',
-          url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-alpha/mr-456/nova-macos',
-          direct_asset_url: 'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-alpha/mr-456/nova-macos',
+          url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-alpha/mr-456/nova-macos',
+          direct_asset_url:
+            'https://gitlab.example.com/api/v4/projects/4788/packages/generic/nova-alpha/mr-456/nova-macos',
         },
       ],
     },
@@ -78,7 +90,9 @@ await snapshotTest({
     console.log('  nova update [options]');
     console.log('');
     console.log('Options:');
-    console.log('  --channel <channel>  Release channel to use (stable, beta, alpha) [default: stable]');
+    console.log(
+      '  --channel <channel>  Release channel to use (stable, beta, alpha) [default: stable]',
+    );
     console.log('  -h, --help           Show this help');
     console.log('');
     console.log('Examples:');
@@ -112,19 +126,31 @@ await snapshotTest({
   async fn() {
     console.log(colors.blue('\nChecking for updates...\n'));
     console.log(`Current version: v1.1.0`);
-    
+
     console.log(colors.yellow('Update available:'));
-    console.log(`- ${colors.bold('Stable:')} v1.2.0 (released ${formatLocaleDate(mockReleases.stable.created_at).split(',')[0]})`);
+    console.log(
+      `- ${colors.bold('Stable:')} v1.2.0 (released ${
+        formatLocaleDate(mockReleases.stable.created_at).split(',')[0]
+      })`,
+    );
     console.log(`  ${mockReleases.stable.description}`);
     console.log('');
-    
+
     console.log('To install this update, run:');
     console.log(colors.bold('  nova update'));
     console.log('');
-    
+
     console.log('Other available versions:');
-    console.log(`- ${colors.blue('Beta:')} 1.3.0-rc1 (released ${formatLocaleDate(mockReleases.beta.created_at).split(',')[0]})`);
-    console.log(`- ${colors.magenta('Alpha:')} MR-456 (released ${formatLocaleDate(mockReleases.alpha.created_at).split(',')[0]})`);
+    console.log(
+      `- ${colors.blue('Beta:')} 1.3.0-rc1 (released ${
+        formatLocaleDate(mockReleases.beta.created_at).split(',')[0]
+      })`,
+    );
+    console.log(
+      `- ${colors.magenta('Alpha:')} MR-456 (released ${
+        formatLocaleDate(mockReleases.alpha.created_at).split(',')[0]
+      })`,
+    );
     console.log('');
   },
 });
@@ -138,12 +164,16 @@ await snapshotTest({
   async fn() {
     console.log(colors.blue('\nChecking for updates (beta channel)...\n'));
     console.log(`Current version: v1.2.0`);
-    
+
     console.log(colors.yellow('Beta update available:'));
-    console.log(`- ${colors.blue('Beta:')} 1.3.0-rc1 (released ${formatLocaleDate(mockReleases.beta.created_at).split(',')[0]})`);
+    console.log(
+      `- ${colors.blue('Beta:')} 1.3.0-rc1 (released ${
+        formatLocaleDate(mockReleases.beta.created_at).split(',')[0]
+      })`,
+    );
     console.log(`  ${mockReleases.beta.description}`);
     console.log('');
-    
+
     console.log('To install this beta update, run:');
     console.log(colors.bold('  nova update --channel beta'));
     console.log('');
@@ -160,24 +190,24 @@ await snapshotTest({
   // deno-lint-ignore require-await
   async fn() {
     console.log(colors.blue('\nInstalling update v1.2.0...\n'));
-    
+
     console.log('Downloading v1.2.0...');
     console.log('▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 100%');
     console.log('');
-    
+
     console.log('Creating backup of current version...');
     console.log('Installing new version...');
     console.log('Setting file permissions...');
     console.log('');
-    
+
     console.log(colors.green('✓ Successfully updated to v1.2.0'));
     console.log('');
-    
+
     console.log('Release Notes:');
     console.log('- Improved GitLab integration');
     console.log('- Added Datadog metrics support');
     console.log('');
-    
+
     console.log('Run `nova --version` to verify the update.');
     console.log('');
   },
@@ -192,17 +222,21 @@ await snapshotTest({
   async fn() {
     console.log(colors.blue('\nChecking for updates...\n'));
     console.log(`Current version: v1.1.0`);
-    
+
     console.log(colors.yellow('Update available:'));
-    console.log(`- ${colors.bold('Stable:')} v1.2.0 (released ${formatLocaleDate(mockReleases.stable.created_at).split(',')[0]})`);
+    console.log(
+      `- ${colors.bold('Stable:')} v1.2.0 (released ${
+        formatLocaleDate(mockReleases.stable.created_at).split(',')[0]
+      })`,
+    );
     console.log(`  ${mockReleases.stable.description}`);
     console.log('');
-    
+
     console.log(colors.yellow('Homebrew installation detected.'));
     console.log('To update using Homebrew, run:');
     console.log(colors.bold('  brew update && brew upgrade nova'));
     console.log('');
-    
+
     console.log('To force an update outside of Homebrew, run:');
     console.log(colors.bold('  nova update --channel beta'));
     console.log(colors.bold('  nova update --channel alpha'));

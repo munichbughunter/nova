@@ -1,16 +1,19 @@
 # Slack Command (Planned Feature)
 
-!!! warning Planned Feature
-    This command is planned for future implementation and is not currently available in Nova CLI.
+!!! warning Planned Feature This command is planned for future implementation and is not currently
+available in Nova CLI.
 
-The `nova slack` command provides seamless integration with Slack, enabling communication, notifications, and interactive workflows directly from your terminal.
+The `nova slack` command provides seamless integration with Slack, enabling communication,
+notifications, and interactive workflows directly from your terminal.
 
-!!! tip "Stay Connected"
-    Use the Slack command to keep your team informed without leaving your development environment.
+!!! tip "Stay Connected" Use the Slack command to keep your team informed without leaving your
+development environment.
 
 ## Overview
 
-The Slack command allows you to interact with Slack channels, send messages, post updates, share files, and create interactive workflows—all directly from the CLI. This integration streamlines team communication within your development workflow.
+The Slack command allows you to interact with Slack channels, send messages, post updates, share
+files, and create interactive workflows—all directly from the CLI. This integration streamlines team
+communication within your development workflow.
 
 ```mermaid
 graph TD
@@ -409,28 +412,28 @@ Execution ID: Ex67890
 
 ## Global Options
 
-| Option | Description |
-|--------|-------------|
-| `--token <token>` | Slack token (overrides config) |
-| `--workspace <id>` | Slack workspace ID (overrides config) |
-| `--as-user <username>` | Act as a specific user (admin only) |
-| `--debug` | Show API requests and responses |
-| `--no-format` | Disable message formatting |
-| `--json` | Output results as JSON |
-| `-h, --help` | Show help information |
+| Option                 | Description                           |
+| ---------------------- | ------------------------------------- |
+| `--token <token>`      | Slack token (overrides config)        |
+| `--workspace <id>`     | Slack workspace ID (overrides config) |
+| `--as-user <username>` | Act as a specific user (admin only)   |
+| `--debug`              | Show API requests and responses       |
+| `--no-format`          | Disable message formatting            |
+| `--json`               | Output results as JSON                |
+| `-h, --help`           | Show help information                 |
 
 ## Message Options
 
-| Option | Description |
-|--------|-------------|
-| `--channel <channel>` | Channel to send message to |
-| `--text <text>` | Message text |
-| `--blocks <json/file>` | Message blocks in JSON format or file path |
+| Option                      | Description                                     |
+| --------------------------- | ----------------------------------------------- |
+| `--channel <channel>`       | Channel to send message to                      |
+| `--text <text>`             | Message text                                    |
+| `--blocks <json/file>`      | Message blocks in JSON format or file path      |
 | `--attachments <json/file>` | Message attachments in JSON format or file path |
-| `--mrkdwn` | Enable Slack markdown formatting |
-| `--timestamp <ts>` | Message timestamp (for updates) |
-| `--thread-ts <ts>` | Thread timestamp (for replies) |
-| `--unfurl` | Enable link unfurling |
+| `--mrkdwn`                  | Enable Slack markdown formatting                |
+| `--timestamp <ts>`          | Message timestamp (for updates)                 |
+| `--thread-ts <ts>`          | Thread timestamp (for replies)                  |
+| `--unfurl`                  | Enable link unfurling                           |
 
 ## Configuration
 
@@ -441,10 +444,10 @@ slack:
   # Connection details
   token: myAwesomeToken
   workspace: workspace-id
-  
+
   # Default values
   default_channel: general
-  
+
   # Message templates
   templates:
     deployment: |
@@ -500,7 +503,6 @@ nova jira issue view PROJECT-123 | nova slack message send --channel project-alp
 
 # Post build results to Slack
 nova build run --environment staging && nova slack message send --channel deployments --template deployment --vars "status=Success,service=backend-api,environment=staging,version=1.2.3"
-
 ```
 
 ## Example Workflows
@@ -625,8 +627,7 @@ nova slack message send --channel deployments --template deployment --vars "stat
 
 ## Troubleshooting
 
-!!! warning Common Issues
-    Solutions for common Slack command problems.
+!!! warning Common Issues Solutions for common Slack command problems.
 
 ### Authentication Issues
 
@@ -659,4 +660,4 @@ If messages don't appear as expected:
 - [`nova git`](git.md) - Git integration with Slack notifications
 - [`nova jira`](jira.md) - Jira integration for issue tracking
 - [`nova config`](config.md) - Configuration management
-- [`nova setup`](setup.md) - Setup nova with Slack credentials 
+- [`nova setup`](setup.md) - Setup nova with Slack credentials

@@ -1,13 +1,16 @@
 # MCP Command
 
-The `nova mcp` command manages Model Context Protocol (MCP) operations, enabling AI tools like GitHub Copilot to interact with your development environment and services.
+The `nova mcp` command manages Model Context Protocol (MCP) operations, enabling AI tools like
+GitHub Copilot to interact with your development environment and services.
 
-!!! tip AI Integration
-    MCP provides a standardized way for AI models to access your project resources and tools.
+!!! tip AI Integration MCP provides a standardized way for AI models to access your project
+resources and tools.
 
 ## Overview
 
-The Model Context Protocol (MCP) command provides functionality for setting up, running, and managing MCP servers that expose your project's resources and tools to AI assistants through a standardized protocol.
+The Model Context Protocol (MCP) command provides functionality for setting up, running, and
+managing MCP servers that expose your project's resources and tools to AI assistants through a
+standardized protocol.
 
 Nova's MCP implementation supports multiple AI assistants and IDEs:
 
@@ -42,7 +45,8 @@ graph TD
     class C,D,E,F,G,H,I,J secondary
 ```
 
-The diagram above shows how the MCP server acts as a bridge between AI assistants and your development resources.
+The diagram above shows how the MCP server acts as a bridge between AI assistants and your
+development resources.
 
 ## Usage
 
@@ -52,11 +56,11 @@ nova mcp <subcommand> [options]
 
 ## Subcommands
 
-| Subcommand | Description |
-|------------|-------------|
-| `setup` | Set up MCP configuration for the current project |
-| `server` | Start the MCP server |
-| `help` | Show help information for MCP commands |
+| Subcommand | Description                                      |
+| ---------- | ------------------------------------------------ |
+| `setup`    | Set up MCP configuration for the current project |
+| `server`   | Start the MCP server                             |
+| `help`     | Show help information for MCP commands           |
 
 ## MCP Workflow
 
@@ -117,7 +121,8 @@ sequenceDiagram
     AmazonQ-->>User: Amazon Q response
 ```
 
-These sequence diagrams show the typical workflows when using the MCP server with different AI assistants.
+These sequence diagrams show the typical workflows when using the MCP server with different AI
+assistants.
 
 ## MCP Setup
 
@@ -127,27 +132,24 @@ nova mcp setup [options]
 
 ### Setup Options
 
-| Option | Description |
-|--------|-------------|
-| `--force` | Force setup even if configuration files already exist |
-| `-h, --help` | Show help information |
+| Option       | Description                                           |
+| ------------ | ----------------------------------------------------- |
+| `--force`    | Force setup even if configuration files already exist |
+| `-h, --help` | Show help information                                 |
 
-!!! note "Project Setup"
-    The setup command creates configuration files in your project directory, not in your global nova configuration.
+!!! note "Project Setup" The setup command creates configuration files in your project directory,
+not in your global nova configuration.
 
 ### Setup Examples
 
-!!! note Basic Setup
-    ```bash
+!!! note Basic Setup `bash
     # Set up MCP in current repository
-    nova mcp setup
-    ```
+    nova mcp setup`
 
 !!! note Force Overwrite
-    ```bash
+`bash
     # Force overwrite existing configuration
-    nova mcp setup --force
-    ```
+    nova mcp setup --force`
 
 ## MCP Server
 
@@ -157,47 +159,41 @@ nova mcp server [options]
 
 ### Server Options
 
-| Option | Description |
-|--------|-------------|
-| `--port <port>` | HTTP port for SSE transport (default: 3020) |
-| `--transport <type>` | Transport type to use: `sse`, `stdio`, or `web` (default: `sse`) |
-| `--endpoint <path>` | Endpoint for SSE/Web transport (default: /mcp) |
-| `--inspect <address>` | Enable inspector on host:port (default: 127.0.0.1:9229) |
-| `--inspect-brk <address>` | Enable inspector and break at start of script |
-| `--allow-all` | Allow all permissions |
-| `-h, --help` | Show help information |
+| Option                    | Description                                                      |
+| ------------------------- | ---------------------------------------------------------------- |
+| `--port <port>`           | HTTP port for SSE transport (default: 3020)                      |
+| `--transport <type>`      | Transport type to use: `sse`, `stdio`, or `web` (default: `sse`) |
+| `--endpoint <path>`       | Endpoint for SSE/Web transport (default: /mcp)                   |
+| `--inspect <address>`     | Enable inspector on host:port (default: 127.0.0.1:9229)          |
+| `--inspect-brk <address>` | Enable inspector and break at start of script                    |
+| `--allow-all`             | Allow all permissions                                            |
+| `-h, --help`              | Show help information                                            |
 
 ### Server Examples
 
 !!! note Default Server (SSE)
-    ```bash
+`bash
     # Start the MCP server with default settings (SSE transport)
-    nova mcp server
-    ```
+    nova mcp server`
 
 !!! note Stdio Transport
-    ```bash
+`bash
     # Start with stdio transport only
-    nova mcp server --transport=stdio
-    ```
+    nova mcp server --transport=stdio`
 
 !!! note Web Transport
-    ```bash
+`bash
     # Start with web transport on custom port
-    nova mcp server --transport=web --port=4000
-    ```
+    nova mcp server --transport=web --port=4000`
 
 !!! note Custom Endpoint
-    ```bash
+`bash
     # Start with custom SSE endpoint
-    nova mcp server --endpoint=/api/mcp
-    ```
+    nova mcp server --endpoint=/api/mcp`
 
-!!! note Debug Mode
-    ```bash
+!!! note Debug Mode `bash
     # Start with debug logging
-    NOVA_DEBUG=true nova mcp server
-    ```
+    NOVA_DEBUG=true nova mcp server`
 
 ## MCP Server Components
 
@@ -232,7 +228,8 @@ The component diagram shows the main parts of the MCP server architecture.
 
 ## MCP Prompts
 
-The MCP server includes predefined prompt templates that can be used with compatible AI assistants. Currently, the following prompts are available:
+The MCP server includes predefined prompt templates that can be used with compatible AI assistants.
+Currently, the following prompts are available:
 
 - **hello_world**: A simple welcome message from the Nova MCP server
 - **help**: Display help information about available tools and features
@@ -261,23 +258,24 @@ The MCP server supports multiple transport mechanisms to communicate with AI ass
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
+| Variable     | Description                             |
+| ------------ | --------------------------------------- |
 | `NOVA_DEBUG` | Enable debug logging when set to `true` |
 
 ## Available MCP Resources
 
 When the MCP server is running, it exposes the following resources:
 
-| Resource URI | Description |
-|--------------|-------------|
+| Resource URI    | Description                                      |
+| --------------- | ------------------------------------------------ |
 | `system://info` | System information about the current environment |
-| `config://nova` | Nova configuration information (sanitized) |
-| `file://{path}` | Access to files by path |
-| `help://usage` | Help information about using the MCP server |
+| `config://nova` | Nova configuration information (sanitized)       |
+| `file://{path}` | Access to files by path                          |
+| `help://usage`  | Help information about using the MCP server      |
 
-!!! tip Resources vs Tools
-    Resources are read-only data sources, while tools can perform actions with side effects. Use resources when you just need to access data, and tools when you need to perform operations.
+!!! tip Resources vs Tools Resources are read-only data sources, while tools can perform actions
+with side effects. Use resources when you just need to access data, and tools when you need to
+perform operations.
 
 ## Available MCP Tools
 
@@ -321,11 +319,11 @@ The MCP server exposes tools in the following categories:
 
 MCP setup creates the following configuration files:
 
-| File | Description |
-|------|-------------|
-| `.vscode/mcp.json` | VS Code MCP configuration (SSE transport) |
-| `.cursor/mcp.json` | Cursor IDE MCP configuration (SSE transport) |
-| `.amazonq/mcp.json` | Amazon Q MCP configuration (stdio transport) |
+| File                              | Description                                         |
+| --------------------------------- | --------------------------------------------------- |
+| `.vscode/mcp.json`                | VS Code MCP configuration (SSE transport)           |
+| `.cursor/mcp.json`                | Cursor IDE MCP configuration (SSE transport)        |
+| `.amazonq/mcp.json`               | Amazon Q MCP configuration (stdio transport)        |
 | `.github/copilot-instructions.md` | Instructions for GitHub Copilot (updated if exists) |
 
 !!! example Example MCP Configuration Files
@@ -396,7 +394,8 @@ The stdio transport has been optimized with:
 - Silent initialization process
 - Faster startup time
 
-This ensures clean JSON communication without log noise interference, making it ideal for tools like Amazon Q that require a clean stdio channel.
+This ensures clean JSON communication without log noise interference, making it ideal for tools like
+Amazon Q that require a clean stdio channel.
 
 ### Web Transport
 
@@ -410,42 +409,40 @@ nova mcp server --transport=web --port=3020
 
 The MCP server can be used with IDE extensions that support the Model Context Protocol:
 
-!!! note VS Code
-    VS Code extensions can connect to the MCP server using the configuration in `.vscode/mcp.json`. You'll need to start the server separately with `nova mcp server`.
+!!! note VS Code VS Code extensions can connect to the MCP server using the configuration in
+`.vscode/mcp.json`. You'll need to start the server separately with `nova mcp server`.
 
-!!! note Cursor
-    Cursor has built-in support for MCP and will use the configuration in `.cursor/mcp.json`. You'll need to start the server separately with `nova mcp server`.
+!!! note Cursor Cursor has built-in support for MCP and will use the configuration in
+`.cursor/mcp.json`. You'll need to start the server separately with `nova mcp server`.
 
-!!! note Amazon Q
-    Amazon Q will automatically connect to the MCP server using the stdio transport configuration in `.amazonq/mcp.json`. The server will be started automatically when needed, so you don't need to start it separately.
+!!! note Amazon Q Amazon Q will automatically connect to the MCP server using the stdio transport
+configuration in `.amazonq/mcp.json`. The server will be started automatically when needed, so you
+don't need to start it separately.
 
-!!! note GitHub Copilot
-    GitHub Copilot can use the MCP server to access your project resources and services. The setup command will update `.github/copilot-instructions.md` with guidance for using MCP tools.
+!!! note GitHub Copilot GitHub Copilot can use the MCP server to access your project resources and
+services. The setup command will update `.github/copilot-instructions.md` with guidance for using
+MCP tools.
 
 ## Troubleshooting
 
-!!! question MCP Server Won't Start
-    1. Check if there's already an MCP server running (check with `ps aux | grep "mcp server"`)
-    2. Make sure the port isn't in use (try `lsof -i :3020`)
-    3. Try using a different transport with `--transport=stdio` or `--transport=web`
+!!! question MCP Server Won't Start 1. Check if there's already an MCP server running (check with
+`ps aux | grep "mcp server"`) 2. Make sure the port isn't in use (try `lsof -i :3020`) 3. Try using
+a different transport with `--transport=stdio` or `--transport=web`
 
-!!! question AI Assistant Can't Access Resources
-    1. Make sure the MCP server is running (for SSE/Web transports)
-    2. Check that the AI assistant is properly configured to use the MCP server
-    3. Verify that the resources you're trying to access exist and are accessible
-    4. For Amazon Q, ensure the `.amazonq/mcp.json` file exists and has the correct configuration
+!!! question AI Assistant Can't Access Resources 1. Make sure the MCP server is running (for SSE/Web
+transports) 2. Check that the AI assistant is properly configured to use the MCP server 3. Verify
+that the resources you're trying to access exist and are accessible 4. For Amazon Q, ensure the
+`.amazonq/mcp.json` file exists and has the correct configuration
 
-!!! question Tool Execution Fails
-    1. Run the server with `NOVA_DEBUG=true` to see detailed logs (not for stdio transport)
-    2. Make sure the service you're trying to use is properly configured
-    3. Check that you have the necessary permissions for the operation
-    4. For Amazon Q, check that the tool is being called with the correct parameters
+!!! question Tool Execution Fails 1. Run the server with `NOVA_DEBUG=true` to see detailed logs (not
+for stdio transport) 2. Make sure the service you're trying to use is properly configured 3. Check
+that you have the necessary permissions for the operation 4. For Amazon Q, check that the tool is
+being called with the correct parameters
 
-!!! question Amazon Q Fails to Connect
-    1. Verify that `.amazonq/mcp.json` exists and has the correct configuration
-    2. Ensure the `type` is set to `stdio` in the configuration
-    3. Make sure `debug` is set to `false` to prevent console output interference
-    4. Check that the `workingDir` path in the configuration is correct
+!!! question Amazon Q Fails to Connect 1. Verify that `.amazonq/mcp.json` exists and has the correct
+configuration 2. Ensure the `type` is set to `stdio` in the configuration 3. Make sure `debug` is
+set to `false` to prevent console output interference 4. Check that the `workingDir` path in the
+configuration is correct
 
 ## Related Documentation
 

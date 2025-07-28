@@ -20,18 +20,18 @@ async function updateCopilotInstructions(projectPath: string): Promise<void> {
     logger.info(colors.green(`✓ Created .github directory`));
   }
 
-  let currentInstructions = "";
+  let currentInstructions = '';
   let hasExistingMcpSection = false;
 
   // Check if the file already exists
   if (await exists(copilotInstructionsPath)) {
     currentInstructions = await Deno.readTextFile(copilotInstructionsPath);
-    hasExistingMcpSection = currentInstructions.includes("## Using MCP Tools");
+    hasExistingMcpSection = currentInstructions.includes('## Using MCP Tools');
   }
 
   // If MCP section already exists, don't modify
   if (hasExistingMcpSection) {
-    logger.info(colors.blue("ℹ Copilot instructions already have MCP section"));
+    logger.info(colors.blue('ℹ Copilot instructions already have MCP section'));
     return;
   }
 
@@ -210,8 +210,8 @@ await f1e_confluence_create_page({
   // Either create new file or append to existing one
   if (currentInstructions) {
     await Deno.writeTextFile(
-      copilotInstructionsPath, 
-      currentInstructions + mcpInstructions
+      copilotInstructionsPath,
+      currentInstructions + mcpInstructions,
     );
     logger.info(colors.green(`✓ Updated .github/copilot-instructions.md with MCP tools section`));
   } else {
@@ -221,8 +221,8 @@ await f1e_confluence_create_page({
 This document provides guidelines for using Copilot IDE with this project.
 `;
     await Deno.writeTextFile(
-      copilotInstructionsPath, 
-      fileHeader + mcpInstructions
+      copilotInstructionsPath,
+      fileHeader + mcpInstructions,
     );
     logger.info(colors.green(`✓ Created .github/copilot-instructions.md with MCP tools section`));
   }
@@ -234,7 +234,7 @@ This document provides guidelines for using Copilot IDE with this project.
  * @returns The project name
  */
 function getProjectName(projectPath: string): string {
-  return projectPath.split("/").pop() || "Project";
+  return projectPath.split('/').pop() || 'Project';
 }
 
 async function setupMCPConfig(projectPath: string, global: boolean = false) {
@@ -273,7 +273,7 @@ async function setupMCPConfig(projectPath: string, global: boolean = false) {
       },
     },
   };
-  
+
   const amazonQConfig = {
     mcpServers: {
       'nova-mcp-stdio': {
@@ -283,16 +283,16 @@ async function setupMCPConfig(projectPath: string, global: boolean = false) {
         args: [
           'mcp',
           'server',
-          '--transport=stdio'
+          '--transport=stdio',
         ],
         name: 'nova MCP Server',
         version: NOVA_VERSION,
         debug: false,
         env: {
-          PWD: basePath
-        }
-      }
-    }
+          PWD: basePath,
+        },
+      },
+    },
   };
 
   const claudeConfig = {
@@ -304,16 +304,16 @@ async function setupMCPConfig(projectPath: string, global: boolean = false) {
         args: [
           'mcp',
           'server',
-          '--transport=stdio'
+          '--transport=stdio',
         ],
         name: 'nova MCP Server',
         version: NOVA_VERSION,
         debug: false,
         env: {
-          PWD: basePath
-        }
-      }
-    }
+          PWD: basePath,
+        },
+      },
+    },
   };
 
   // Create config directories if they don't exist
@@ -340,25 +340,45 @@ async function setupMCPConfig(projectPath: string, global: boolean = false) {
       `${vscodePath}/mcp.json`,
       JSON.stringify(vscodeConfig, null, 2),
     );
-    logger.info(colors.green(`${global ? '✓ Created ~/.vscode/mcp.json' : '✓ Created .vscode/mcp.json'}`));
+    logger.info(
+      colors.green(`${global ? '✓ Created ~/.vscode/mcp.json' : '✓ Created .vscode/mcp.json'}`),
+    );
 
     await Deno.writeTextFile(
       `${cursorPath}/mcp.json`,
       JSON.stringify(cursorConfig, null, 2),
     );
-    logger.info(colors.green(`${global ? '✓ Created ~/.cursor/mcp.json' : '✓ Created .cursor/mcp.json'}`));
-    
+    logger.info(
+      colors.green(`${global ? '✓ Created ~/.cursor/mcp.json' : '✓ Created .cursor/mcp.json'}`),
+    );
+
     await Deno.writeTextFile(
       `${amazonqPath}/mcp.json`,
       JSON.stringify(amazonQConfig, null, 2),
     );
-    logger.info(colors.green(`${global ? '✓ Created ~/.amazonq/mcp.json (stdio transport)' : '✓ Created .amazonq/mcp.json (stdio transport)'}`));
+    logger.info(
+      colors.green(
+        `${
+          global
+            ? '✓ Created ~/.amazonq/mcp.json (stdio transport)'
+            : '✓ Created .amazonq/mcp.json (stdio transport)'
+        }`,
+      ),
+    );
 
     await Deno.writeTextFile(
       `${claudePath}/mcp.json`,
       JSON.stringify(claudeConfig, null, 2),
     );
-    logger.info(colors.green(`${global ? '✓ Created ~/.claude/mcp.json (stdio transport)' : '✓ Created .claude/mcp.json (stdio transport)'}`));
+    logger.info(
+      colors.green(
+        `${
+          global
+            ? '✓ Created ~/.claude/mcp.json (stdio transport)'
+            : '✓ Created .claude/mcp.json (stdio transport)'
+        }`,
+      ),
+    );
 
     // On macOS, also write to $HOME/Library/Application Support/Claude/claude_desktop_config.json
     if (global && Deno.build.os === 'darwin') {
@@ -369,9 +389,17 @@ async function setupMCPConfig(projectPath: string, global: boolean = false) {
         // Only write if the directory or config file already exists
         if (await exists(macClaudeDir) || await exists(macClaudeConfig)) {
           await Deno.writeTextFile(macClaudeConfig, JSON.stringify(claudeConfig, null, 2));
-          logger.info(colors.green('✓ Created ~/Library/Application Support/Claude/claude_desktop_config.json (Claude Desktop Mac)'));
+          logger.info(
+            colors.green(
+              '✓ Created ~/Library/Application Support/Claude/claude_desktop_config.json (Claude Desktop Mac)',
+            ),
+          );
         } else {
-          logger.info(colors.yellow('Claude Desktop not detected (~/Library/Application Support/Claude not found), skipping Claude Desktop config generation.'));
+          logger.info(
+            colors.yellow(
+              'Claude Desktop not detected (~/Library/Application Support/Claude not found), skipping Claude Desktop config generation.',
+            ),
+          );
         }
       }
     }
@@ -388,7 +416,7 @@ const setupCommand = new Command()
   .option('--global', 'Set up global MCP configuration in your home directory', { default: false })
   .action(async ({ force, global }: { force: boolean; global: boolean }) => {
     try {
-      let projectPath = await Deno.realPath('.')
+      let projectPath = await Deno.realPath('.');
       if (!global) {
         // Check if current directory is a git repository
         const isGitRepo = await exists('.git');
@@ -412,28 +440,45 @@ const setupCommand = new Command()
       const amazonqConfigExists = await exists(`${projectPath}/.amazonq/mcp.json`);
       const claudeConfigExists = await exists(`${projectPath}/.claude/mcp.json`);
 
-      if ((vscodeConfigExists || cursorConfigExists || amazonqConfigExists || claudeConfigExists) && !force) {
+      if (
+        (vscodeConfigExists || cursorConfigExists || amazonqConfigExists || claudeConfigExists) &&
+        !force
+      ) {
         logger.error(
           colors.yellow(`\nMCP configuration files already exist. Use --force to overwrite.`),
         );
         logger.passThrough('log', colors.dim('Existing files:'));
-        if (vscodeConfigExists) logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.vscode/mcp.json`));
-        if (cursorConfigExists) logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.cursor/mcp.json`));
-        if (amazonqConfigExists) logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.amazonq/mcp.json`));
-        if (claudeConfigExists) logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.claude/mcp.json`));
+        if (vscodeConfigExists) {
+          logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.vscode/mcp.json`));
+        }
+        if (cursorConfigExists) {
+          logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.cursor/mcp.json`));
+        }
+        if (amazonqConfigExists) {
+          logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.amazonq/mcp.json`));
+        }
+        if (claudeConfigExists) {
+          logger.passThrough('log', colors.dim(`  - ${global ? '~' : '.'}/.claude/mcp.json`));
+        }
         Deno.exit(1);
       }
 
       logger.info(colors.blue(`\nSetting up MCP configuration${global ? ' (global)' : ''}...\n`));
 
       await setupMCPConfig(projectPath, global);
-      
+
       // Update copilot instructions if they exist (only for local/project setup)
       if (!global) {
         try {
           await updateCopilotInstructions(projectPath);
         } catch (error) {
-          logger.warn(colors.yellow(`Unable to update Copilot instructions: ${error instanceof Error ? error.message : 'Unknown error'}`));
+          logger.warn(
+            colors.yellow(
+              `Unable to update Copilot instructions: ${
+                error instanceof Error ? error.message : 'Unknown error'
+              }`,
+            ),
+          );
         }
       }
 
@@ -444,15 +489,27 @@ const setupCommand = new Command()
       logger.passThrough('log', '  nova mcp setup        - Set up MCP configuration');
       logger.passThrough('log', '  nova mcp server       - Start the MCP server');
       logger.passThrough('log', '');
-      
+
       // Show configured integrations
       logger.passThrough('log', colors.blue('\nConfigured Integrations:'));
-      logger.passThrough('log', `  VS Code     - SSE transport (${global ? '~' : '.'}/.vscode/mcp.json)`);
-      logger.passThrough('log', `  Cursor      - SSE transport (${global ? '~' : '.'}/.cursor/mcp.json)`);
-      logger.passThrough('log', `  Amazon Q    - stdio transport (${global ? '~' : '.'}/.amazonq/mcp.json)`);
-      logger.passThrough('log', `  Claude      - stdio transport (${global ? '~' : '.'}/.claude/mcp.json)`);
+      logger.passThrough(
+        'log',
+        `  VS Code     - SSE transport (${global ? '~' : '.'}/.vscode/mcp.json)`,
+      );
+      logger.passThrough(
+        'log',
+        `  Cursor      - SSE transport (${global ? '~' : '.'}/.cursor/mcp.json)`,
+      );
+      logger.passThrough(
+        'log',
+        `  Amazon Q    - stdio transport (${global ? '~' : '.'}/.amazonq/mcp.json)`,
+      );
+      logger.passThrough(
+        'log',
+        `  Claude      - stdio transport (${global ? '~' : '.'}/.claude/mcp.json)`,
+      );
       logger.passThrough('log', '');
-      
+
       // Show tips for using with different editors
       logger.passThrough('log', colors.blue('\nUsage Tips:'));
       logger.passThrough('log', '  VS Code:  Start server with "nova mcp server" in terminal');
@@ -481,22 +538,34 @@ setupCommand.command('help')
     logger.passThrough('log', '  nova mcp setup [options]');
     logger.passThrough('log', '\nOptions:');
     logger.passThrough('log', '  --force    Force setup even if configuration files already exist');
-    logger.passThrough('log', '  --global   Set up global MCP configuration in your home directory');
+    logger.passThrough(
+      'log',
+      '  --global   Set up global MCP configuration in your home directory',
+    );
     logger.passThrough('log', '\nDescription:');
     logger.passThrough(
       'log',
       '  Sets up MCP configuration files for VS Code, Cursor, Amazon Q, and Claude in the current',
     );
-    logger.passThrough('log', '  git repository (local) or your home directory (global). Creates the following files:');
+    logger.passThrough(
+      'log',
+      '  git repository (local) or your home directory (global). Creates the following files:',
+    );
     logger.passThrough('log', '    - .vscode/mcp.json     (SSE transport)');
     logger.passThrough('log', '    - .cursor/mcp.json     (SSE transport)');
     logger.passThrough('log', '    - .amazonq/mcp.json    (stdio transport)');
     logger.passThrough('log', '    - .claude/mcp.json     (stdio transport)');
-    logger.passThrough('log', '    - ~/Library/Application Support/Claude/claude_desktop_config.json (Claude Desktop Mac, global only)');
+    logger.passThrough(
+      'log',
+      '    - ~/Library/Application Support/Claude/claude_desktop_config.json (Claude Desktop Mac, global only)',
+    );
     logger.passThrough('log', '\nExamples:');
     logger.passThrough('log', colors.dim('  # Set up MCP in current repository'));
     logger.passThrough('log', colors.dim('  nova mcp setup'));
-    logger.passThrough('log', colors.dim('  # Set up global MCP configuration (for all projects, Claude Desktop, etc.)'));
+    logger.passThrough(
+      'log',
+      colors.dim('  # Set up global MCP configuration (for all projects, Claude Desktop, etc.)'),
+    );
     logger.passThrough('log', colors.dim('  nova mcp setup --global'));
     logger.passThrough('log', colors.dim('  # Force overwrite existing configuration'));
     logger.passThrough('log', colors.dim('  nova mcp setup --force'));

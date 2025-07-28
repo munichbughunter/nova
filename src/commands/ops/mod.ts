@@ -8,4 +8,4 @@ const ops = new Command()
   .command('dashboard', dashboardCommand);
 
 // Export the command
-export const opsCommand = ops; 
+export const opsCommand = ops;

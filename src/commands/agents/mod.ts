@@ -31,9 +31,15 @@ function createAgentCommand(type: AgentType, description: string) {
           const recentProjects = await gitlab.getRecentProjects();
           if (recentProjects.length > 0) {
             finalProjectPath = recentProjects[0].fullPath;
-            logger.passThrough('log', colors.dim(`Using most recent project: ${recentProjects[0].name}`));
+            logger.passThrough(
+              'log',
+              colors.dim(`Using most recent project: ${recentProjects[0].name}`),
+            );
           } else {
-            logger.passThrough('error', colors.red('No recent projects found. Please specify a project path.'));
+            logger.passThrough(
+              'error',
+              colors.red('No recent projects found. Please specify a project path.'),
+            );
             Deno.exit(1);
           }
         }
@@ -68,7 +74,8 @@ function createAgentCommand(type: AgentType, description: string) {
           }
         }
       } catch (error) {
-        logger.passThrough('error',
+        logger.passThrough(
+          'error',
           colors.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`),
         );
         Deno.exit(1);
@@ -93,7 +100,10 @@ export const agentsCommand = new Command()
       .action(() => {
         logger.passThrough('log', colors.blue('\nAgent Commands\n'));
         logger.passThrough('log', 'Available Agents:');
-        logger.passThrough('log', '  nova agent pm    - Project Manager (Project oversight and coordination)');
+        logger.passThrough(
+          'log',
+          '  nova agent pm    - Project Manager (Project oversight and coordination)',
+        );
         logger.passThrough('log', '  nova agent dev   - Dev (Technical tasks and code quality)');
         logger.passThrough('log', '\nOptions:');
         logger.passThrough('log', '  -p, --project     - Project path to analyze');

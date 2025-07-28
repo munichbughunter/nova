@@ -78,9 +78,9 @@ async function getLatestReleases(): Promise<ReleaseChannels> {
     const alphaReleases = alphaResponse.ok ? await alphaResponse.json() as GitLabRelease[] : [];
 
     // Filter alpha releases to only include those from merge requests
-    const alpha = alphaReleases.find(r => r.tag_name.startsWith('alpha-mr-')) || null;
+    const alpha = alphaReleases.find((r) => r.tag_name.startsWith('alpha-mr-')) || null;
     // Filter beta releases to only include those from main branch
-    const beta = betaReleases.find(r => r.tag_name.startsWith('beta-')) || null;
+    const beta = betaReleases.find((r) => r.tag_name.startsWith('beta-')) || null;
 
     return { stable, beta, alpha };
   } catch (error) {
@@ -94,12 +94,15 @@ function isHomebrewInstall(): boolean {
   return execPath.startsWith('/opt/homebrew') || execPath.startsWith('/usr/local/Cellar');
 }
 
-async function downloadAndInstallUpdate(release: GitLabRelease, channel: 'stable' | 'beta' | 'alpha'): Promise<boolean> {
+async function downloadAndInstallUpdate(
+  release: GitLabRelease,
+  channel: 'stable' | 'beta' | 'alpha',
+): Promise<boolean> {
   // For stable channel, recommend using Homebrew
   if (isHomebrewInstall() && channel === 'stable') {
     throw new Error(
       'nova was installed via Homebrew. For stable versions, please update using:\n' +
-      'brew update && brew upgrade nova'
+        'brew update && brew upgrade nova',
     );
   }
 
@@ -111,7 +114,7 @@ async function downloadAndInstallUpdate(release: GitLabRelease, channel: 'stable
   // Determine which binary to download based on OS and architecture
   const platform = Deno.build.os;
   const arch = Deno.build.arch;
-  
+
   let binaryName = '';
   if (platform === 'darwin') {
     binaryName = arch === 'aarch64' ? 'nova-macos-arm64' : 'nova-macos';
@@ -125,15 +128,18 @@ async function downloadAndInstallUpdate(release: GitLabRelease, channel: 'stable
 
   // Determine the package registry URL based on the channel
   const packageName = channel === 'stable' ? 'nova' : `nova-${channel}`;
-  const packageVersion = channel === 'stable' ? release.tag_name : release.tag_name.split('-').pop() || '';
+  const packageVersion = channel === 'stable'
+    ? release.tag_name
+    : release.tag_name.split('-').pop() || '';
 
   // Find the correct asset link
-  const asset = release.assets.links.find(link => {
+  const asset = release.assets.links.find((link) => {
     // For stable releases, use the direct asset URL
     if (channel === 'stable') return link.name === binaryName;
-    
+
     // For alpha/beta releases, construct the expected URL pattern
-    const expectedUrl = `${config.gitlab?.url}/api/v4/projects/4788/packages/generic/${packageName}/${packageVersion}/${binaryName}`;
+    const expectedUrl =
+      `${config.gitlab?.url}/api/v4/projects/4788/packages/generic/${packageName}/${packageVersion}/${binaryName}`;
     return link.url === expectedUrl;
   });
 
@@ -170,7 +176,7 @@ async function downloadAndInstallUpdate(release: GitLabRelease, channel: 'stable
 
       // Write the new binary
       await Deno.writeFile(currentBinaryPath, data);
-      
+
       // Make it executable
       await Deno.chmod(currentBinaryPath, 0o755);
 
@@ -180,8 +186,10 @@ async function downloadAndInstallUpdate(release: GitLabRelease, channel: 'stable
       if (error instanceof Deno.errors.PermissionDenied) {
         // If we get a permission error, try with sudo
         progress.stop();
-        formatInfo('\nNeed elevated privileges to update the binary. Please enter your password when prompted.\n');
-        
+        formatInfo(
+          '\nNeed elevated privileges to update the binary. Please enter your password when prompted.\n',
+        );
+
         // Create temporary file for the new binary
         const tempPath = await Deno.makeTempFile();
         await Deno.writeFile(tempPath, data);
@@ -193,7 +201,7 @@ async function downloadAndInstallUpdate(release: GitLabRelease, channel: 'stable
         });
 
         const { success } = await moveCmd.output();
-        
+
         // Clean up temp file if move failed
         if (!success) {
           await Deno.remove(tempPath);
@@ -248,7 +256,7 @@ export const updateCommand = new Command()
       }
 
       const updates = [];
-      
+
       if (stable && compareVersions(currentVersion, stable.tag_name) < 0) {
         updates.push({
           name: `${theme.symbols.success} Stable ${stable.tag_name}`,
@@ -279,7 +287,7 @@ export const updateCommand = new Command()
       }
 
       // Filter updates based on selected channel
-      const filteredUpdates = updates.filter(update => {
+      const filteredUpdates = updates.filter((update) => {
         if (options.channel === 'stable') return update.value.channel === 'stable';
         if (options.channel === 'beta') return ['stable', 'beta'].includes(update.value.channel);
         return true; // alpha channel shows all updates
@@ -291,7 +299,9 @@ export const updateCommand = new Command()
       }
 
       logger.passThrough('log', '\nAvailable updates:');
-      const selected = await Select.prompt<{ release: GitLabRelease; channel: 'stable' | 'beta' | 'alpha' }>({
+      const selected = await Select.prompt<
+        { release: GitLabRelease; channel: 'stable' | 'beta' | 'alpha' }
+      >({
         message: 'Choose a version to install:',
         options: filteredUpdates,
         info: true,
@@ -299,7 +309,8 @@ export const updateCommand = new Command()
 
       if (selected.channel !== 'stable') {
         const confirmed = await Confirm.prompt({
-          message: `Warning: You are about to install a ${selected.channel} release. These releases may be unstable. Continue?`,
+          message:
+            `Warning: You are about to install a ${selected.channel} release. These releases may be unstable. Continue?`,
           default: false,
         });
 
@@ -321,7 +332,9 @@ export const updateCommand = new Command()
 
       const success = await downloadAndInstallUpdate(selected.release, selected.channel);
       if (success) {
-        formatSuccess(`Successfully updated to ${selected.channel} version ${selected.release.tag_name}`);
+        formatSuccess(
+          `Successfully updated to ${selected.channel} version ${selected.release.tag_name}`,
+        );
         formatInfo('Please restart nova to use the new version.');
       } else {
         formatError('Failed to install update.');
@@ -329,4 +342,4 @@ export const updateCommand = new Command()
     } catch (error) {
       formatError(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }); 
+  });

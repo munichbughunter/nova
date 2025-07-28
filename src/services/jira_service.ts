@@ -1,12 +1,7 @@
 import { colors } from '@cliffy/ansi/colors';
 import { Table } from '@cliffy/table';
 import { Config } from '../config/mod.ts';
-import {
-  formatServiceStatus,
-  formatTimestamp,
-  ProgressIndicator,
-  theme
-} from '../utils.ts';
+import { formatServiceStatus, formatTimestamp, ProgressIndicator, theme } from '../utils.ts';
 import { DevCache } from '../utils/devcache.ts';
 import { Logger } from '../utils/logger.ts';
 import { DatabaseService } from './db_service.ts';
@@ -46,7 +41,7 @@ export class JiraService {
     this.cache = new DevCache({
       basePath: `${Deno.env.get('HOME')}/.nova/cache`,
       serviceName: 'jira',
-      logger: this.logger
+      logger: this.logger,
     });
 
     // Initialize Jira client with basic structure
@@ -63,7 +58,9 @@ export class JiraService {
 
           // Fetch all sprints first
           while (!isLast) {
-            const response = await this.request<{ values: JiraSprint[]; isLast: boolean; total: number }>(
+            const response = await this.request<
+              { values: JiraSprint[]; isLast: boolean; total: number }
+            >(
               `/rest/agile/1.0/board/${options.boardId}/sprint?state=${
                 options.state.join(',')
               }&startAt=${startAt}&maxResults=50`,
@@ -84,7 +81,7 @@ export class JiraService {
             // First sort by state (active sprints first)
             if (a.state === 'active' && b.state !== 'active') return -1;
             if (a.state !== 'active' && b.state === 'active') return 1;
-            
+
             // Then sort by end date (most recent first)
             const dateA = a.endDate ? new Date(a.endDate).getTime() : 0;
             const dateB = b.endDate ? new Date(b.endDate).getTime() : 0;
@@ -93,7 +90,7 @@ export class JiraService {
 
           // Return only the requested number of sprints
           return {
-            values: sortedSprints.slice(0, options.maxResults)
+            values: sortedSprints.slice(0, options.maxResults),
           };
         },
         getIssuesForSprint: (options: {
@@ -126,21 +123,24 @@ export class JiraService {
         body: JSON.stringify({
           jql: 'order by created DESC',
           maxResults: 1,
-          fields: ['*all']
-        })
+          fields: ['*all'],
+        }),
       });
       this.isAnalyzingFields = false;
 
       if (response.issues && response.issues.length > 0) {
         const sampleIssue = response.issues[0];
-        
+
         // Log all custom fields and their values
         const customFields = Object.entries(sampleIssue.fields)
           .filter(([key, _value]) => key.startsWith('customfield_'))
-          .reduce((acc, [key, _value]) => ({ ...acc, [key]: this.getFieldValue(sampleIssue, key) }), {});
+          .reduce(
+            (acc, [key, _value]) => ({ ...acc, [key]: this.getFieldValue(sampleIssue, key) }),
+            {},
+          );
 
         this.logger.debug('All custom fields found:', customFields);
-        
+
         // Common story points field names and patterns
         const potentialFields = [
           'customfield_10016',
@@ -148,7 +148,7 @@ export class JiraService {
           'customfield_10004',
           'story_points',
           'storypoints',
-          'points'
+          'points',
         ];
 
         // Additional patterns to check in field names and metadata
@@ -158,7 +158,7 @@ export class JiraService {
           /sp[_\s]?field/i,
           /^sp$/i,
           /^points?$/i,
-          /estimate/i
+          /estimate/i,
         ];
 
         // Check which fields exist and have numeric values
@@ -168,29 +168,38 @@ export class JiraService {
             const isCustomField = key.startsWith('customfield_');
             const isPotentialField = potentialFields.includes(key);
             const matchesPattern = isCustomField && (
-              storyPointsPatterns.some(pattern => pattern.test(key)) ||
-              (sampleIssue.fields[key]?.name && storyPointsPatterns.some(pattern => pattern.test(sampleIssue.fields[key].name))) ||
-              (sampleIssue.fields[key]?.schema?.custom && storyPointsPatterns.some(pattern => pattern.test(sampleIssue.fields[key].schema.custom)))
+              storyPointsPatterns.some((pattern) => pattern.test(key)) ||
+              (sampleIssue.fields[key]?.name &&
+                storyPointsPatterns.some((pattern) =>
+                  pattern.test(sampleIssue.fields[key].name)
+                )) ||
+              (sampleIssue.fields[key]?.schema?.custom &&
+                storyPointsPatterns.some((pattern) =>
+                  pattern.test(sampleIssue.fields[key].schema.custom)
+                ))
             );
 
             return isNumeric && (isPotentialField || matchesPattern);
           });
 
         if (foundFields.length > 0) {
-          this.logger.debug('Found potential story points fields:', 
+          this.logger.debug(
+            'Found potential story points fields:',
             foundFields.map(([key, value]) => ({
               field: key,
               value: value,
               type: typeof value,
               name: sampleIssue.fields[key]?.name || 'unnamed',
-              schema: sampleIssue.fields[key]?.schema || 'no schema'
-            }))
+              schema: sampleIssue.fields[key]?.schema || 'no schema',
+            })),
           );
 
           // If we found fields, use the first one as our story points field
           const firstField = foundFields[0][0];
           if (firstField !== this.storyPointsField) {
-            this.logger.debug(`Setting story points field to: ${firstField} (was: ${this.storyPointsField})`);
+            this.logger.debug(
+              `Setting story points field to: ${firstField} (was: ${this.storyPointsField})`,
+            );
             this.storyPointsField = firstField;
           }
         } else {
@@ -295,7 +304,7 @@ export class JiraService {
 
   public async searchIssues(
     jql: string,
-    options: { maxResults?: number; expandFields?: boolean } = {}
+    options: { maxResults?: number; expandFields?: boolean } = {},
   ): Promise<{ issues: JiraIssue[] }> {
     try {
       if (!this.isAnalyzingFields) {
@@ -314,7 +323,7 @@ export class JiraService {
 
       while (allIssues.length < maxResults) {
         this.logger.debug(`Fetching issues batch starting at ${startAt}`);
-        
+
         // Construct the request body
         const requestBody = {
           jql: sanitizedJql,
@@ -336,15 +345,18 @@ export class JiraService {
             this.storyPointsField,
             'customfield_10020',
             'components',
-            'changelog'
+            'changelog',
           ],
-          expand: ['changelog']
+          expand: ['changelog'],
         };
 
-        const response = await this.request<{ issues: JiraIssue[]; total: number }>('/rest/api/2/search', {
-          method: 'POST',
-          body: JSON.stringify(requestBody)
-        });
+        const response = await this.request<{ issues: JiraIssue[]; total: number }>(
+          '/rest/api/2/search',
+          {
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+          },
+        );
 
         if (response.issues && response.issues.length > 0) {
           // Log fields of first issue in first batch for debugging
@@ -354,18 +366,23 @@ export class JiraService {
               key: sampleIssue.key,
               fields: Object.entries(sampleIssue.fields)
                 .filter(([_key, value]) => value !== null)
-                .reduce((acc, [key, _value]) => ({ ...acc, [key]: this.getFieldValue(sampleIssue, key) }), {})
+                .reduce(
+                  (acc, [key, _value]) => ({ ...acc, [key]: this.getFieldValue(sampleIssue, key) }),
+                  {},
+                ),
             });
           }
 
           allIssues.push(...response.issues);
-          this.logger.debug(`Retrieved ${response.issues.length} issues (total: ${allIssues.length}/${response.total})`);
-          
+          this.logger.debug(
+            `Retrieved ${response.issues.length} issues (total: ${allIssues.length}/${response.total})`,
+          );
+
           // Check if we've retrieved all issues
           if (allIssues.length >= response.total || response.issues.length < batchSize) {
             break;
           }
-          
+
           // Prepare for next batch
           startAt += batchSize;
         } else {
@@ -461,7 +478,7 @@ export class JiraService {
         : '/rest/agile/1.0/board';
 
       this.logger.debug('Fetching boards with endpoint:', endpoint);
-      
+
       const allBoards: JiraBoard[] = [];
       let startAt = 0;
       const maxResults = 50; // Fetch in smaller batches
@@ -476,7 +493,9 @@ export class JiraService {
 
         if (response.values && response.values.length > 0) {
           allBoards.push(...response.values);
-          this.logger.debug(`Retrieved ${response.values.length} boards (total: ${allBoards.length}/${response.total})`);
+          this.logger.debug(
+            `Retrieved ${response.values.length} boards (total: ${allBoards.length}/${response.total})`,
+          );
 
           // Check if we've retrieved all boards
           if (response.isLast || response.values.length < maxResults) {
@@ -497,7 +516,7 @@ export class JiraService {
 
       this.logger.debug(
         'Found boards:',
-        allBoards.map((b) => ({ id: b.id, name: b.name, type: b.type }))
+        allBoards.map((b) => ({ id: b.id, name: b.name, type: b.type })),
       );
       return allBoards;
     } catch (error) {
@@ -517,8 +536,8 @@ export class JiraService {
    * Get sprints for a board
    */
   async getSprints(
-    boardId: number, 
-    state?: 'active' | 'closed' | 'future' | ('active' | 'closed' | 'future')[]
+    boardId: number,
+    state?: 'active' | 'closed' | 'future' | ('active' | 'closed' | 'future')[],
   ): Promise<JiraSprint[]> {
     try {
       let endpoint = `/rest/agile/1.0/board/${boardId}/sprint`;
@@ -528,8 +547,12 @@ export class JiraService {
         endpoint += `?state=${stateParam}`;
       }
 
-      this.logger.debug(`Fetching sprints for board ${boardId}${state ? ` with state ${Array.isArray(state) ? state.join(',') : state}` : ''}`);
-      
+      this.logger.debug(
+        `Fetching sprints for board ${boardId}${
+          state ? ` with state ${Array.isArray(state) ? state.join(',') : state}` : ''
+        }`,
+      );
+
       const allSprints: JiraSprint[] = [];
       let startAt = 0;
       const maxResults = 50; // Fetch in smaller batches
@@ -544,7 +567,9 @@ export class JiraService {
 
         if (response.values && response.values.length > 0) {
           allSprints.push(...response.values);
-          this.logger.debug(`Retrieved ${response.values.length} sprints (total: ${allSprints.length}/${response.total})`);
+          this.logger.debug(
+            `Retrieved ${response.values.length} sprints (total: ${allSprints.length}/${response.total})`,
+          );
 
           // Check if we've retrieved all sprints
           if (response.isLast || response.values.length < maxResults) {
@@ -572,7 +597,7 @@ export class JiraService {
   async getSprintIssues(sprintId: number): Promise<JiraIssue[]> {
     try {
       this.logger.debug(`Fetching issues for sprint ${sprintId}`);
-      
+
       const allIssues: JiraIssue[] = [];
       let startAt = 0;
       const maxResults = 50; // Fetch in smaller batches
@@ -587,7 +612,9 @@ export class JiraService {
 
         if (response.issues && response.issues.length > 0) {
           allIssues.push(...response.issues);
-          this.logger.debug(`Retrieved ${response.issues.length} issues (total: ${allIssues.length}/${response.total})`);
+          this.logger.debug(
+            `Retrieved ${response.issues.length} issues (total: ${allIssues.length}/${response.total})`,
+          );
 
           // Log sample issue fields once for the first batch only
           if (startAt === 0 && response.issues.length > 0) {
@@ -650,7 +677,7 @@ export class JiraService {
       self: string;
     }>('/rest/api/2/issue', {
       method: 'POST',
-      body: JSON.stringify(params)
+      body: JSON.stringify(params),
     });
 
     return response;
@@ -681,7 +708,10 @@ export class JiraService {
   /**
    * Add a comment to an issue
    */
-  public async addComment(issueKey: string, comment: string): Promise<{ id: string; self: string }> {
+  public async addComment(
+    issueKey: string,
+    comment: string,
+  ): Promise<{ id: string; self: string }> {
     try {
       const endpoint = `/rest/api/2/issue/${encodeURIComponent(issueKey)}/comment`;
       const body = { body: comment };
@@ -702,8 +732,8 @@ export class JiraService {
     const sprintData = await this.getLastNSprintsData(6, projectKey);
     const allIssues = sprintData.sprintData.reduce((acc, sprint) => {
       // Use Set to deduplicate issues that might appear in multiple sprints
-      const issueMap = new Map(acc.map(issue => [issue.key, issue]));
-      sprint.totalIssues.forEach(issue => {
+      const issueMap = new Map(acc.map((issue) => [issue.key, issue]));
+      sprint.totalIssues.forEach((issue) => {
         if (!issueMap.has(issue.key)) {
           issueMap.set(issue.key, issue);
         }
@@ -712,14 +742,13 @@ export class JiraService {
     }, [] as JiraIssue[]);
 
     // Get recent activity data
-    const [assignedToMe, createdByMe, dueSoon, overdueIssues, recentUpdated] =
-      await Promise.all([
-        this.searchIssues(`project = "${projectKey}" AND assignee = currentUser()`),
-        this.searchIssues(`project = "${projectKey}" AND reporter = currentUser()`),
-        this.searchIssues(`project = "${projectKey}" AND due >= now() AND due <= 1d`),
-        this.searchIssues(`project = "${projectKey}" AND due < now() AND resolution = Unresolved`),
-        this.searchIssues(`project = "${projectKey}" AND updated >= -7d ORDER BY updated DESC`),
-      ]);
+    const [assignedToMe, createdByMe, dueSoon, overdueIssues, recentUpdated] = await Promise.all([
+      this.searchIssues(`project = "${projectKey}" AND assignee = currentUser()`),
+      this.searchIssues(`project = "${projectKey}" AND reporter = currentUser()`),
+      this.searchIssues(`project = "${projectKey}" AND due >= now() AND due <= 1d`),
+      this.searchIssues(`project = "${projectKey}" AND due < now() AND resolution = Unresolved`),
+      this.searchIssues(`project = "${projectKey}" AND updated >= -7d ORDER BY updated DESC`),
+    ]);
 
     // Calculate status statistics
     const metrics = this.getIssueMetrics(allIssues);
@@ -732,13 +761,16 @@ export class JiraService {
     });
 
     // Count issues by type
-    const bugs = allIssues.filter(issue => issue.fields.issuetype.name.toLowerCase() === 'bug').length;
-    const features = allIssues.filter(issue => 
-      ['story', 'task', 'feature'].includes(issue.fields.issuetype.name.toLowerCase())
-    ).length;
-    const technicalDebt = allIssues.filter(issue => 
-      issue.fields.labels?.some(label => label.toLowerCase().includes('tech-debt'))
-    ).length;
+    const bugs =
+      allIssues.filter((issue) => issue.fields.issuetype.name.toLowerCase() === 'bug').length;
+    const features =
+      allIssues.filter((issue) =>
+        ['story', 'task', 'feature'].includes(issue.fields.issuetype.name.toLowerCase())
+      ).length;
+    const technicalDebt =
+      allIssues.filter((issue) =>
+        issue.fields.labels?.some((label) => label.toLowerCase().includes('tech-debt'))
+      ).length;
 
     // Ensure all counts are non-negative
     const total = Math.max(0, allIssues.length);
@@ -788,10 +820,10 @@ export class JiraService {
       done: 0,
       new: 0,
       indeterminate: 0,
-      open: 0
+      open: 0,
     };
 
-    issues.forEach(issue => {
+    issues.forEach((issue) => {
       // Status metrics
       const status = issue.fields.status.name;
       const statusCategory = issue.fields.status.statusCategory;
@@ -809,7 +841,7 @@ export class JiraService {
 
       // Status category metrics
       const statusName = status.toLowerCase();
-      
+
       // Update category counters based on status category key
       switch (statusCategory.key) {
         case 'new':
@@ -836,7 +868,10 @@ export class JiraService {
   /**
    * Get comprehensive project metrics
    */
-  public async getProjectMetrics(jiraProjectKey: string, boardId?: number): Promise<JiraProjectMetrics> {
+  public async getProjectMetrics(
+    jiraProjectKey: string,
+    boardId?: number,
+  ): Promise<JiraProjectMetrics> {
     await this.ensureCustomFieldsAnalyzed();
     // Start progress indicator
     const progress = new ProgressIndicator();
@@ -858,18 +893,21 @@ export class JiraService {
 
       // Get boards for the project
       const boards = await this.getBoards(jiraProjectKey);
-      this.logger.debug('Found boards:', boards.map(b => ({ id: b.id, name: b.name, type: b.type })));
+      this.logger.debug(
+        'Found boards:',
+        boards.map((b) => ({ id: b.id, name: b.name, type: b.type })),
+      );
 
       // If no boardId is provided and there are multiple boards, ask user to select one
       let selectedBoard: JiraBoard | undefined;
       if (!boardId && boards.length > 0) {
         // Stop progress indicator while waiting for user input
         progress.stop();
-        
+
         // Format boards for display
-        const boardChoices = boards.map(b => ({
+        const boardChoices = boards.map((b) => ({
           name: `${b.name} (${b.type})`,
-          value: b.id.toString()
+          value: b.id.toString(),
         }));
 
         // Ask user to select a board
@@ -877,18 +915,18 @@ export class JiraService {
         const selectedBoardId = await Select.prompt({
           message: 'Select a board to analyze:',
           options: boardChoices,
-          default: boards.find(b => b.type === 'scrum')?.id.toString() || boardChoices[0].value
+          default: boards.find((b) => b.type === 'scrum')?.id.toString() || boardChoices[0].value,
         });
 
-        selectedBoard = boards.find(b => b.id.toString() === selectedBoardId);
-        
+        selectedBoard = boards.find((b) => b.id.toString() === selectedBoardId);
+
         // Restart progress indicator
         progress.start('Analyzing Jira project metrics');
       } else if (boardId) {
-        selectedBoard = boards.find(b => b.id === boardId);
+        selectedBoard = boards.find((b) => b.id === boardId);
       } else if (boards.length > 0) {
         // If no selection needed, prefer scrum board or take first available
-        selectedBoard = boards.find(b => b.type === 'scrum') || boards[0];
+        selectedBoard = boards.find((b) => b.type === 'scrum') || boards[0];
       }
 
       if (selectedBoard) {
@@ -897,7 +935,7 @@ export class JiraService {
 
       // Get last 6 periods data (either sprints or 2-week periods for Kanban)
       progress.update('Analyzing sprint/period data (last 6 periods)');
-      const sprintData = selectedBoard?.type === 'scrum' 
+      const sprintData = selectedBoard?.type === 'scrum'
         ? (await this.getLastNSprintsData(6, jiraProjectKey, selectedBoard?.id)).sprintData
         : await this.getKanbanBoardData(6, jiraProjectKey);
 
@@ -931,16 +969,16 @@ export class JiraService {
         timeline,
         bottlenecks,
         sprints: sprintMetrics,
-        boardType: selectedBoard?.type || 'scrum'
+        boardType: selectedBoard?.type || 'scrum',
       });
 
       // Build metrics object
       progress.update('Compiling final metrics');
-      
+
       // Calculate velocity and completion rate trends
-      const velocityData = sprintData.map(s => s.velocity);
-      const completionRates = sprintData.map(s => s.completionRate * 100);
-      const sprintHistory = sprintData.map(s => ({
+      const velocityData = sprintData.map((s) => s.velocity);
+      const completionRates = sprintData.map((s) => s.completionRate * 100);
+      const sprintHistory = sprintData.map((s) => ({
         name: s.name,
         startDate: s.startDate,
         endDate: s.endDate,
@@ -954,7 +992,7 @@ export class JiraService {
         committedAndCompleted: s.committedAndCompleted,
         addedDuringSprintAndCompleted: s.addedDuringSprintAndCompleted,
         totalIssues: s.totalIssues.length,
-        spiltOverIssues: s.spiltOverIssues.length
+        spiltOverIssues: s.spiltOverIssues.length,
       }));
 
       const metrics: JiraProjectMetrics = {
@@ -970,22 +1008,22 @@ export class JiraService {
           technicalDebt: issues.technicalDebt,
           byStatus: issues.byStatus,
           byType: issues.byType || {},
-          byMember: issues.byMember || {}
+          byMember: issues.byMember || {},
         },
         members,
         timeline: {
           created: timeline.created,
           resolved: timeline.resolved,
           updated: timeline.updated,
-          comments: timeline.comments || []
+          comments: timeline.comments || [],
         },
         bottlenecks,
         sprints: {
           active: sprintMetrics?.active,
           count: sprintData.length,
-          activeCount: sprintData.filter(s => s.state === 'active').length,
-          closedCount: sprintData.filter(s => s.state === 'closed').length,
-          future: sprintData.filter(s => s.state === 'future').length,
+          activeCount: sprintData.filter((s) => s.state === 'active').length,
+          closedCount: sprintData.filter((s) => s.state === 'closed').length,
+          future: sprintData.filter((s) => s.state === 'future').length,
           avgVelocity: sprintMetrics?.avgVelocity || 0,
           avgCompletionRate: sprintMetrics?.avgCompletionRate || 0,
           avgCycleTime: {
@@ -996,17 +1034,17 @@ export class JiraService {
               max: 0,
               p25: 0,
               p75: 0,
-              p90: 0
-            }
+              p90: 0,
+            },
           },
           avgThroughput: sprintMetrics?.avgThroughput || 0,
-          closed: sprintData.filter(s => s.state === 'closed').length,
+          closed: sprintData.filter((s) => s.state === 'closed').length,
           velocityTrend: velocityData,
           completionRateTrend: completionRates,
-          history: sprintHistory
+          history: sprintHistory,
         },
         healthScore,
-        boardType: selectedBoard?.type || 'scrum'
+        boardType: selectedBoard?.type || 'scrum',
       };
 
       // Cache results
@@ -1031,32 +1069,32 @@ export class JiraService {
    */
   private calculateAverageVelocity(sprints: SprintData[]): number {
     if (!sprints.length) return 0;
-    
+
     // Calculate velocity for each sprint based on completed points
-    const velocities = sprints.map(sprint => {
-        // Calculate completed story points
-        const completedPoints = sprint.completedIssues.reduce((sum, issue) => 
-            sum + (issue.fields[this.storyPointsField] || 0), 
-            0
-        );
-        
-        // Calculate sprint duration in days
-        const sprintDuration = Math.ceil(
-            (sprint.endDate.getTime() - sprint.startDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        
-        // Return points per day
-        return completedPoints / Math.max(1, sprintDuration);
+    const velocities = sprints.map((sprint) => {
+      // Calculate completed story points
+      const completedPoints = sprint.completedIssues.reduce(
+        (sum, issue) => sum + (issue.fields[this.storyPointsField] || 0),
+        0,
+      );
+
+      // Calculate sprint duration in days
+      const sprintDuration = Math.ceil(
+        (sprint.endDate.getTime() - sprint.startDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Return points per day
+      return completedPoints / Math.max(1, sprintDuration);
     });
-    
+
     // Calculate average velocity
     const avgVelocity = velocities.reduce((a, b) => a + b, 0) / velocities.length;
-    
+
     this.logger.debug('Velocity calculation:', {
-        velocities: velocities.map((v, i) => `Sprint ${i + 1}: ${v.toFixed(1)} points/day`),
-        average: `${avgVelocity.toFixed(1)} points/day`
+      velocities: velocities.map((v, i) => `Sprint ${i + 1}: ${v.toFixed(1)} points/day`),
+      average: `${avgVelocity.toFixed(1)} points/day`,
     });
-    
+
     return avgVelocity;
   }
 
@@ -1083,14 +1121,14 @@ export class JiraService {
           max: 0,
           p25: 0,
           p75: 0,
-          p90: 0
-        }
+          p90: 0,
+        },
       };
     }
 
     const cycleTimes = issues
-      .filter(issue => issue.fields.resolutiondate)
-      .map(issue => {
+      .filter((issue) => issue.fields.resolutiondate)
+      .map((issue) => {
         const created = new Date(issue.fields.created);
         const resolved = new Date(issue.fields.resolutiondate!);
         // Calculate in hours instead of days
@@ -1107,8 +1145,8 @@ export class JiraService {
           max: 0,
           p25: 0,
           p75: 0,
-          p90: 0
-        }
+          p90: 0,
+        },
       };
     }
 
@@ -1128,8 +1166,8 @@ export class JiraService {
         max,
         p25,
         p75,
-        p90
-      }
+        p90,
+      },
     };
   }
 
@@ -1145,7 +1183,7 @@ export class JiraService {
     const transitions: StageTransition[] = [];
     const maxDurations: { [key: string]: { duration: number; issueKey: string } } = {};
 
-    issues.forEach(issue => {
+    issues.forEach((issue) => {
       const changelog = issue.changelog?.histories || [];
       let lastStatusChange = new Date(issue.fields.created).getTime();
       let currentStatus = issue.fields.status.name;
@@ -1159,9 +1197,7 @@ export class JiraService {
       statusCounts[currentStatus]++;
 
       changelog
-        .filter((history) => 
-          history.items.some((item) => item.field === 'status')
-        )
+        .filter((history) => history.items.some((item) => item.field === 'status'))
         .forEach((history) => {
           const changeTime = new Date(history.created).getTime();
           const duration = (changeTime - lastStatusChange) / (1000 * 60 * 60); // Hours
@@ -1172,7 +1208,7 @@ export class JiraService {
               maxDurations[currentStatus] = { duration: 0, issueKey: issue.key };
             }
             statusDurations[currentStatus].push(duration);
-            
+
             // Update max duration if this is longer
             if (duration > maxDurations[currentStatus].duration) {
               maxDurations[currentStatus] = { duration, issueKey: issue.key };
@@ -1185,7 +1221,7 @@ export class JiraService {
                 issueKey: issue.key,
                 fromStatus: currentStatus,
                 toStatus: statusChange.toString,
-                timeSpentHours: duration
+                timeSpentHours: duration,
               });
             }
           }
@@ -1218,11 +1254,10 @@ export class JiraService {
     // Calculate averages and create analytics
     const statusAnalytics = Object.entries(statusDurations).map(([status, durations]) => ({
       status,
-      avgDuration: durations.length ? 
-        durations.reduce((a, b) => a + b, 0) / durations.length : 0,
+      avgDuration: durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : 0,
       maxDuration: maxDurations[status].duration,
       maxIssue: maxDurations[status].issueKey,
-      issueCount: statusCounts[status] || 0
+      issueCount: statusCounts[status] || 0,
     }));
 
     return { transitions, statusAnalytics };
@@ -1241,7 +1276,7 @@ export class JiraService {
 
     const created = new Date(issue.fields.created).getTime();
     const firstComment = issue.fields.comment.comments
-      .filter(c => c.author.displayName !== issue.fields.reporter.displayName)
+      .filter((c) => c.author.displayName !== issue.fields.reporter.displayName)
       .sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime())[0];
 
     if (!firstComment) {
@@ -1251,19 +1286,21 @@ export class JiraService {
     return (new Date(firstComment.created).getTime() - created) / (1000 * 60 * 60); // Hours
   }
 
-  private calculateBottlenecks(issues: JiraIssue[]): Array<{status: string; avgDuration: number; issueCount: number}> {
+  private calculateBottlenecks(
+    issues: JiraIssue[],
+  ): Array<{ status: string; avgDuration: number; issueCount: number }> {
     const statusDurations: Record<string, number[]> = {};
     const now = Date.now();
 
-    issues.forEach(issue => {
+    issues.forEach((issue) => {
       const changelog = issue.changelog?.histories || [];
       let lastStatusChange = new Date(issue.fields.created).getTime();
       let currentStatus = issue.fields.status.name;
 
       changelog
-        .filter(h => h.items.some(i => i.field === 'status'))
-        .forEach(history => {
-          const statusChange = history.items.find(i => i.field === 'status');
+        .filter((h) => h.items.some((i) => i.field === 'status'))
+        .forEach((history) => {
+          const statusChange = history.items.find((i) => i.field === 'status');
           if (statusChange) {
             const changeTime = new Date(history.created).getTime();
             const duration = (changeTime - lastStatusChange) / (1000 * 60 * 60); // Hours
@@ -1291,7 +1328,7 @@ export class JiraService {
         avgDuration: durations.reduce((a, b) => a + b, 0) / durations.length,
         issueCount: durations.length,
       }))
-      .filter(b => b.avgDuration > 24) // Only include statuses with avg duration > 24h
+      .filter((b) => b.avgDuration > 24) // Only include statuses with avg duration > 24h
       .sort((a, b) => b.avgDuration - a.avgDuration);
   }
 
@@ -1304,15 +1341,15 @@ export class JiraService {
     for (let i = 0; i < periods; i++) {
       const periodEnd = now - (i * periodLength);
       const periodStart = periodEnd - periodLength;
-      
-      const periodIssues = issues.filter(issue => {
+
+      const periodIssues = issues.filter((issue) => {
         const created = new Date(issue.fields.created).getTime();
         return created >= periodStart && created < periodEnd;
       });
 
-      const bugs = periodIssues.filter(i => i.fields.issuetype.name === 'Bug').length;
+      const bugs = periodIssues.filter((i) => i.fields.issuetype.name === 'Bug').length;
       const total = periodIssues.length || 1; // Avoid division by zero
-      
+
       trend.unshift((1 - (bugs / total)) * 100); // Quality percentage
     }
 
@@ -1321,7 +1358,7 @@ export class JiraService {
 
   private calculateDeliveryTrend(sprints: SprintData[]): number[] {
     return sprints
-      .map(sprint => (sprint.completionRate || 0) * 100) // Convert to percentage
+      .map((sprint) => (sprint.completionRate || 0) * 100) // Convert to percentage
       .reverse()
       .slice(0, 5); // Last 5 sprints
   }
@@ -1348,10 +1385,10 @@ export class JiraService {
 
   private getDaysAgo(date: Date | string | undefined): number {
     if (!date) return 0;
-    
+
     const targetDate = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(targetDate.getTime())) return 0;
-    
+
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - targetDate.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1359,19 +1396,21 @@ export class JiraService {
 
   private getTrendArrow(values: number[]): string {
     if (values.length < 2) return '→ Stable';
-    
+
     const change = values[values.length - 1] - values[values.length - 2];
     const percentChange = (change / values[values.length - 2]) * 100;
-    
+
     if (Math.abs(percentChange) < 5) return '→ Stable';
     if (percentChange > 0) return '↗ Slight increase';
     return '↘ Slight decrease';
   }
 
-  private getCycleTimeTrendIndicator(cycleTime: { mean: number; median: number; distribution: { p75: number; p90: number } }): string {
+  private getCycleTimeTrendIndicator(
+    cycleTime: { mean: number; median: number; distribution: { p75: number; p90: number } },
+  ): string {
     const p75ToMedianRatio = cycleTime.distribution.p75 / cycleTime.median;
     const p90ToMedianRatio = cycleTime.distribution.p90 / cycleTime.median;
-    
+
     if (p90ToMedianRatio > 3) return '❌ Very unpredictable';
     if (p90ToMedianRatio > 2) return '⚠️ Unpredictable';
     if (p75ToMedianRatio > 1.5) return '⚠️ Somewhat unpredictable';
@@ -1391,38 +1430,41 @@ export class JiraService {
    */
   formatIssueInfo(issue: JiraIssue): string {
     const sections: string[] = [];
-    
+
     // Title section
     sections.push(theme.emphasis(`${theme.symbols.documentation} ${issue.fields.summary}`));
-    
+
     // Basic info table
     const infoTable = new Table()
       .border(true)
       .padding(1);
-    
+
     infoTable.push(['🔗 URL', `${this.baseUrl}/browse/${issue.key}`]);
-    infoTable.push(['📊 Status', `${this.getStatusEmoji(issue.fields.status.statusCategory.key)} ${issue.fields.status.name}`]);
+    infoTable.push([
+      '📊 Status',
+      `${this.getStatusEmoji(issue.fields.status.statusCategory.key)} ${issue.fields.status.name}`,
+    ]);
     infoTable.push(['📎 Type', issue.fields.issuetype.name]);
     infoTable.push(['🪜 Priority', issue.fields.priority.name]);
     infoTable.push(['👤 Assignee', issue.fields.assignee?.displayName || 'Unassigned']);
     infoTable.push(['👤 Reporter', issue.fields.reporter?.displayName || 'Unknown']);
     infoTable.push(['📅 Created', formatTimestamp(issue.fields.created)]);
     infoTable.push(['🕒 Updated', formatTimestamp(issue.fields.updated)]);
-    
+
     if (issue.fields.dueDate) {
       infoTable.push(['⏰ Due Date', formatTimestamp(issue.fields.dueDate)]);
     }
-    
+
     if (issue.fields.labels && issue.fields.labels.length > 0) {
       infoTable.push(['🏷️ Labels', issue.fields.labels.join(', ')]);
     }
-    
+
     if (issue.fields.components && issue.fields.components.length > 0) {
-      infoTable.push(['🧩 Components', issue.fields.components.map(c => c.name).join(', ')]);
+      infoTable.push(['🧩 Components', issue.fields.components.map((c) => c.name).join(', ')]);
     }
-    
+
     sections.push(infoTable.toString());
-    
+
     // Description section if available
     if (issue.fields.description) {
       sections.push(theme.emphasis('\n📝 Description:'));
@@ -1432,7 +1474,7 @@ export class JiraService {
       descriptionTable.push([issue.fields.description]);
       sections.push(descriptionTable.toString());
     }
-    
+
     // Story Points if available
     const storyPoints = this.calculateStoryPoints(issue);
     if (storyPoints !== undefined && storyPoints !== null) {
@@ -1443,7 +1485,7 @@ export class JiraService {
       pointsTable.push([storyPoints.toString()]);
       sections.push(pointsTable.toString());
     }
-    
+
     // Comments section if available
     if (issue.fields.comment?.comments && issue.fields.comment.comments.length > 0) {
       sections.push(theme.emphasis('\n💬 Recent Comments:'));
@@ -1451,22 +1493,24 @@ export class JiraService {
         .border(true)
         .padding(1)
         .header(['Author', 'Date', 'Comment']);
-      
-      issue.fields.comment.comments.slice(-3).forEach(comment => {
+
+      issue.fields.comment.comments.slice(-3).forEach((comment) => {
         commentsTable.push([
           comment.author.displayName,
           formatTimestamp(comment.created),
-          comment.body.length > 100 ? `${comment.body.substring(0, 100)}...` : comment.body
+          comment.body.length > 100 ? `${comment.body.substring(0, 100)}...` : comment.body,
         ]);
       });
-      
+
       sections.push(commentsTable.toString());
-      
+
       if (issue.fields.comment.comments.length > 3) {
-        sections.push(theme.dim(`\nShowing last 3 of ${issue.fields.comment.comments.length} comments`));
+        sections.push(
+          theme.dim(`\nShowing last 3 of ${issue.fields.comment.comments.length} comments`),
+        );
       }
     }
-    
+
     return sections.join('\n');
   }
 
@@ -1481,9 +1525,14 @@ export class JiraService {
     const getStatusColor = (statusCategory: string, statusName: string): string => {
       const name = statusName.toLowerCase();
       // Default/fallback colors based on category
-      if (statusCategory === 'Done' || name.includes('done') || name.includes('finish') || name.includes('complete')) {
+      if (
+        statusCategory === 'Done' || name.includes('done') || name.includes('finish') ||
+        name.includes('complete')
+      ) {
         return colors.green(`${theme.symbols.status.success} ${statusName}`);
-      } else if (statusCategory === 'In Progress' || name.includes('progress') || name.includes('started')) {
+      } else if (
+        statusCategory === 'In Progress' || name.includes('progress') || name.includes('started')
+      ) {
         // Use warning instead of running
         return colors.blue(`${theme.symbols.status.warning} ${statusName}`);
       } else if (name.includes('block') || name.includes('wait') || name.includes('hold')) {
@@ -1520,32 +1569,48 @@ export class JiraService {
       const issueTable = new Table()
         .border(true)
         .padding(1);
-      
+
       // Add title as a header row instead of using .title()
-      issueTable.push([`${getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name)} ${issue.key}: ${theme.emphasis(issue.fields.summary)}`]);
-      
+      issueTable.push([
+        `${
+          getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name)
+        } ${issue.key}: ${theme.emphasis(issue.fields.summary)}`,
+      ]);
+
       issueTable.push(['🚩 Priority', getPriorityColor(issue.fields.priority.name)]);
-      issueTable.push(['📊 Status', getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name)]);
-      issueTable.push(['👤 Assignee', issue.fields.assignee?.displayName || colors.dim('Unassigned')]);
-      
+      issueTable.push([
+        '📊 Status',
+        getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name),
+      ]);
+      issueTable.push([
+        '👤 Assignee',
+        issue.fields.assignee?.displayName || colors.dim('Unassigned'),
+      ]);
+
       if (issue.fields.components?.length) {
-        issueTable.push(['📋 Components', issue.fields.components.map((c: { name: string }) => colors.cyan(c.name)).join(', ')]);
+        issueTable.push([
+          '📋 Components',
+          issue.fields.components.map((c: { name: string }) => colors.cyan(c.name)).join(', '),
+        ]);
       }
-      
+
       if (issue.fields.labels?.length) {
-        issueTable.push(['🏷️ Labels', issue.fields.labels.map(label => colors.magenta(label)).join(', ')]);
+        issueTable.push([
+          '🏷️ Labels',
+          issue.fields.labels.map((label) => colors.magenta(label)).join(', '),
+        ]);
       }
-      
+
       issueTable.push(['🕒 Created', formatTimestamp(issue.fields.created)]);
-      
+
       if (issue.fields.updated) {
         issueTable.push(['🔄 Updated', formatTimestamp(issue.fields.updated)]);
       }
-      
+
       if (issue.fields.dueDate) {
         issueTable.push(['📅 Due', formatTimestamp(issue.fields.dueDate)]);
       }
-      
+
       return issueTable.toString();
     };
 
@@ -1563,14 +1628,14 @@ export class JiraService {
       `${colors.blue('⬤')} To Do: ${issuesByStatus['new']?.length || 0}`,
       `${colors.yellow('⬤')} In Progress: ${issuesByStatus['indeterminate']?.length || 0}`,
       `${colors.green('⬤')} Done: ${issuesByStatus['done']?.length || 0}`,
-      ''
+      '',
     ].join('\n');
 
     // Sort issues by status (To Do -> In Progress -> Done) and then by updated date
     const statusOrder: Record<string, number> = { new: 0, indeterminate: 1, done: 2 };
     const sortedIssues = issues.sort((a, b) => {
-      const statusDiff = (statusOrder[a.fields.status.statusCategory.key] || 0) - 
-                        (statusOrder[b.fields.status.statusCategory.key] || 0);
+      const statusDiff = (statusOrder[a.fields.status.statusCategory.key] || 0) -
+        (statusOrder[b.fields.status.statusCategory.key] || 0);
       if (statusDiff !== 0) return statusDiff;
       return new Date(b.fields.updated).getTime() - new Date(a.fields.updated).getTime();
     });
@@ -1588,9 +1653,9 @@ export class JiraService {
       const recentProjects = await db.getRecentJiraProjects();
       this.logger.debug(`Retrieved ${recentProjects.length} recent projects from database`);
       // Add optional fullPath property to match RecentProject interface
-      return recentProjects.map(p => ({
+      return recentProjects.map((p) => ({
         ...p,
-        fullPath: p.key // Use key as fullPath since Jira projects don't have paths
+        fullPath: p.key, // Use key as fullPath since Jira projects don't have paths
       }));
     } catch (error) {
       this.logger.error('Error getting recent Jira projects:', error);
@@ -1655,30 +1720,30 @@ export class JiraService {
    * Get data for the last N sprints
    */
   public async getLastNSprintsData(
-    n: number, 
+    n: number,
     projectKey: string,
-    boardId?: number
+    boardId?: number,
   ): Promise<{
-    sprintData: SprintData[]; 
-    duplicateSprints: Array<{ dateRange: string; sprints: string[] }>
+    sprintData: SprintData[];
+    duplicateSprints: Array<{ dateRange: string; sprints: string[] }>;
   }> {
     this.logger.debug(`Getting last ${n} sprints data for project: ${projectKey}`);
     await this.initialize(projectKey);
     try {
       // Get boards for the project
       const boards = await this.getBoards(projectKey);
-      
+
       // Find the Scrum board
-      const scrumBoard = boardId 
-        ? boards.find(board => board.id === boardId)
-        : boards.find(board => board.type === 'scrum');
-      
+      const scrumBoard = boardId
+        ? boards.find((board) => board.id === boardId)
+        : boards.find((board) => board.type === 'scrum');
+
       if (!scrumBoard) {
         this.logger.debug(`No Scrum board found, treating as Kanban board`);
         const kanbanData = await this.getKanbanBoardData(n, projectKey);
-        return { 
+        return {
           sprintData: kanbanData,
-          duplicateSprints: [] // No duplicates in Kanban boards
+          duplicateSprints: [], // No duplicates in Kanban boards
         };
       }
 
@@ -1697,19 +1762,21 @@ export class JiraService {
       const duplicateSprints: Array<{ dateRange: string; sprints: string[] }> = [];
 
       this.logger.debug(`Processing ${sprints.values.length} most recent sprints`);
-      
+
       if (sprints.values.length === 0) {
         this.logger.debug('No recent sprints found, falling back to Kanban board data');
         const kanbanData = await this.getKanbanBoardData(n, projectKey);
-        return { 
+        return {
           sprintData: kanbanData,
-          duplicateSprints: [] // No duplicates in Kanban boards
+          duplicateSprints: [], // No duplicates in Kanban boards
         };
       }
 
       // Take only the last n sprints
       const recentSprints = sprints.values.slice(0, n);
-      this.logger.debug(`Processing last ${n} sprints out of ${sprints.values.length} total sprints`);
+      this.logger.debug(
+        `Processing last ${n} sprints out of ${sprints.values.length} total sprints`,
+      );
 
       for (const sprint of recentSprints) {
         this.logger.debug(`\nProcessing sprint: ${sprint.name} (${sprint.id})`);
@@ -1732,14 +1799,15 @@ export class JiraService {
         for (let j = i + 1; j < sprintDataArray.length; j++) {
           const sprint1 = sprintDataArray[i];
           const sprint2 = sprintDataArray[j];
-          
+
           // Check for date range overlap
           if (sprint1.startDate <= sprint2.endDate && sprint2.startDate <= sprint1.endDate) {
             // Found overlap
-            const dateRange = `${sprint1.startDate.toLocaleDateString()} - ${sprint1.endDate.toLocaleDateString()}`;
-            
+            const dateRange =
+              `${sprint1.startDate.toLocaleDateString()} - ${sprint1.endDate.toLocaleDateString()}`;
+
             // Check if this range already exists in our duplicates
-            const existingRange = duplicateSprints.find(d => d.dateRange === dateRange);
+            const existingRange = duplicateSprints.find((d) => d.dateRange === dateRange);
             if (existingRange) {
               if (!existingRange.sprints.includes(sprint1.name)) {
                 existingRange.sprints.push(sprint1.name);
@@ -1750,16 +1818,16 @@ export class JiraService {
             } else {
               duplicateSprints.push({
                 dateRange,
-                sprints: [sprint1.name, sprint2.name]
+                sprints: [sprint1.name, sprint2.name],
               });
             }
           }
         }
       }
 
-      return { 
+      return {
         sprintData: sprintDataArray,
-        duplicateSprints
+        duplicateSprints,
       };
     } catch (error) {
       this.logger.error('Error getting sprint data:', error);
@@ -1769,7 +1837,9 @@ export class JiraService {
     }
   }
 
-  private calculateScopeChangeRate(history: Required<JiraProjectMetrics>['sprints']['history']): number {
+  private calculateScopeChangeRate(
+    history: Required<JiraProjectMetrics>['sprints']['history'],
+  ): number {
     if (!history?.length) return 0;
     return history.reduce((sum: number, sprint) => {
       const added = sprint.addedDuringSprintAndCompleted?.length || 0;
@@ -1778,7 +1848,9 @@ export class JiraService {
     }, 0) / history.length;
   }
 
-  private calculateSpilloverRate(history: Required<JiraProjectMetrics>['sprints']['history']): number {
+  private calculateSpilloverRate(
+    history: Required<JiraProjectMetrics>['sprints']['history'],
+  ): number {
     if (!history?.length) return 0;
     return history.reduce((sum: number, sprint) => {
       const spillover = sprint.spiltOverIssues || 0;
@@ -1787,18 +1859,22 @@ export class JiraService {
     }, 0) / history.length;
   }
 
-  private calculateScopeChangeTrend(history: Required<JiraProjectMetrics>['sprints']['history']): number[] {
+  private calculateScopeChangeTrend(
+    history: Required<JiraProjectMetrics>['sprints']['history'],
+  ): number[] {
     if (!history?.length) return [];
-    return history.map(sprint => {
+    return history.map((sprint) => {
       const added = sprint.addedDuringSprintAndCompleted?.length || 0;
       const committed = sprint.committedIssues || 1;
       return ((added / committed) * 100);
     });
   }
 
-  private calculateSpilloverTrend(history: Required<JiraProjectMetrics>['sprints']['history']): number[] {
+  private calculateSpilloverTrend(
+    history: Required<JiraProjectMetrics>['sprints']['history'],
+  ): number[] {
     if (!history?.length) return [];
-    return history.map(sprint => {
+    return history.map((sprint) => {
       const spillover = sprint.spiltOverIssues || 0;
       const committed = sprint.committedIssues || 1;
       return ((spillover / committed) * 100);
@@ -1808,62 +1884,70 @@ export class JiraService {
   private wasIssueCommittedToSprint(issue: JiraIssue, sprintId: string | number): boolean {
     // Get sprint field
     const sprintField = issue.fields.customfield_10460;
-    
+
     // Convert sprintId to string for comparison
     const sprintIdStr = String(sprintId);
-    
+
     // Only log sprint field if debugging first time for this sprint
     if (!this.sprintFieldsLogged) {
-        this.logger.debug(`Sprint field example for ${issue.key}:`, {
-            sprintField,
-            created: issue.fields.created,
-            status: issue.fields.status.name
-        });
-        this.sprintFieldsLogged = true;
+      this.logger.debug(`Sprint field example for ${issue.key}:`, {
+        sprintField,
+        created: issue.fields.created,
+        status: issue.fields.status.name,
+      });
+      this.sprintFieldsLogged = true;
     }
 
     // Check if sprint field is an array and contains our sprint
     if (Array.isArray(sprintField)) {
-        const sprintEntry = sprintField.find(s => String(s.id) === sprintIdStr);
-        if (sprintEntry) {
-            const sprintStartDate = new Date(sprintEntry.startDate);
-            const sprintEndDate = new Date(sprintEntry.endDate);
-            
-            // First check the changelog for when the issue was added to the sprint
-            if (issue.changelog?.histories) {
-                for (const history of issue.changelog.histories) {
-                    for (const item of history.items) {
-                        if (item.field === 'Sprint' && item.toString?.includes(sprintIdStr)) {
-                            const addedDate = new Date(history.created);
-                            
-                            // Consider it committed if:
-                            // 1. It was added within 2 days of sprint start (planning window)
-                            // 2. OR it was added during the first 20% of the sprint (early additions)
-                            const planningWindowEnd = new Date(sprintStartDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-                            const earlySprintWindow = new Date(sprintStartDate.getTime() + (sprintEndDate.getTime() - sprintStartDate.getTime()) * 0.2);
-                            
-                            if (addedDate <= planningWindowEnd || addedDate <= earlySprintWindow) {
-                                return true;
-                            }
-                        }
-                    }
+      const sprintEntry = sprintField.find((s) => String(s.id) === sprintIdStr);
+      if (sprintEntry) {
+        const sprintStartDate = new Date(sprintEntry.startDate);
+        const sprintEndDate = new Date(sprintEntry.endDate);
+
+        // First check the changelog for when the issue was added to the sprint
+        if (issue.changelog?.histories) {
+          for (const history of issue.changelog.histories) {
+            for (const item of history.items) {
+              if (item.field === 'Sprint' && item.toString?.includes(sprintIdStr)) {
+                const addedDate = new Date(history.created);
+
+                // Consider it committed if:
+                // 1. It was added within 2 days of sprint start (planning window)
+                // 2. OR it was added during the first 20% of the sprint (early additions)
+                const planningWindowEnd = new Date(
+                  sprintStartDate.getTime() + 2 * 24 * 60 * 60 * 1000,
+                );
+                const earlySprintWindow = new Date(
+                  sprintStartDate.getTime() +
+                    (sprintEndDate.getTime() - sprintStartDate.getTime()) * 0.2,
+                );
+
+                if (addedDate <= planningWindowEnd || addedDate <= earlySprintWindow) {
+                  return true;
                 }
+              }
             }
-            
-            // If no changelog entry but issue was created just before or during sprint planning
-            const issueCreated = new Date(issue.fields.created);
-            const planningStart = new Date(sprintStartDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before sprint
-            if (issueCreated >= planningStart && issueCreated <= sprintStartDate) {
-                return true;
-            }
+          }
         }
+
+        // If no changelog entry but issue was created just before or during sprint planning
+        const issueCreated = new Date(issue.fields.created);
+        const planningStart = new Date(sprintStartDate.getTime() - 24 * 60 * 60 * 1000); // 1 day before sprint
+        if (issueCreated >= planningStart && issueCreated <= sprintStartDate) {
+          return true;
+        }
+      }
     }
 
     return false;
   }
 
   // Get issues that were completed during the sprint
-  private getCompletedSprintIssues(issues: JiraIssue[], sprint: { id: string | number; startDate: string; endDate: string }): { 
+  private getCompletedSprintIssues(
+    issues: JiraIssue[],
+    sprint: { id: string | number; startDate: string; endDate: string },
+  ): {
     completedIssues: JiraIssue[];
     committedAndCompleted: JiraIssue[];
     addedDuringSprintAndCompleted: JiraIssue[];
@@ -1872,28 +1956,28 @@ export class JiraService {
     const sprintEnd = new Date(sprint.endDate);
 
     // First get all completed issues during the sprint
-    const completedIssues = issues.filter(issue => {
-        // Check if issue is Done
-        const isDone = issue.fields.status.statusCategory.name === 'Done';
-        if (!isDone) return false;
+    const completedIssues = issues.filter((issue) => {
+      // Check if issue is Done
+      const isDone = issue.fields.status.statusCategory.name === 'Done';
+      if (!isDone) return false;
 
-        // Get resolution date
-        const resolutionDate = issue.fields.resolutiondate 
-            ? new Date(issue.fields.resolutiondate)
-            : null;
-        if (!resolutionDate) return false;
+      // Get resolution date
+      const resolutionDate = issue.fields.resolutiondate
+        ? new Date(issue.fields.resolutiondate)
+        : null;
+      if (!resolutionDate) return false;
 
-        // Issue was completed during the sprint
-        return resolutionDate >= sprintStart && resolutionDate <= sprintEnd;
+      // Issue was completed during the sprint
+      return resolutionDate >= sprintStart && resolutionDate <= sprintEnd;
     });
 
     // Then split them into committed vs added during sprint
-    const committedAndCompleted = completedIssues.filter(issue => 
-        this.wasIssueCommittedToSprint(issue, sprint.id)
+    const committedAndCompleted = completedIssues.filter((issue) =>
+      this.wasIssueCommittedToSprint(issue, sprint.id)
     );
 
-    const addedDuringSprintAndCompleted = completedIssues.filter(issue => 
-        !this.wasIssueCommittedToSprint(issue, sprint.id)
+    const addedDuringSprintAndCompleted = completedIssues.filter((issue) =>
+      !this.wasIssueCommittedToSprint(issue, sprint.id)
     );
 
     // Log the breakdown for debugging
@@ -1903,9 +1987,9 @@ export class JiraService {
     - Completed from added: ${addedDuringSprintAndCompleted.length}`);
 
     return {
-        completedIssues,
-        committedAndCompleted,
-        addedDuringSprintAndCompleted
+      completedIssues,
+      committedAndCompleted,
+      addedDuringSprintAndCompleted,
     };
   }
 
@@ -1916,20 +2000,24 @@ export class JiraService {
       const startDate = sprint.startDate;
       const endDate = sprint.endDate;
       const now = new Date();
-      
+
       // Calculate time elapsed percentage
       const totalDuration = endDate.getTime() - startDate.getTime();
       const elapsed = Math.min(now.getTime() - startDate.getTime(), totalDuration);
       const timeProgress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
-      
+
       // For completion rate, if it's over 100%, cap it at 100%
       // This is for display purposes - the team really achieved more, but for progress
       // visualization, the sprint is 100% complete at most
       const completionProgress = Math.min(100, (sprint.completionRate || 0) * 100);
-      
+
       // Weighted calculation: 40% time based, 60% completion based
       const progress = (timeProgress * 0.4) + (completionProgress * 0.6);
-      this.logger.debug(`Sprint ${sprint.name}: Time progress ${timeProgress.toFixed(1)}%, Completion ${completionProgress.toFixed(1)}%, Combined ${progress.toFixed(1)}%`);
+      this.logger.debug(
+        `Sprint ${sprint.name}: Time progress ${timeProgress.toFixed(1)}%, Completion ${
+          completionProgress.toFixed(1)
+        }%, Combined ${progress.toFixed(1)}%`,
+      );
       return progress;
     } else {
       // For closed sprints, just use the completion rate, capped at 100%
@@ -1978,26 +2066,30 @@ export class JiraService {
     return { bottlenecks, blockedIssues };
   }
 
-  private getStatusOutliers(sprint: SprintData): Array<{ status: string; duration: number; issueKey: string }> {
+  private getStatusOutliers(
+    sprint: SprintData,
+  ): Array<{ status: string; duration: number; issueKey: string }> {
     const OUTLIER_THRESHOLD = 7 * 24; // 7 days in hours
-    
+
     return sprint.stageTransitions.statusAnalytics
-      .filter(stat => stat.maxDuration > OUTLIER_THRESHOLD)
-      .map(stat => ({
+      .filter((stat) => stat.maxDuration > OUTLIER_THRESHOLD)
+      .map((stat) => ({
         status: stat.status,
         duration: stat.maxDuration,
-        issueKey: stat.maxIssue
+        issueKey: stat.maxIssue,
       }))
       .sort((a, b) => b.duration - a.duration);
   }
 
-  private getStatusAnalysis(sprint: SprintData): Array<{ status: string; avgDuration: number; issueCount: number }> {
+  private getStatusAnalysis(
+    sprint: SprintData,
+  ): Array<{ status: string; avgDuration: number; issueCount: number }> {
     return sprint.stageTransitions.statusAnalytics
-      .filter(stat => stat.avgDuration > 24) // Only show statuses with avg > 1 day
-      .map(stat => ({
+      .filter((stat) => stat.avgDuration > 24) // Only show statuses with avg > 1 day
+      .map((stat) => ({
         status: stat.status,
         avgDuration: stat.avgDuration,
-        issueCount: stat.issueCount
+        issueCount: stat.issueCount,
       }))
       .sort((a, b) => b.avgDuration - a.avgDuration);
   }
@@ -2036,7 +2128,11 @@ export class JiraService {
   /**
    * Get Kanban board data in sprint-like format
    */
-  private async getKanbanBoardData(n: number, projectKey: string, _boardId?: number): Promise<SprintData[]> {
+  private async getKanbanBoardData(
+    n: number,
+    projectKey: string,
+    _boardId?: number,
+  ): Promise<SprintData[]> {
     try {
       await this.initialize(projectKey);
       this.logger.debug('Getting Kanban board data for project:', projectKey);
@@ -2069,7 +2165,9 @@ export class JiraService {
 
         // Completed issues are those that moved to Done during this period
         const completedIssues = issues.filter((issue) => {
-          const resolutionDate = issue.fields.resolutiondate ? new Date(issue.fields.resolutiondate) : null;
+          const resolutionDate = issue.fields.resolutiondate
+            ? new Date(issue.fields.resolutiondate)
+            : null;
           return resolutionDate && resolutionDate >= startDate && resolutionDate <= endDate;
         });
 
@@ -2083,40 +2181,57 @@ export class JiraService {
         const averageCycleTime = this.calculateAverageCycleTime(completedIssues);
 
         // Calculate points
-        const committedPoints = committedIssues.reduce((sum, issue) => 
-          sum + (issue.fields[this.storyPointsField] || 0), 0);
-        const completedPoints = completedIssues.reduce((sum, issue) => 
-          sum + (issue.fields[this.storyPointsField] || 0), 0);
+        const committedPoints = committedIssues.reduce(
+          (sum, issue) => sum + (issue.fields[this.storyPointsField] || 0),
+          0,
+        );
+        const completedPoints = completedIssues.reduce(
+          (sum, issue) => sum + (issue.fields[this.storyPointsField] || 0),
+          0,
+        );
 
         // For Kanban, calculate completion rate based on completed vs in-progress
-        const completionRate = committedIssues.length > 0 ? 
-          completedIssues.length / (committedIssues.length + completedIssues.length) : 0;
+        const completionRate = committedIssues.length > 0
+          ? completedIssues.length / (committedIssues.length + completedIssues.length)
+          : 0;
 
         // Calculate time-based progress
-        const totalDuration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        const elapsedDuration = Math.max(0, Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const totalDuration = Math.ceil(
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        const elapsedDuration = Math.max(
+          0,
+          Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)),
+        );
         const timeProgress = Math.min(1, elapsedDuration / totalDuration);
 
         // Calculate velocity (completed points per day)
         const velocity = completedPoints / Math.max(1, elapsedDuration);
-        const remainingDays = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        const remainingDays = Math.max(
+          0,
+          Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        );
 
         // Calculate metrics for all issues
         const allIssuesMetrics = this.calculateSprintMetrics(issues);
 
         // Separate completed issues into committed vs added during period
-        const committedAndCompleted = completedIssues.filter(issue => 
-          committedIssues.some(committed => committed.id === issue.id)
+        const committedAndCompleted = completedIssues.filter((issue) =>
+          committedIssues.some((committed) => committed.id === issue.id)
         );
-        const addedDuringSprintAndCompleted = completedIssues.filter(issue => 
-          !committedIssues.some(committed => committed.id === issue.id)
+        const addedDuringSprintAndCompleted = completedIssues.filter((issue) =>
+          !committedIssues.some((committed) => committed.id === issue.id)
         );
 
         // Calculate points for committed vs added completed issues
-        const committedCompletedPoints = committedAndCompleted.reduce((sum, issue) => 
-          sum + (issue.fields[this.storyPointsField] || 0), 0);
-        const addedCompletedPoints = addedDuringSprintAndCompleted.reduce((sum, issue) => 
-          sum + (issue.fields[this.storyPointsField] || 0), 0);
+        const committedCompletedPoints = committedAndCompleted.reduce(
+          (sum, issue) => sum + (issue.fields[this.storyPointsField] || 0),
+          0,
+        );
+        const addedCompletedPoints = addedDuringSprintAndCompleted.reduce(
+          (sum, issue) => sum + (issue.fields[this.storyPointsField] || 0),
+          0,
+        );
 
         sprintData.push({
           id: `kanban-${i}`,
@@ -2143,7 +2258,7 @@ export class JiraService {
           storyPoints: completedPoints,
           issueTypes: allIssuesMetrics.issueTypes,
           priorities: allIssuesMetrics.priorities,
-          avgDailyVelocity: completedPoints / Math.max(1, Math.min(elapsedDuration, 14))
+          avgDailyVelocity: completedPoints / Math.max(1, Math.min(elapsedDuration, 14)),
         });
 
         this.logger.debug(`Kanban period ${i + 1} metrics:`, {
@@ -2152,7 +2267,7 @@ export class JiraService {
           completedIssues: completedIssues.length,
           spiltOverIssues: spiltOverIssues.length,
           completionRate: completionRate * 100,
-          velocity: velocity.toFixed(1)
+          velocity: velocity.toFixed(1),
         });
       }
 
@@ -2175,9 +2290,14 @@ export class JiraService {
     const getStatusColor = (statusCategory: string, statusName: string): string => {
       const name = statusName.toLowerCase();
       // Default/fallback colors based on category
-      if (statusCategory === 'Done' || name.includes('done') || name.includes('finish') || name.includes('complete')) {
+      if (
+        statusCategory === 'Done' || name.includes('done') || name.includes('finish') ||
+        name.includes('complete')
+      ) {
         return colors.green(`${theme.symbols.status.success} ${statusName}`);
-      } else if (statusCategory === 'In Progress' || name.includes('progress') || name.includes('started')) {
+      } else if (
+        statusCategory === 'In Progress' || name.includes('progress') || name.includes('started')
+      ) {
         // Use warning instead of running
         return colors.blue(`${theme.symbols.status.warning} ${statusName}`);
       } else if (name.includes('block') || name.includes('wait') || name.includes('hold')) {
@@ -2214,32 +2334,48 @@ export class JiraService {
       const issueTable = new Table()
         .border(true)
         .padding(1);
-      
+
       // Add title as a header row instead of using .title()
-      issueTable.push([`${getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name)} ${issue.key}: ${theme.emphasis(issue.fields.summary)}`]);
-      
+      issueTable.push([
+        `${
+          getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name)
+        } ${issue.key}: ${theme.emphasis(issue.fields.summary)}`,
+      ]);
+
       issueTable.push(['🚩 Priority', getPriorityColor(issue.fields.priority.name)]);
-      issueTable.push(['📊 Status', getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name)]);
-      issueTable.push(['👤 Assignee', issue.fields.assignee?.displayName || colors.dim('Unassigned')]);
-      
+      issueTable.push([
+        '📊 Status',
+        getStatusColor(issue.fields.status.statusCategory.key, issue.fields.status.name),
+      ]);
+      issueTable.push([
+        '👤 Assignee',
+        issue.fields.assignee?.displayName || colors.dim('Unassigned'),
+      ]);
+
       if (issue.fields.components?.length) {
-        issueTable.push(['📋 Components', issue.fields.components.map((c: { name: string }) => colors.cyan(c.name)).join(', ')]);
+        issueTable.push([
+          '📋 Components',
+          issue.fields.components.map((c: { name: string }) => colors.cyan(c.name)).join(', '),
+        ]);
       }
-      
+
       if (issue.fields.labels?.length) {
-        issueTable.push(['🏷️ Labels', issue.fields.labels.map(label => colors.magenta(label)).join(', ')]);
+        issueTable.push([
+          '🏷️ Labels',
+          issue.fields.labels.map((label) => colors.magenta(label)).join(', '),
+        ]);
       }
-      
+
       issueTable.push(['🕒 Created', formatTimestamp(issue.fields.created)]);
-      
+
       if (issue.fields.updated) {
         issueTable.push(['🔄 Updated', formatTimestamp(issue.fields.updated)]);
       }
-      
+
       if (issue.fields.dueDate) {
         issueTable.push(['📅 Due', formatTimestamp(issue.fields.dueDate)]);
       }
-      
+
       return issueTable.toString();
     };
 
@@ -2247,20 +2383,22 @@ export class JiraService {
       const projectTable = new Table()
         .border(true)
         .padding(1);
-      
+
       // Add title as a header row instead of using .title()
-      projectTable.push([`${theme.symbols.project} Project: ${theme.emphasis(project.name)} (${project.key})`]);
+      projectTable.push([
+        `${theme.symbols.project} Project: ${theme.emphasis(project.name)} (${project.key})`,
+      ]);
 
       projectTable.push(['🆔 ID', project.id]);
       projectTable.push(['🔗 URL', `${this.baseUrl}/projects/${project.key}`]);
-      
+
       if (project.description) {
         projectTable.push(['📝 Description', project.description]);
       }
-      
+
       projectTable.push(['📊 Type', project.projectTypeKey]);
       projectTable.push(['🎨 Style', project.style]);
-      
+
       if (project.lead) {
         projectTable.push(['👤 Lead', project.lead.displayName]);
       }
@@ -2280,25 +2418,25 @@ export class JiraService {
       const sprintTable = new Table()
         .border(true)
         .padding(1);
-      
+
       // Add title as a header row instead of using .title()
       sprintTable.push([`${theme.symbols.metrics} Sprint: ${theme.emphasis(sprint.name)}`]);
-      
+
       sprintTable.push(['🆔 ID', sprint.id.toString()]);
-      
+
       if (sprint.goal) {
         sprintTable.push(['🎯 Goal', sprint.goal]);
       }
-      
+
       sprintTable.push(['📊 Status', sprint.state.toUpperCase()]);
-      
+
       if (sprint.startDate) {
         sprintTable.push(['🕒 Start', formatTimestamp(sprint.startDate)]);
       }
-      
+
       if (sprint.endDate) {
         sprintTable.push(['🏁 End', formatTimestamp(sprint.endDate)]);
-        
+
         // Use endDate instead of completeDate
         if (sprint.state.toLowerCase() === 'closed') {
           sprintTable.push(['✓ Completed', formatTimestamp(sprint.endDate)]);
@@ -2318,210 +2456,292 @@ export class JiraService {
 
     // Project header
     sections.push(
-      `${theme.symbols.project} ${colors.bold('Jira Project Dashboard:')} ${project.name} (${project.key})\n`,
-      `${theme.symbols.documentation} URL: ${this.baseUrl}/projects/${project.key}\n`
+      `${theme.symbols.project} ${
+        colors.bold('Jira Project Dashboard:')
+      } ${project.name} (${project.key})\n`,
+      `${theme.symbols.documentation} URL: ${this.baseUrl}/projects/${project.key}\n`,
     );
 
     // Health Score
     const healthScore = metrics.healthScore;
     sections.push(colors.bold('\n🏥 Project Health'));
-    sections.push(new Table()
-      .header(['Metric', 'Status'])
-      .body([
-        ['Overall Health', this.getHealthIndicator(healthScore)],
-        ['Velocity Trend', this.getTrendIndicator(sprints?.velocityTrend || [])],
-        ['Completion Trend', this.getTrendIndicator(sprints?.completionRateTrend || [])]
-      ])
-      .border(true)
-      .toString()
+    sections.push(
+      new Table()
+        .header(['Metric', 'Status'])
+        .body([
+          ['Overall Health', this.getHealthIndicator(healthScore)],
+          ['Velocity Trend', this.getTrendIndicator(sprints?.velocityTrend || [])],
+          ['Completion Trend', this.getTrendIndicator(sprints?.completionRateTrend || [])],
+        ])
+        .border(true)
+        .toString(),
     );
-    sections.push(colors.dim('\nFootnotes:\n• Overall Health: Combined score based on velocity stability, completion rate, and quality metrics\n• Velocity Trend: Sprint-over-sprint change in completed story points\n• Completion Trend: Sprint-over-sprint change in completion rate'));
+    sections.push(
+      colors.dim(
+        '\nFootnotes:\n• Overall Health: Combined score based on velocity stability, completion rate, and quality metrics\n• Velocity Trend: Sprint-over-sprint change in completed story points\n• Completion Trend: Sprint-over-sprint change in completion rate',
+      ),
+    );
 
     // Issue Statistics
     sections.push(colors.bold('\n📊 Project Issue Statistics'));
-    sections.push(new Table()
-      .header(['Metric', 'Value'])
-      .body([
-        ['Total Issues', metrics.issues.total.toString()],
-        ['To Do', metrics.issues.open.toString()],
-        ['In Progress', metrics.issues.inProgress.toString()],
-        ['Done', metrics.issues.done.toString()],
-        ['Backlog', metrics.issues.backlog.toString()],
-        ['', ''],
-        ['Issue Types', ''],
-        ['• Bugs', metrics.issues.bugs.toString()],
-        ['• Features', metrics.issues.features.toString()],
-        ['• Technical Debt', metrics.issues.technicalDebt.toString()]
-      ])
-      .border(true)
-      .toString()
+    sections.push(
+      new Table()
+        .header(['Metric', 'Value'])
+        .body([
+          ['Total Issues', metrics.issues.total.toString()],
+          ['To Do', metrics.issues.open.toString()],
+          ['In Progress', metrics.issues.inProgress.toString()],
+          ['Done', metrics.issues.done.toString()],
+          ['Backlog', metrics.issues.backlog.toString()],
+          ['', ''],
+          ['Issue Types', ''],
+          ['• Bugs', metrics.issues.bugs.toString()],
+          ['• Features', metrics.issues.features.toString()],
+          ['• Technical Debt', metrics.issues.technicalDebt.toString()],
+        ])
+        .border(true)
+        .toString(),
     );
-    sections.push(colors.dim('\nFootnotes:\n• Shows current statistics for all issues in the project\n• To Do: Issues ready to be worked on\n• In Progress: Issues being actively worked on\n• Done: Issues marked as resolved/completed\n• Backlog: Issues not yet scheduled/prioritized\n• Bugs: Issues marked as defects/bugs\n• Features: Stories, tasks, and improvements\n• Technical Debt: Issues labeled with tech-debt'));
+    sections.push(
+      colors.dim(
+        '\nFootnotes:\n• Shows current statistics for all issues in the project\n• To Do: Issues ready to be worked on\n• In Progress: Issues being actively worked on\n• Done: Issues marked as resolved/completed\n• Backlog: Issues not yet scheduled/prioritized\n• Bugs: Issues marked as defects/bugs\n• Features: Stories, tasks, and improvements\n• Technical Debt: Issues labeled with tech-debt',
+      ),
+    );
 
     // Sprint Metrics
     if (sprints?.active) {
       sections.push(colors.bold('\n🏃 Current Sprint Progress'));
-      sections.push(new Table()
-        .header(['Metric', 'Value'])
-        .body([
-          ['Current Sprint', sprints.active.name],
-          ['Sprint Progress', `${Math.min(100, (sprints.active.progress)).toFixed(1)}%`],
-          ['Sprint Dates', `${formatTimestamp(sprints.active.startDate)} → ${formatTimestamp(sprints.active.endDate)}`],
-          ['Remaining Days', sprints.active.remainingDays.toString()],
-          ['', ''],
-          ['Work Summary', ''],
-          ['Total Issues', `${sprints.active.totalIssues} issues`],
-          ['• Committed Issues', `${sprints.active.committedIssues} issues (${sprints.active.committedPoints} points)`],
-          ['• Completed Issues', `${sprints.active.completedIssues} issues (${sprints.active.completedPoints} points)`],
-          ['  - From Committed', `${sprints.active.committedAndCompleted?.length || 0} issues (${sprints.active.committedCompletedPoints} points)`],
-          ['  - Added & Completed', `${sprints.active.addedDuringSprintAndCompleted?.length || 0} issues (${sprints.active.addedCompletedPoints} points)`],
-          ['• Spillover Issues', `${sprints.active.spiltOverIssues || 0} issues`],
-          ['', ''],
-          ['Issue Breakdown', ''],
-          ['• Stories', sprints.active.issueTypes.story || '0'],
-          ['• Tasks', sprints.active.issueTypes.task || '0'],
-          ['• Bugs', sprints.active.issueTypes.bug || '0'],
-          ['• Improvements', sprints.active.issueTypes.improvement || '0'],
-          ['• Spikes', sprints.active.issueTypes.spike || '0'],
-          ['', ''],
-          ['Completion Metrics', ''],
-          ['Committed Work', `${sprints.active.committedPoints} points (${sprints.active.committedIssues} issues)`],
-          ['Completed Work', `${sprints.active.completedPoints} points (${sprints.active.completedIssues} issues)`],
-          ['Completion Rate', `${(sprints.active.completionRate * 100).toFixed(1)}% ${this.getCompletionRateIndicator(sprints.active.completionRate)}`],
-          ['Daily Velocity', `${sprints.active.avgDailyVelocity.toFixed(1)} points/day`]
-        ])
-        .border(true)
-        .toString()
+      sections.push(
+        new Table()
+          .header(['Metric', 'Value'])
+          .body([
+            ['Current Sprint', sprints.active.name],
+            ['Sprint Progress', `${Math.min(100, sprints.active.progress).toFixed(1)}%`],
+            [
+              'Sprint Dates',
+              `${formatTimestamp(sprints.active.startDate)} → ${
+                formatTimestamp(sprints.active.endDate)
+              }`,
+            ],
+            ['Remaining Days', sprints.active.remainingDays.toString()],
+            ['', ''],
+            ['Work Summary', ''],
+            ['Total Issues', `${sprints.active.totalIssues} issues`],
+            [
+              '• Committed Issues',
+              `${sprints.active.committedIssues} issues (${sprints.active.committedPoints} points)`,
+            ],
+            [
+              '• Completed Issues',
+              `${sprints.active.completedIssues} issues (${sprints.active.completedPoints} points)`,
+            ],
+            [
+              '  - From Committed',
+              `${
+                sprints.active.committedAndCompleted?.length || 0
+              } issues (${sprints.active.committedCompletedPoints} points)`,
+            ],
+            [
+              '  - Added & Completed',
+              `${
+                sprints.active.addedDuringSprintAndCompleted?.length || 0
+              } issues (${sprints.active.addedCompletedPoints} points)`,
+            ],
+            ['• Spillover Issues', `${sprints.active.spiltOverIssues || 0} issues`],
+            ['', ''],
+            ['Issue Breakdown', ''],
+            ['• Stories', sprints.active.issueTypes.story || '0'],
+            ['• Tasks', sprints.active.issueTypes.task || '0'],
+            ['• Bugs', sprints.active.issueTypes.bug || '0'],
+            ['• Improvements', sprints.active.issueTypes.improvement || '0'],
+            ['• Spikes', sprints.active.issueTypes.spike || '0'],
+            ['', ''],
+            ['Completion Metrics', ''],
+            [
+              'Committed Work',
+              `${sprints.active.committedPoints} points (${sprints.active.committedIssues} issues)`,
+            ],
+            [
+              'Completed Work',
+              `${sprints.active.completedPoints} points (${sprints.active.completedIssues} issues)`,
+            ],
+            [
+              'Completion Rate',
+              `${(sprints.active.completionRate * 100).toFixed(1)}% ${
+                this.getCompletionRateIndicator(sprints.active.completionRate)
+              }`,
+            ],
+            ['Daily Velocity', `${sprints.active.avgDailyVelocity.toFixed(1)} points/day`],
+          ])
+          .border(true)
+          .toString(),
       );
-      sections.push(colors.dim('\nFootnotes:\n• Progress: Combined measure of time elapsed (40%) and completion rate (60%)\n• Committed Issues: Issues planned at sprint start\n• Added Issues: Issues added during the sprint\n• Completion Rate: Percentage of committed work completed\n• Daily Velocity: Average number of issues completed per day'));
+      sections.push(
+        colors.dim(
+          '\nFootnotes:\n• Progress: Combined measure of time elapsed (40%) and completion rate (60%)\n• Committed Issues: Issues planned at sprint start\n• Added Issues: Issues added during the sprint\n• Completion Rate: Percentage of committed work completed\n• Daily Velocity: Average number of issues completed per day',
+        ),
+      );
     }
 
     // Sprint History
     if (sprints?.history && sprints.history.length > 0) {
       sections.push(colors.bold('\n📚 Sprint History'));
-      sections.push(new Table()
-        .header(['Sprint', 'Dates', 'Committed', 'Added', 'Spillover', 'Total', 'Points'])
-        .body(
-          sprints.history.map(sprint => [
-            sprint.name || 'Unknown',
-            `${formatTimestamp(sprint.startDate)} → ${formatTimestamp(sprint.endDate)}`,
-            `${sprint.committedAndCompleted?.length || 0}/${sprint.committedIssues || 0}`,
-            `${sprint.addedDuringSprintAndCompleted?.length || 0}`,
-            `${sprint.spiltOverIssues || 0}`,
-            `${sprint.totalIssues || 0}`,
-            `${sprint.completedPoints || 0}`
-          ])
-        )
-        .border(true)
-        .toString()
+      sections.push(
+        new Table()
+          .header(['Sprint', 'Dates', 'Committed', 'Added', 'Spillover', 'Total', 'Points'])
+          .body(
+            sprints.history.map((sprint) => [
+              sprint.name || 'Unknown',
+              `${formatTimestamp(sprint.startDate)} → ${formatTimestamp(sprint.endDate)}`,
+              `${sprint.committedAndCompleted?.length || 0}/${sprint.committedIssues || 0}`,
+              `${sprint.addedDuringSprintAndCompleted?.length || 0}`,
+              `${sprint.spiltOverIssues || 0}`,
+              `${sprint.totalIssues || 0}`,
+              `${sprint.completedPoints || 0}`,
+            ]),
+          )
+          .border(true)
+          .toString(),
       );
-      sections.push(colors.dim('\nFootnotes:\n• Committed: Completed/Total issues planned at sprint start\n• Added: Issues added and completed during sprint\n• Spillover: Issues not completed and moved to next sprint\n• Total: All issues in the sprint\n• Points: Total story points completed\n• Trend: Shows sprint-over-sprint changes in velocity and completion rates'));
+      sections.push(
+        colors.dim(
+          '\nFootnotes:\n• Committed: Completed/Total issues planned at sprint start\n• Added: Issues added and completed during sprint\n• Spillover: Issues not completed and moved to next sprint\n• Total: All issues in the sprint\n• Points: Total story points completed\n• Trend: Shows sprint-over-sprint changes in velocity and completion rates',
+        ),
+      );
 
       // Sprint Performance Trends
       sections.push(colors.bold('\n📈 Sprint Performance Trends'));
-      
+
       // Calculate trends
       const velocityTrend = this.getTrendIndicator(sprints.velocityTrend || []);
       const completionTrend = this.getTrendIndicator(sprints.completionRateTrend || []);
-      const scopeChangeTrend = this.getTrendIndicator(this.calculateScopeChangeTrend(sprints.history));
+      const scopeChangeTrend = this.getTrendIndicator(
+        this.calculateScopeChangeTrend(sprints.history),
+      );
       const spilloverTrend = this.getTrendIndicator(this.calculateSpilloverTrend(sprints.history));
 
-      sections.push(new Table()
-        .header(['Metric', 'Value'])
-        .body([
-          ['Scope Change', ''],
-          ['• Average Rate', `${this.calculateScopeChangeRate(sprints.history).toFixed(1)}% additional work`],
-          ['• Trend', scopeChangeTrend],
-          ['', ''],
-          ['Spillover', ''],
-          ['• Average Rate', `${this.calculateSpilloverRate(sprints.history).toFixed(1)}% of committed work`],
-          ['• Trend', spilloverTrend],
-          ['', ''],
-          ['Velocity', ''],
-          ['• Average', `${(sprints.avgVelocity || 0).toFixed(1)} points/sprint`],
-          ['• Trend', velocityTrend],
-          ['', ''],
-          ['Completion Rate', ''],
-          ['• Average', `${((sprints.avgCompletionRate || 0) * 100).toFixed(1)}%`],
-          ['• Trend', completionTrend],
-          ['', ''],
-          ['Predictability Factors', ''],
-          ['• Velocity Stability', sprints.stabilityScore || 'Low'],
-          ['• Completion Consistency', sprints.predictabilityScore || 'Low']
-        ])
-        .border(true)
-        .toString()
+      sections.push(
+        new Table()
+          .header(['Metric', 'Value'])
+          .body([
+            ['Scope Change', ''],
+            [
+              '• Average Rate',
+              `${this.calculateScopeChangeRate(sprints.history).toFixed(1)}% additional work`,
+            ],
+            ['• Trend', scopeChangeTrend],
+            ['', ''],
+            ['Spillover', ''],
+            [
+              '• Average Rate',
+              `${this.calculateSpilloverRate(sprints.history).toFixed(1)}% of committed work`,
+            ],
+            ['• Trend', spilloverTrend],
+            ['', ''],
+            ['Velocity', ''],
+            ['• Average', `${(sprints.avgVelocity || 0).toFixed(1)} points/sprint`],
+            ['• Trend', velocityTrend],
+            ['', ''],
+            ['Completion Rate', ''],
+            ['• Average', `${((sprints.avgCompletionRate || 0) * 100).toFixed(1)}%`],
+            ['• Trend', completionTrend],
+            ['', ''],
+            ['Predictability Factors', ''],
+            ['• Velocity Stability', sprints.stabilityScore || 'Low'],
+            ['• Completion Consistency', sprints.predictabilityScore || 'Low'],
+          ])
+          .border(true)
+          .toString(),
       );
-      sections.push(colors.dim('\nFootnotes:\n• Scope Change: Measures how much work is added during sprints\n• Spillover: Tracks issues not completed and carried to next sprint\n• Velocity: Story points completed per sprint\n• Completion Rate: Percentage of committed work completed\n• Predictability: Indicates team\'s consistency in estimating and delivering work'));
+      sections.push(
+        colors.dim(
+          "\nFootnotes:\n• Scope Change: Measures how much work is added during sprints\n• Spillover: Tracks issues not completed and carried to next sprint\n• Velocity: Story points completed per sprint\n• Completion Rate: Percentage of committed work completed\n• Predictability: Indicates team's consistency in estimating and delivering work",
+        ),
+      );
     }
 
     // Work Distribution
     if (sprints?.active) {
       sections.push(colors.bold('\n📊 Work Distribution'));
       const totalIssues = sprints.active.totalIssues || 1;
-      
+
       const issueTypes = Object.entries(sprints.active.issueTypes)
         .filter(([_, count]) => count > 0)
         .map(([type, count]) => [
           `• ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-          `${count} (${((count / totalIssues) * 100).toFixed(1)}%)`
+          `${count} (${((count / totalIssues) * 100).toFixed(1)}%)`,
         ]);
 
       const priorities = Object.entries(sprints.active.priorities)
         .filter(([_, count]) => count > 0)
         .map(([priority, count]) => [
           `• ${priority.charAt(0).toUpperCase() + priority.slice(1)}`,
-          `${count} (${((count / totalIssues) * 100).toFixed(1)}%)`
+          `${count} (${((count / totalIssues) * 100).toFixed(1)}%)`,
         ]);
 
-      sections.push(new Table()
-        .header(['Category', 'Distribution'])
-        .body([
-          ['Issue Types', ''],
-          ...issueTypes,
-          ['', ''],
-          ['Priorities', ''],
-          ...priorities
-        ])
-        .border(true)
-        .toString()
+      sections.push(
+        new Table()
+          .header(['Category', 'Distribution'])
+          .body([
+            ['Issue Types', ''],
+            ...issueTypes,
+            ['', ''],
+            ['Priorities', ''],
+            ...priorities,
+          ])
+          .border(true)
+          .toString(),
       );
-      sections.push(colors.dim('\nFootnotes:\n• Distribution shows current sprint\'s breakdown of work\n• Ideal sprint typically has a balanced mix of different work types\n• High percentage of bugs may indicate quality issues\n• High percentage of high priority items may indicate reactive work'));
+      sections.push(
+        colors.dim(
+          "\nFootnotes:\n• Distribution shows current sprint's breakdown of work\n• Ideal sprint typically has a balanced mix of different work types\n• High percentage of bugs may indicate quality issues\n• High percentage of high priority items may indicate reactive work",
+        ),
+      );
     }
 
     // Process Bottlenecks
     if (bottlenecks?.length) {
       sections.push(colors.bold('\n🚧 Process Bottlenecks'));
-      sections.push(new Table()
-        .header(['Status', 'Average Duration', 'Issues'])
-        .body(
-          bottlenecks.map(b => [
-            b.status,
-            this.formatDuration(b.avgDuration),
-            b.issueCount.toString()
-          ])
-        )
-        .border(true)
-        .toString()
+      sections.push(
+        new Table()
+          .header(['Status', 'Average Duration', 'Issues'])
+          .body(
+            bottlenecks.map((b) => [
+              b.status,
+              this.formatDuration(b.avgDuration),
+              b.issueCount.toString(),
+            ]),
+          )
+          .border(true)
+          .toString(),
       );
-      sections.push(colors.dim('\nFootnotes:\n• Average Duration: Mean time issues spend in each status\n• Issues: Number of issues that passed through the status\n• Long durations may indicate process bottlenecks or blocked work'));
+      sections.push(
+        colors.dim(
+          '\nFootnotes:\n• Average Duration: Mean time issues spend in each status\n• Issues: Number of issues that passed through the status\n• Long durations may indicate process bottlenecks or blocked work',
+        ),
+      );
     }
 
     // Recent Activity
     if (timeline) {
       sections.push(colors.bold('\n📅 Recent Activity (7 days)'));
-      sections.push(new Table()
-        .header(['Metric', 'Count'])
-        .body([
-          ['Created', timeline.created[0]?.count.toString() || '0'],
-          ['Resolved', timeline.resolved[0]?.count.toString() || '0'],
-          ['Updated', timeline.updated[0]?.count.toString() || '0'],
-          ['Comments', timeline.comments?.[0]?.count.toString() || '0']
-        ])
-        .border(true)
-        .toString()
+      sections.push(
+        new Table()
+          .header(['Metric', 'Count'])
+          .body([
+            ['Created', timeline.created[0]?.count.toString() || '0'],
+            ['Resolved', timeline.resolved[0]?.count.toString() || '0'],
+            ['Updated', timeline.updated[0]?.count.toString() || '0'],
+            ['Comments', timeline.comments?.[0]?.count.toString() || '0'],
+          ])
+          .border(true)
+          .toString(),
       );
-      sections.push(colors.dim('\nFootnotes:\n• Created: New issues created in the last 7 days\n• Resolved: Issues completed in the last 7 days\n• Updated: Issues modified in the last 7 days\n• Comments: Total comments added in the last 7 days'));
+      sections.push(
+        colors.dim(
+          '\nFootnotes:\n• Created: New issues created in the last 7 days\n• Resolved: Issues completed in the last 7 days\n• Updated: Issues modified in the last 7 days\n• Comments: Total comments added in the last 7 days',
+        ),
+      );
     }
 
     return sections.join('\n');
@@ -2542,15 +2762,15 @@ export class JiraService {
 
     // Calculate historical metrics (excluding current sprint)
     const pastSprints = params.sprints?.history || [];
-    
+
     if (pastSprints.length > 0) {
       // Calculate average completion rate from past sprints only
-      const pastCompletionRates = pastSprints.map(sprint => {
+      const pastCompletionRates = pastSprints.map((sprint) => {
         const committed = sprint.committedIssues || 0;
         const completed = sprint.committedAndCompleted?.length || 0;
         return committed > 0 ? (completed / committed) * 100 : 0;
       });
-      
+
       const avgHistoricalCompletion = pastCompletionRates.length > 0
         ? pastCompletionRates.reduce((sum, rate) => sum + rate, 0) / pastCompletionRates.length
         : 0;
@@ -2562,9 +2782,9 @@ export class JiraService {
       else if (avgHistoricalCompletion <= 20) historicalScore -= 2;
 
       // Calculate velocity trend excluding current sprint
-      const pastVelocities = pastSprints.map(s => s.completedPoints);
+      const pastVelocities = pastSprints.map((s) => s.completedPoints);
       const velocityTrend = this.calculateTrendChange(pastVelocities);
-      
+
       // Adjust score based on velocity trend (20% weight)
       if (parseFloat(velocityTrend) > 10) historicalScore += 1;
       else if (parseFloat(velocityTrend) < -10) historicalScore -= 1;
@@ -2575,14 +2795,18 @@ export class JiraService {
       else if (stabilityScore === 'Low') historicalScore -= 1;
 
       // Consider added work pattern (20% weight)
-      const avgAddedWork = pastSprints.reduce((sum, sprint) => 
+      const avgAddedWork = pastSprints.reduce((sum, sprint) =>
         sum + (sprint.addedDuringSprintAndCompleted?.length || 0), 0) / pastSprints.length;
-      const addedWorkCompletion = pastSprints.map(sprint => 
-        (sprint.addedDuringSprintAndCompleted?.length || 0) / (avgAddedWork || 1));
-      
+      const addedWorkCompletion = pastSprints.map((sprint) =>
+        (sprint.addedDuringSprintAndCompleted?.length || 0) / (avgAddedWork || 1)
+      );
+
       const addedWorkStability = this.calculateVariance(addedWorkCompletion);
-      if (addedWorkStability < 0.2) historicalScore += 1; // Stable added work pattern
-      else if (addedWorkStability > 0.5) historicalScore -= 1; // Unstable added work pattern
+      if (addedWorkStability < 0.2) {
+        historicalScore += 1; // Stable added work pattern
+      } else if (addedWorkStability > 0.5) {
+        historicalScore -= 1; // Unstable added work pattern
+      }
     }
 
     // Calculate current sprint score
@@ -2590,9 +2814,9 @@ export class JiraService {
     if (activeSprint) {
       // Progress vs Time (40% weight)
       const progressRatio = activeSprint.progress / 100;
-      const timeRatio = this.getDaysAgo(new Date(activeSprint.startDate)) / 
+      const timeRatio = this.getDaysAgo(new Date(activeSprint.startDate)) /
         (this.getDaysAgo(new Date(activeSprint.startDate)) + activeSprint.remainingDays);
-      
+
       if (progressRatio >= timeRatio) currentScore += 1;
       else if (progressRatio < timeRatio * 0.7) currentScore -= 1;
 
@@ -2602,12 +2826,15 @@ export class JiraService {
       else if (activeSprint.avgDailyVelocity < avgHistoricalVelocity * 0.7) currentScore -= 1;
 
       // Added work ratio compared to historical pattern (30% weight)
-      const avgHistoricalAdded = pastSprints.reduce((sum, sprint) => 
+      const avgHistoricalAdded = pastSprints.reduce((sum, sprint) =>
         sum + (sprint.addedDuringSprintAndCompleted?.length || 0), 0) / pastSprints.length;
       const currentAdded = activeSprint.addedDuringSprintAndCompleted?.length || 0;
-      
-      if (currentAdded <= avgHistoricalAdded * 1.2) currentScore += 1;
-      else if (currentAdded > avgHistoricalAdded * 1.5) currentScore -= 1;
+
+      if (currentAdded <= avgHistoricalAdded * 1.2) {
+        currentScore += 1;
+      } else if (currentAdded > avgHistoricalAdded * 1.5) {
+        currentScore -= 1;
+      }
     }
 
     // Ensure scores stay within bounds
@@ -2618,9 +2845,12 @@ export class JiraService {
     const combined = (historicalScore * 0.7) + (currentScore * 0.3);
 
     // Calculate trends using only completed sprints
-    const velocityTrend = this.calculateTrendChange(pastSprints.map(s => s.completedPoints));
-    const completionTrend = this.calculateTrendChange(pastSprints.map(s => 
-      (s.committedAndCompleted?.length || 0) / (s.committedIssues || 1) * 100));
+    const velocityTrend = this.calculateTrendChange(pastSprints.map((s) => s.completedPoints));
+    const completionTrend = this.calculateTrendChange(
+      pastSprints.map((s) =>
+        (s.committedAndCompleted?.length || 0) / (s.committedIssues || 1) * 100
+      ),
+    );
     const scopeChangeTrend = this.calculateScopeChangeTrend(pastSprints);
 
     return {
@@ -2630,8 +2860,8 @@ export class JiraService {
       trends: {
         velocity: velocityTrend,
         completion: completionTrend,
-        scope: this.getTrendIndicator(scopeChangeTrend)
-      }
+        scope: this.getTrendIndicator(scopeChangeTrend),
+      },
     };
   }
 
@@ -2640,14 +2870,14 @@ export class JiraService {
     historical: number;
     combined: number;
     trends: {
-        velocity: string;
-        completion: string;
-        scope: string;
-    }
+      velocity: string;
+      completion: string;
+      scope: string;
+    };
   }): string {
     const score = health.combined;
     if (score === null) return `${theme.symbols.status.neutral} No data`;
-    
+
     let indicator = '';
     if (score >= 8) {
       indicator = `${theme.symbols.status.success} Healthy (${score.toFixed(1)}/10)`;
@@ -2672,33 +2902,39 @@ export class JiraService {
 
   private getTrendIndicator(trend: number[]): string {
     if (!trend || trend.length < 2) return `${theme.symbols.status.neutral} No data`;
-    
+
     const last = trend[trend.length - 1] || 0;
     const secondLast = trend[trend.length - 2] || 0;
-    
+
     if (secondLast === 0) return `${theme.symbols.status.neutral} No trend data`;
-    
+
     const change = last - secondLast;
     const percentChange = (change / Math.abs(secondLast)) * 100;
-    
+
     if (Math.abs(percentChange) < 5) return `${theme.symbols.status.neutral} Stable`;
-    if (percentChange > 0) return `${theme.symbols.status.success} Improving (+${percentChange.toFixed(1)}%)`;
+    if (percentChange > 0) {
+      return `${theme.symbols.status.success} Improving (+${percentChange.toFixed(1)}%)`;
+    }
     return `${theme.symbols.status.warning} Declining (${percentChange.toFixed(1)}%)`;
   }
 
-  private getSprintMetrics(latestSprint: SprintData, sprintData: SprintData[]): JiraProjectMetrics['sprints'] {
-    this.logger.debug('Sprint data before velocity calculation:', 
-      sprintData.map(s => ({ 
-        name: s.name, 
+  private getSprintMetrics(
+    latestSprint: SprintData,
+    sprintData: SprintData[],
+  ): JiraProjectMetrics['sprints'] {
+    this.logger.debug(
+      'Sprint data before velocity calculation:',
+      sprintData.map((s) => ({
+        name: s.name,
         velocity: s.velocity,
-        completionRate: s.completionRate 
-      }))
+        completionRate: s.completionRate,
+      })),
     );
 
     // Calculate velocity trend (last 5 sprints)
     // Make sure all sprints have velocity values (even if 0)
     const velocityData = sprintData
-      .map(sprint => sprint ? (typeof sprint.velocity === 'number' ? sprint.velocity : 0) : 0)
+      .map((sprint) => sprint ? (typeof sprint.velocity === 'number' ? sprint.velocity : 0) : 0)
       .slice(0, 5)
       .reverse();
 
@@ -2708,12 +2944,18 @@ export class JiraService {
     // Make sure all sprints have completion rate values (even if 0)
     // Cap completion rates at 100% for trend purposes
     const completionRates = sprintData
-      .map(sprint => sprint ? (typeof sprint.completionRate === 'number' ? Math.min(1, sprint.completionRate) * 100 : 0) : 0)
+      .map((sprint) =>
+        sprint
+          ? (typeof sprint.completionRate === 'number'
+            ? Math.min(1, sprint.completionRate) * 100
+            : 0)
+          : 0
+      )
       .slice(0, 5)
       .reverse();
 
     this.logger.debug('Completion rates after processing:', completionRates);
-    
+
     // Calculate average velocity
     const avgVelocity = velocityData.length > 0
       ? velocityData.reduce((sum, velocity) => sum + velocity, 0) / velocityData.length
@@ -2725,7 +2967,7 @@ export class JiraService {
       : 0;
 
     // Map sprint history for display
-    const history = sprintData.map(sprint => ({
+    const history = sprintData.map((sprint) => ({
       name: sprint.name,
       startDate: sprint.startDate,
       endDate: sprint.endDate,
@@ -2739,19 +2981,17 @@ export class JiraService {
       committedAndCompleted: sprint.committedAndCompleted,
       addedDuringSprintAndCompleted: sprint.addedDuringSprintAndCompleted,
       totalIssues: sprint.totalIssues.length,
-      spiltOverIssues: sprint.spiltOverIssues.length
+      spiltOverIssues: sprint.spiltOverIssues.length,
     }));
 
     // Count sprints by state
-    const activeCount = sprintData.filter(sprint => sprint.state === 'active').length;
-    const closedCount = sprintData.filter(sprint => sprint.state === 'closed').length;
-    const futureCount = sprintData.filter(sprint => sprint.state === 'future').length;
+    const activeCount = sprintData.filter((sprint) => sprint.state === 'active').length;
+    const closedCount = sprintData.filter((sprint) => sprint.state === 'closed').length;
+    const futureCount = sprintData.filter((sprint) => sprint.state === 'future').length;
 
     // Calculate average cycle time and throughput
-    const allCompletedIssues = sprintData.flatMap(sprint => sprint.completedIssues);
-    const avgThroughput = sprintData.length > 0
-      ? allCompletedIssues.length / sprintData.length
-      : 0;
+    const allCompletedIssues = sprintData.flatMap((sprint) => sprint.completedIssues);
+    const avgThroughput = sprintData.length > 0 ? allCompletedIssues.length / sprintData.length : 0;
 
     // Process latest sprint metrics
     let active = undefined;
@@ -2783,7 +3023,7 @@ export class JiraService {
         issueTypes: latestSprint.issueTypes,
         priorities: latestSprint.priorities,
         totalIssues: latestSprint.totalIssues.length,
-        spiltOverIssues: latestSprint.spiltOverIssues.length
+        spiltOverIssues: latestSprint.spiltOverIssues.length,
       };
     }
 
@@ -2803,39 +3043,41 @@ export class JiraService {
           max: 0,
           p25: 0,
           p75: 0,
-          p90: 0
-        }
+          p90: 0,
+        },
       },
       avgThroughput,
       closed: closedCount,
       velocityTrend: velocityData,
       completionRateTrend: completionRates,
-      history
+      history,
     };
   }
 
   private calculateEstimatedCompletion(sprint: SprintData, avgVelocity: number): number {
     if (sprint.committedPoints === 0) return 0;
-    
+
     const remainingPoints = sprint.committedPoints - sprint.completedPoints;
     if (remainingPoints <= 0) return 1; // All committed points completed
-    
+
     // Calculate how many points we expect to complete based on velocity and remaining days
     const estimatedPointsToComplete = avgVelocity * sprint.remainingDays;
-    
+
     // Calculate estimated completion percentage
-    const estimatedCompletion = (sprint.completedPoints + Math.min(remainingPoints, estimatedPointsToComplete)) / sprint.committedPoints;
-    
+    const estimatedCompletion =
+      (sprint.completedPoints + Math.min(remainingPoints, estimatedPointsToComplete)) /
+      sprint.committedPoints;
+
     this.logger.debug('Estimated completion calculation:', {
-        committedPoints: sprint.committedPoints,
-        completedPoints: sprint.completedPoints,
-        remainingPoints,
-        avgVelocity: `${avgVelocity.toFixed(1)} points/day`,
-        remainingDays: sprint.remainingDays,
-        estimatedPointsToComplete: estimatedPointsToComplete.toFixed(1),
-        estimatedCompletion: `${(estimatedCompletion * 100).toFixed(1)}%`
+      committedPoints: sprint.committedPoints,
+      completedPoints: sprint.completedPoints,
+      remainingPoints,
+      avgVelocity: `${avgVelocity.toFixed(1)} points/day`,
+      remainingDays: sprint.remainingDays,
+      estimatedPointsToComplete: estimatedPointsToComplete.toFixed(1),
+      estimatedCompletion: `${(estimatedCompletion * 100).toFixed(1)}%`,
     });
-    
+
     return Math.min(1, Math.max(0, estimatedCompletion));
   }
 
@@ -2862,14 +3104,14 @@ export class JiraService {
 
     const last = values[values.length - 1] || 0;
     const secondLast = values[values.length - 2] || 0;
-    
+
     if (secondLast === 0) {
       return 'No baseline data';
     }
 
     const change = last - secondLast;
     const percentChange = (change / Math.abs(secondLast)) * 100;
-    
+
     let indicator = '';
     if (percentChange > 0) {
       indicator = `${theme.symbols.status.success} Improving (+${percentChange.toFixed(1)}%)`;
@@ -2878,7 +3120,7 @@ export class JiraService {
     } else {
       indicator = `${theme.symbols.status.neutral} Stable (0.0%)`;
     }
-    
+
     return indicator;
   }
 
@@ -2887,12 +3129,16 @@ export class JiraService {
 
     // Calculate velocity variance
     const avgVelocity = velocityData.reduce((sum, v) => sum + v, 0) / velocityData.length;
-    const velocityVariance = velocityData.reduce((sum, v) => sum + Math.pow(v - avgVelocity, 2), 0) / velocityData.length;
+    const velocityVariance =
+      velocityData.reduce((sum, v) => sum + Math.pow(v - avgVelocity, 2), 0) / velocityData.length;
     const velocityCV = Math.sqrt(velocityVariance) / avgVelocity;
 
     // Calculate completion rate consistency
-    const avgCompletionRate = completionRates.reduce((sum, r) => sum + r, 0) / completionRates.length;
-    const completionVariance = completionRates.reduce((sum, r) => sum + Math.pow(r - avgCompletionRate, 2), 0) / completionRates.length;
+    const avgCompletionRate = completionRates.reduce((sum, r) => sum + r, 0) /
+      completionRates.length;
+    const completionVariance =
+      completionRates.reduce((sum, r) => sum + Math.pow(r - avgCompletionRate, 2), 0) /
+      completionRates.length;
     const completionCV = Math.sqrt(completionVariance) / avgCompletionRate;
 
     // Combined score based on both metrics
@@ -2919,7 +3165,8 @@ export class JiraService {
 
     // Calculate coefficient of variation
     const avg = velocityData.reduce((sum, v) => sum + v, 0) / velocityData.length;
-    const variance = velocityData.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / velocityData.length;
+    const variance = velocityData.reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) /
+      velocityData.length;
     const cv = Math.sqrt(variance) / avg;
 
     // Combine trend and variation analysis
@@ -2943,7 +3190,7 @@ export class JiraService {
   private calculateVariance(values: number[]): number {
     if (values.length === 0) return 0;
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const squareDiffs = values.map(value => Math.pow(value - mean, 2));
+    const squareDiffs = values.map((value) => Math.pow(value - mean, 2));
     return squareDiffs.reduce((a, b) => a + b, 0) / values.length;
   }
 
@@ -2953,7 +3200,7 @@ export class JiraService {
   private async getTeamMembers(projectKey: string): Promise<JiraTeamMember[]> {
     try {
       const response = await this.request<{ actors: JiraTeamMember[] }>(
-        `/rest/api/2/project/${projectKey}/role/10002`
+        `/rest/api/2/project/${projectKey}/role/10002`,
       );
       return response.actors || [];
     } catch (error) {
@@ -2968,24 +3215,29 @@ export class JiraService {
   private async getProjectTimeline(projectKey: string): Promise<JiraTimeline> {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const recentIssues = await this.searchIssues(
-        `project = "${projectKey}" AND updated >= -7d ORDER BY updated DESC`
+      `project = "${projectKey}" AND updated >= -7d ORDER BY updated DESC`,
     );
 
     const timeline: JiraTimeline = {
-        created: [{
-            count: recentIssues.issues.filter(i => new Date(i.fields.created) >= sevenDaysAgo).length
-        }],
-        resolved: [{
-            count: recentIssues.issues.filter(i => i.fields.resolutiondate && new Date(i.fields.resolutiondate) >= sevenDaysAgo).length
-        }],
-        updated: [{
-            count: recentIssues.issues.filter(i => new Date(i.fields.updated) >= sevenDaysAgo).length
-        }],
-        comments: [{
-            count: recentIssues.issues.reduce((sum, issue) => sum + (issue.fields.comment?.comments?.length || 0), 0)
-        }]
+      created: [{
+        count: recentIssues.issues.filter((i) => new Date(i.fields.created) >= sevenDaysAgo).length,
+      }],
+      resolved: [{
+        count: recentIssues.issues.filter((i) =>
+          i.fields.resolutiondate && new Date(i.fields.resolutiondate) >= sevenDaysAgo
+        ).length,
+      }],
+      updated: [{
+        count: recentIssues.issues.filter((i) => new Date(i.fields.updated) >= sevenDaysAgo).length,
+      }],
+      comments: [{
+        count: recentIssues.issues.reduce(
+          (sum, issue) => sum + (issue.fields.comment?.comments?.length || 0),
+          0,
+        ),
+      }],
     };
 
     return timeline;
@@ -3038,128 +3290,149 @@ export class JiraService {
     const sprintMetricsTable = new Table()
       .border(true)
       .padding(1);
-    
+
     // Add title as a header row
-    sprintMetricsTable.push([`${theme.symbols.metrics} Sprint Metrics (Last ${sprintData.length} Sprints)`]);
-    
+    sprintMetricsTable.push([
+      `${theme.symbols.metrics} Sprint Metrics (Last ${sprintData.length} Sprints)`,
+    ]);
+
     // Commitment & delivery section
     const commitmentTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     commitmentTable.push(['🎯 Commitment & Delivery', '']);
-    
-    commitmentTable.push(['Done vs Committed', `${(totalCompleted / totalCommitted * 100).toFixed(1)}%`]);
+
+    commitmentTable.push([
+      'Done vs Committed',
+      `${(totalCompleted / totalCommitted * 100).toFixed(1)}%`,
+    ]);
     commitmentTable.push(['Completed/Committed', `${totalCompleted}/${totalCommitted}`]);
-    commitmentTable.push(['Performance Level', formatServiceStatus(this.rateCompletionRate(totalCompleted / totalCommitted))]);
-    
+    commitmentTable.push([
+      'Performance Level',
+      formatServiceStatus(this.rateCompletionRate(totalCompleted / totalCommitted)),
+    ]);
+
     // Sprint spillover section
     const spilloverTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     spilloverTable.push(['🔄 Sprint Spillover', '']);
-    
-    spilloverTable.push(['Spillover Rate', `${(totalSpiltOver / totalCommitted * 100).toFixed(1)}%`]);
+
+    spilloverTable.push([
+      'Spillover Rate',
+      `${(totalSpiltOver / totalCommitted * 100).toFixed(1)}%`,
+    ]);
     spilloverTable.push(['Spilled/Total Tickets', `${totalSpiltOver}/${totalCommitted}`]);
-    spilloverTable.push(['Performance Level', formatServiceStatus(this.rateSpilloverRate(totalSpiltOver / totalCommitted))]);
-    
+    spilloverTable.push([
+      'Performance Level',
+      formatServiceStatus(this.rateSpilloverRate(totalSpiltOver / totalCommitted)),
+    ]);
+
     // Sprint velocity section
     const velocityTable = new Table()
       .border(true)
       .padding(1)
       .header(['Metric', 'Value']);
-    
+
     // Add title as a header row
     velocityTable.push(['⚡ Sprint Velocity', '']);
-    
+
     velocityTable.push(['Average Cycle Time', formatDuration(avgCycleTime)]);
-    velocityTable.push(['Throughput (avg)', `${(totalCompleted / sprintData.length).toFixed(1)} tickets/sprint`]);
-    velocityTable.push(['Performance Level', formatServiceStatus(this.rateVelocity(avgCycleTime, totalCompleted / sprintData.length))]);
-    
+    velocityTable.push([
+      'Throughput (avg)',
+      `${(totalCompleted / sprintData.length).toFixed(1)} tickets/sprint`,
+    ]);
+    velocityTable.push([
+      'Performance Level',
+      formatServiceStatus(this.rateVelocity(avgCycleTime, totalCompleted / sprintData.length)),
+    ]);
+
     // Sprint-by-sprint analysis table
     const sprintAnalysisTable = new Table()
       .border(true)
       .padding(1)
       .header(['Sprint', 'Results']);
-    
+
     // Add title as a header row
     sprintAnalysisTable.push(['📈 Sprint-by-Sprint Analysis', '']);
-    
+
     // Format sprint-by-sprint analysis
-    const sprintAnalysis = sprintData.map((sprint, index) => 
-      `Period ${index + 1}`.padEnd(20) + 
+    const sprintAnalysis = sprintData.map((sprint, index) =>
+      `Period ${index + 1}`.padEnd(20) +
       `Committed: ${sprint.committedIssues.length}, ` +
       `Completed: ${sprint.completedIssues.length}, ` +
       `Spillover: ${sprint.spiltOverIssues.length}`
     ).join('\n');
-    
+
     sprintAnalysisTable.push(['Analysis', sprintAnalysis]);
-    
+
     // Outliers table
     const outliersTable = new Table()
       .border(true)
       .padding(1)
       .header(['Status', 'Duration']);
-    
+
     // Add title as a header row
     outliersTable.push(['⚠️ Outliers by Status (>7 days)', '']);
-    
+
     // Format status outliers
     const statusOutliers = latestSprint.stageTransitions.statusAnalytics
-      .filter(stat => stat.maxDuration > 24 * 7) // More than 7 days
-      .map(stat => 
+      .filter((stat) => stat.maxDuration > 24 * 7) // More than 7 days
+      .map((stat) =>
         `${stat.status.padEnd(20)}Max: ${formatDuration(stat.maxDuration)} (${stat.maxIssue})`
       ).join('\n');
-    
+
     if (statusOutliers) {
       outliersTable.push(['Outliers', statusOutliers]);
     } else {
       outliersTable.push(['Outliers', 'No outliers found']);
     }
-    
+
     // Status analysis table
     const statusAnalysisTable = new Table()
       .border(true)
       .padding(1)
       .header(['Status', 'Average Time']);
-    
+
     // Add title as a header row
     statusAnalysisTable.push(['🚦 Status Analysis', '']);
-    
+
     // Format status analysis
     const statusAnalysis = latestSprint.stageTransitions.statusAnalytics
-      .map(stat => 
-        `${stat.status.padEnd(20)}Avg: ${formatDuration(stat.avgDuration)} (${stat.issueCount} issues)`
+      .map((stat) =>
+        `${stat.status.padEnd(20)}Avg: ${
+          formatDuration(stat.avgDuration)
+        } (${stat.issueCount} issues)`
       ).join('\n');
-    
+
     statusAnalysisTable.push(['Analysis', statusAnalysis]);
-    
+
     // Format blocked issues
     const blockedIssuesList = blockedIssues
-      .map(issue => 
-        `${issue.key.padEnd(20)}${issue.status}: ${formatDuration(issue.duration)}`
-      ).join('\n');
-    
+      .map((issue) => `${issue.key.padEnd(20)}${issue.status}: ${formatDuration(issue.duration)}`)
+      .join('\n');
+
     // Blocked issues table
     const blockedIssuesTable = new Table()
       .border(true)
       .padding(1)
       .header(['Issue', 'Status and Duration']);
-    
+
     // Add title as a header row
     blockedIssuesTable.push(['⚠️ Blocked Issues (>30 days)', '']);
-    
+
     if (blockedIssuesList) {
       blockedIssuesTable.push(['Issues', blockedIssuesList]);
     } else {
       blockedIssuesTable.push(['Issues', 'No blocked issues']);
     }
-    
+
     return [
       commitmentTable.toString(),
       '',
@@ -3173,7 +3446,7 @@ export class JiraService {
       '',
       statusAnalysisTable.toString(),
       '',
-      blockedIssuesTable.toString()
+      blockedIssuesTable.toString(),
     ].join('\n');
   }
 
@@ -3206,29 +3479,29 @@ export class JiraService {
 
   private formatVelocityTrend(trend: number[]): string[][] {
     if (!trend || trend.length === 0) {
-        return [['No velocity data available', '']];
+      return [['No velocity data available', '']];
     }
 
     const max = Math.max(...trend);
     const height = 8;
 
     return trend.map((value) => {
-        const normalized = max === 0 ? 0 : (value / max) * height;
-        const bar = '█'.repeat(Math.round(normalized)) + '░'.repeat(height - Math.round(normalized));
-        return [`${value.toFixed(1)} ${bar}`, ''];
+      const normalized = max === 0 ? 0 : (value / max) * height;
+      const bar = '█'.repeat(Math.round(normalized)) + '░'.repeat(height - Math.round(normalized));
+      return [`${value.toFixed(1)} ${bar}`, ''];
     });
   }
 
   private formatCompletionTrend(trend: number[]): string[][] {
     if (!trend || trend.length === 0) {
-        return [['No completion rate data available', '']];
+      return [['No completion rate data available', '']];
     }
 
     const height = 8;
     return trend.map((value) => {
-        const normalized = (value / 100) * height;
-        const bar = '█'.repeat(Math.round(normalized)) + '░'.repeat(height - Math.round(normalized));
-        return [`${value.toFixed(1)}% ${bar}`, ''];
+      const normalized = (value / 100) * height;
+      const bar = '█'.repeat(Math.round(normalized)) + '░'.repeat(height - Math.round(normalized));
+      return [`${value.toFixed(1)}% ${bar}`, ''];
     });
   }
 
@@ -3236,27 +3509,27 @@ export class JiraService {
     const table = new Table()
       .border(true)
       .padding(1);
-    
-    rows.forEach(row => table.push(row));
+
+    rows.forEach((row) => table.push(row));
     return table.toString();
   }
 
   private calculateSprintMetrics(issues: JiraIssue[]): {
     issueTypes: {
-        story: number;
-        task: number;
-        bug: number;
-        improvement: number;
-        spike: number;
-        epic: number;
-        subtask: number;
+      story: number;
+      task: number;
+      bug: number;
+      improvement: number;
+      spike: number;
+      epic: number;
+      subtask: number;
     };
     priorities: {
-        highest: number;
-        high: number;
-        medium: number;
-        low: number;
-        lowest: number;
+      highest: number;
+      high: number;
+      medium: number;
+      low: number;
+      lowest: number;
     };
     storyPoints: number;
   } {
@@ -3268,19 +3541,19 @@ export class JiraService {
         improvement: 0,
         spike: 0,
         epic: 0,
-        subtask: 0
+        subtask: 0,
       },
       priorities: {
         highest: 0,
         high: 0,
         medium: 0,
         low: 0,
-        lowest: 0
+        lowest: 0,
       },
-      storyPoints: 0
+      storyPoints: 0,
     };
 
-    issues.forEach(issue => {
+    issues.forEach((issue) => {
       // Count issue types
       const type = issue.fields.issuetype.name.toLowerCase();
       if (type.includes('story') || type === 'user story') metrics.issueTypes.story++;
@@ -3293,8 +3566,9 @@ export class JiraService {
 
       // Count priorities
       const priority = issue.fields.priority?.name?.toLowerCase() || 'medium';
-      if (priority === 'highest' || priority === 'blocker' || priority === '1') metrics.priorities.highest++;
-      else if (priority === 'high' || priority === '2') metrics.priorities.high++;
+      if (priority === 'highest' || priority === 'blocker' || priority === '1') {
+        metrics.priorities.highest++;
+      } else if (priority === 'high' || priority === '2') metrics.priorities.high++;
       else if (priority === 'medium' || priority === '3') metrics.priorities.medium++;
       else if (priority === 'low' || priority === '4') metrics.priorities.low++;
       else if (priority === 'lowest' || priority === '5') metrics.priorities.lowest++;
@@ -3306,7 +3580,7 @@ export class JiraService {
     this.logger.debug('Sprint metrics calculation:', {
       issueTypes: metrics.issueTypes,
       priorities: metrics.priorities,
-      storyPoints: metrics.storyPoints
+      storyPoints: metrics.storyPoints,
     });
 
     return metrics;
@@ -3323,13 +3597,16 @@ export class JiraService {
     Filters for those that are not done (status?.statusCategory?.key !== 'done')
     And have no resolution date (!issue.fields?.resolutiondate)
   */
-  private calculateSpilloverIssues(_issues: JiraIssue[], committedIssues: JiraIssue[]): JiraIssue[] {
+  private calculateSpilloverIssues(
+    _issues: JiraIssue[],
+    committedIssues: JiraIssue[],
+  ): JiraIssue[] {
     if (!committedIssues || !committedIssues.length) {
       return [];
     }
-    
-    return committedIssues.filter(issue => 
-      issue.fields?.status?.statusCategory?.key !== 'done' && 
+
+    return committedIssues.filter((issue) =>
+      issue.fields?.status?.statusCategory?.key !== 'done' &&
       !issue.fields?.resolutiondate
     );
   }
@@ -3338,7 +3615,7 @@ export class JiraService {
     this.logger.debug(`Processing sprint data for ${sprint.name} (${sprint.id})`);
 
     // Filter issues that are relevant to this sprint
-    const sprintIssues = issues.filter(issue => 
+    const sprintIssues = issues.filter((issue) =>
       (issue.fields.customfield_10460 || [])
         .some((s: { id: string | number }) => s.id.toString() === sprint.id.toString())
     );
@@ -3346,22 +3623,24 @@ export class JiraService {
     this.logger.debug(`Found ${sprintIssues.length} total issues for sprint ${sprint.name}`);
 
     // Determine which issues were committed to the sprint at start
-    const committedIssues = sprintIssues.filter(issue => 
+    const committedIssues = sprintIssues.filter((issue) =>
       this.wasIssueCommittedToSprint(issue, sprint.id)
     );
 
-    this.logger.debug(`Of which ${committedIssues.length} were committed issues for sprint ${sprint.name}`);
+    this.logger.debug(
+      `Of which ${committedIssues.length} were committed issues for sprint ${sprint.name}`,
+    );
 
     // Get completed issues
-    const { 
-      completedIssues, 
-      committedAndCompleted, 
-      addedDuringSprintAndCompleted 
+    const {
+      completedIssues,
+      committedAndCompleted,
+      addedDuringSprintAndCompleted,
     } = this.getCompletedSprintIssues(sprintIssues, sprint);
 
     // Calculate spillover issues - committed but not completed
     const spiltOverIssues = this.calculateSpilloverIssues(issues, committedIssues);
-    
+
     this.logger.debug(`Sprint ${sprint.name} metrics:
       - Total issues: ${sprintIssues.length}
       - Committed issues: ${committedIssues.length}
@@ -3385,37 +3664,48 @@ export class JiraService {
     // Calculate remaining days
     const now = new Date();
     const endDate = new Date(sprint.endDate);
-    const remainingDays = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    const remainingDays = Math.max(
+      0,
+      Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+    );
 
     // Calculate story points for different categories
-    const committedPoints = committedIssues.reduce((sum, issue) => 
-      sum + this.calculateStoryPoints(issue), 0);
+    const committedPoints = committedIssues.reduce(
+      (sum, issue) => sum + this.calculateStoryPoints(issue),
+      0,
+    );
 
-    const completedPoints = completedIssues.reduce((sum, issue) => 
-      sum + this.calculateStoryPoints(issue), 0);
+    const completedPoints = completedIssues.reduce(
+      (sum, issue) => sum + this.calculateStoryPoints(issue),
+      0,
+    );
 
-    const committedCompletedPoints = committedAndCompleted.reduce((sum, issue) => 
-      sum + this.calculateStoryPoints(issue), 0);
+    const committedCompletedPoints = committedAndCompleted.reduce(
+      (sum, issue) => sum + this.calculateStoryPoints(issue),
+      0,
+    );
 
-    const addedCompletedPoints = addedDuringSprintAndCompleted.reduce((sum, issue) => 
-      sum + this.calculateStoryPoints(issue), 0);
+    const addedCompletedPoints = addedDuringSprintAndCompleted.reduce(
+      (sum, issue) => sum + this.calculateStoryPoints(issue),
+      0,
+    );
 
     // Calculate scope change (percentage of work added/removed during sprint)
-    const scopeChange = committedPoints > 0 
-      ? ((completedPoints - committedPoints) / Math.max(1, committedPoints)) * 100 
+    const scopeChange = committedPoints > 0
+      ? ((completedPoints - committedPoints) / Math.max(1, committedPoints)) * 100
       : 0;
 
     // Calculate sprint duration in days
     const startDate = new Date(sprint.startDate);
-    const sprintDuration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const sprintDuration = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     // Calculate velocity (points per day)
     const velocity = completedPoints / Math.max(1, sprintDuration);
 
     // Determine sprint state
-    const state = now < startDate 
-      ? 'future' 
-      : (now > endDate ? 'closed' : 'active');
+    const state = now < startDate ? 'future' : (now > endDate ? 'closed' : 'active');
 
     // Create sprint data object
     const sprintData: SprintData = {
@@ -3443,7 +3733,7 @@ export class JiraService {
       storyPoints,
       issueTypes,
       priorities,
-      avgDailyVelocity: 0 // Will calculate below
+      avgDailyVelocity: 0, // Will calculate below
     };
 
     this.logger.debug(`Sprint ${sprint.name} final metrics:
@@ -3507,5 +3797,4 @@ export class JiraService {
     this.logger.debug(`Setting story points field to: ${field}`);
     this.storyPointsField = field;
   }
-
 }

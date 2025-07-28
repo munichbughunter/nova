@@ -114,7 +114,9 @@ await snapshotTest({
     console.log('  nova agent eng review       - Review code changes in a file or directory');
     console.log('  nova agent eng review-mr    - Review changes in a merge request');
     console.log('  nova agent eng documentor   - Generate and manage documentation (coming soon)');
-    console.log('  nova agent eng architect    - Architecture analysis and suggestions (coming soon)');
+    console.log(
+      '  nova agent eng architect    - Architecture analysis and suggestions (coming soon)',
+    );
     console.log('  nova agent eng tester       - Test case generation and analysis (coming soon)');
     console.log('');
     console.log('Examples:');
@@ -132,24 +134,28 @@ await snapshotTest({
   // deno-lint-ignore require-await
   async fn() {
     console.log(colors.blue('\nCode Review for src/components/UserProfile.jsx\n'));
-    
+
     console.log(colors.bold('Summary:'));
-    console.log('This file defines a React functional component named UserProfile that fetches and displays user data.');
-    console.log('The component handles loading states, error states, and successful data fetching appropriately.');
+    console.log(
+      'This file defines a React functional component named UserProfile that fetches and displays user data.',
+    );
+    console.log(
+      'The component handles loading states, error states, and successful data fetching appropriately.',
+    );
     console.log('');
-    
+
     console.log(colors.bold('Strengths:'));
     console.log('✓ Clean implementation of the useState and useEffect hooks');
     console.log('✓ Proper handling of loading and error states');
     console.log('✓ Good separation of concerns between data fetching and rendering');
     console.log('');
-    
+
     console.log(colors.bold('Areas for Improvement:'));
-    
+
     mockReviewFeedback.forEach((feedback, index) => {
       console.log(`${index + 1}. ${colors.yellow(`Line ${feedback.line}:`)} ${feedback.message}`);
     });
-    
+
     console.log('');
     console.log(colors.bold('Suggestions:'));
     console.log('1. Add PropTypes for better type checking');
@@ -166,30 +172,40 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue(`\nMerge Request Review: #${mockMergeRequest.iid} - ${mockMergeRequest.title}\n`));
-    
+    console.log(
+      colors.blue(`\nMerge Request Review: #${mockMergeRequest.iid} - ${mockMergeRequest.title}\n`),
+    );
+
     console.log(colors.bold('MR Details:'));
     console.log(`Author: ${mockMergeRequest.author.name} (${mockMergeRequest.author.username})`);
     console.log(`Source: ${mockMergeRequest.source_branch} → ${mockMergeRequest.target_branch}`);
     console.log(`Description: ${mockMergeRequest.description}`);
     console.log('');
-    
+
     console.log(colors.bold('Files Changed:'));
-    mockMergeRequest.changes.forEach(change => {
+    mockMergeRequest.changes.forEach((change) => {
       console.log(`${change.old_path ? 'Modified' : 'Added'}: ${change.new_path}`);
     });
     console.log('');
-    
+
     console.log(colors.bold('Review Summary:'));
-    console.log('The merge request adds a new user profile component with appropriate loading and error states.');
-    console.log('The implementation follows React best practices but could be improved with better error handling and null checking.');
+    console.log(
+      'The merge request adds a new user profile component with appropriate loading and error states.',
+    );
+    console.log(
+      'The implementation follows React best practices but could be improved with better error handling and null checking.',
+    );
     console.log('');
-    
+
     console.log(colors.bold('Feedback:'));
     mockReviewFeedback.forEach((feedback, index) => {
-      console.log(`${index + 1}. ${colors.yellow(feedback.file)} (Line ${feedback.line}): ${feedback.message}`);
+      console.log(
+        `${index + 1}. ${
+          colors.yellow(feedback.file)
+        } (Line ${feedback.line}): ${feedback.message}`,
+      );
     });
-    
+
     console.log('');
     console.log(colors.bold('Recommendation:'));
     console.log(colors.green('✓ Approve with comments'));
@@ -205,25 +221,33 @@ await snapshotTest({
   // deno-lint-ignore require-await
   async fn() {
     console.log(colors.blue('\nInteractive Chat with Engineering Agent\n'));
-    
-    console.log(colors.gray('Starting chat with AI Engineer. You can ask questions about the code or request explanations.'));
+
+    console.log(
+      colors.gray(
+        'Starting chat with AI Engineer. You can ask questions about the code or request explanations.',
+      ),
+    );
     console.log(colors.gray('Type "exit" or "quit" to end the session.\n'));
-    
+
     console.log(colors.green('AI Engineer:'));
-    console.log('I\'ve reviewed the merge request for adding the UserProfile component.');
-    console.log('Overall, it\'s a solid implementation that follows React best practices.');
-    console.log('What specific aspects would you like me to explain or suggest improvements for?\n');
-    
+    console.log("I've reviewed the merge request for adding the UserProfile component.");
+    console.log("Overall, it's a solid implementation that follows React best practices.");
+    console.log(
+      'What specific aspects would you like me to explain or suggest improvements for?\n',
+    );
+
     console.log(colors.yellow('You:'));
     console.log('Can you explain how the error handling could be improved?\n');
-    
+
     console.log(colors.green('AI Engineer:'));
     console.log('The current error handling could be improved in several ways:');
     console.log('');
     console.log('1. Include HTTP status code in the error message:');
     console.log('```js');
     console.log('if (!response.ok) {');
-    console.log('  throw new Error(`Failed to fetch user data: ${response.status} ${response.statusText}`);');
+    console.log(
+      '  throw new Error(`Failed to fetch user data: ${response.status} ${response.statusText}`);',
+    );
     console.log('}');
     console.log('```');
     console.log('');
@@ -255,10 +279,10 @@ await snapshotTest({
     console.log('  setUser(null);');
     console.log('}');
     console.log('```\n');
-    
+
     console.log(colors.yellow('You:'));
-    console.log('Thanks, that\'s helpful. What about performance considerations?\n');
-    
+    console.log("Thanks, that's helpful. What about performance considerations?\n");
+
     console.log(colors.green('AI Engineer:'));
     console.log('For performance optimization, consider these improvements:');
     console.log('');
@@ -295,8 +319,10 @@ await snapshotTest({
     console.log('```');
     console.log('');
     console.log('3. Consider implementing a stale-while-revalidate pattern:');
-    console.log('   This would show cached data immediately while fetching fresh data in the background.');
+    console.log(
+      '   This would show cached data immediately while fetching fresh data in the background.',
+    );
     console.log('');
     console.log('4. Add a debounce if userId changes frequently to prevent API hammering.\n');
   },
-}); 
+});

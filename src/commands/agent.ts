@@ -4,7 +4,7 @@ import { BaseEngineeringOptions } from '../agents/dev/types.ts';
 import { AgentFactory } from '../agents/mod.ts';
 import { configManager } from '../config/mod.ts';
 import { GitLabService } from '../services/gitlab_service.ts';
-import { logger, Logger } from '../utils/logger.ts';
+import { Logger, logger } from '../utils/logger.ts';
 
 interface AgentCommandOptions extends Record<string, unknown> {
   project?: string;
@@ -42,7 +42,7 @@ export const agentCommand = new Command<void, void, AgentCommandOptions>()
   .action(async (options, ...query) => {
     // This command is handled in main.ts with its own --list option
     // Don't add duplicate list option here as it conflicts
-    
+
     if (query.length === 0) {
       logger.passThrough('log', colors.blue('\nAI Agents Help\n'));
       logger.passThrough('log', 'Available Agents:');
@@ -50,7 +50,7 @@ export const agentCommand = new Command<void, void, AgentCommandOptions>()
         logger.passThrough('log', `  nova agent ${type.padEnd(12)} - ${description}`);
       }
       logger.passThrough('log', '  nova agent help        - Show this help message\n');
-      
+
       logger.passThrough('log', colors.blue('Development Tools:\n'));
       for (const { name, description } of toolShortcuts) {
         logger.passThrough('log', `  nova agent ${name.padEnd(12)} - ${description}`);
@@ -58,7 +58,7 @@ export const agentCommand = new Command<void, void, AgentCommandOptions>()
       logger.passThrough('log', '');
       return;
     }
-    
+
     // Handle other cases
     logger.passThrough('log', `Agent command with query: ${query.join(' ')}`);
   });
@@ -82,48 +82,57 @@ for (const { type, description } of agentTypes) {
       .example('Review a specific file', 'nova agent dev review --path src/file.ts')
       .example('Review multiple files', 'nova agent dev review --path ".gitlab-ci.yml,src/file.ts"')
       .example('Review with depth', 'nova agent dev review --path file.ts --depth=quick')
-      .example('Review with specific perspective', 'nova agent dev review --path file.ts --reviewer architect')
+      .example(
+        'Review with specific perspective',
+        'nova agent dev review --path file.ts --reviewer architect',
+      )
       .option('--path <path:string>', 'Path to review')
       .option('--depth <depth:string>', 'Analysis depth (quick|normal|deep)', { default: 'normal' })
-      .option('--reviewer <type:string>', 'Review perspective (junior|senior|architect|all)', { default: 'senior' })
+      .option('--reviewer <type:string>', 'Review perspective (junior|senior|architect|all)', {
+        default: 'senior',
+      })
       .option('--post', 'Post review comments to GitLab')
-      .action(async function (options: { path?: string; depth: string; reviewer?: string; post?: boolean }) {
-        try {
-          const config = await configManager.loadConfig();
-          const gitlab = new GitLabService(config);
-          const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
-          const factory = new AgentFactory({ 
-            config, 
-            gitlab,
-            logger 
-          });
-          const engineeringOptions: BaseEngineeringOptions = {
-            depth: options.depth as BaseEngineeringOptions['depth'],
-            post: options.post,
-            path: options.path,
-            reviewer: options.reviewer
-          };
-          const agent = factory.getAgent(type, engineeringOptions);
-          const args: string[] = [];
-          if (options.path) {
-            args.push('--path', options.path);
+      .action(
+        async function (
+          options: { path?: string; depth: string; reviewer?: string; post?: boolean },
+        ) {
+          try {
+            const config = await configManager.loadConfig();
+            const gitlab = new GitLabService(config);
+            const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
+            const factory = new AgentFactory({
+              config,
+              gitlab,
+              logger,
+            });
+            const engineeringOptions: BaseEngineeringOptions = {
+              depth: options.depth as BaseEngineeringOptions['depth'],
+              post: options.post,
+              path: options.path,
+              reviewer: options.reviewer,
+            };
+            const agent = factory.getAgent(type, engineeringOptions);
+            const args: string[] = [];
+            if (options.path) {
+              args.push('--path', options.path);
+            }
+            if (options.depth) {
+              args.push('--depth', options.depth);
+            }
+            if (options.reviewer) {
+              args.push('--reviewer', options.reviewer);
+            }
+            if (options.post) {
+              args.push('--post');
+            }
+            const result = await agent.execute('review', args);
+            logger.passThrough('log', result.message);
+          } catch (error) {
+            logger.error(error instanceof Error ? error.message : String(error));
+            throw error;
           }
-          if (options.depth) {
-            args.push('--depth', options.depth);
-          }
-          if (options.reviewer) {
-            args.push('--reviewer', options.reviewer);
-          }
-          if (options.post) {
-            args.push('--post');
-          }
-          const result = await agent.execute('review', args);
-          logger.passThrough('log', result.message);
-        } catch (error) {
-          logger.error(error instanceof Error ? error.message : String(error));
-          throw error;
-        }
-      });
+        },
+      );
 
     subCommand
       .command('review-mr', 'Review current merge request')
@@ -137,9 +146,9 @@ for (const { type, description } of agentTypes) {
       .option('--mr <mr:number>', 'Merge request ID')
       .option('-i, --interactive', 'Interactive mode with chat functionality', { default: false })
       .option('--draft', 'Save review as draft instead of posting', { default: false })
-      .action(async function (options: { 
-        depth: string; 
-        post?: boolean; 
+      .action(async function (options: {
+        depth: string;
+        post?: boolean;
         project?: string;
         mr?: number;
         interactive?: boolean;
@@ -149,10 +158,10 @@ for (const { type, description } of agentTypes) {
           const config = await configManager.loadConfig();
           const gitlab = new GitLabService(config);
           const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
-          const factory = new AgentFactory({ 
-            config, 
+          const factory = new AgentFactory({
+            config,
             gitlab,
-            logger 
+            logger,
           });
 
           // If project not specified, try to get from current git remote
@@ -160,14 +169,17 @@ for (const { type, description } of agentTypes) {
             try {
               const remoteUrl = await new Deno.Command('git', {
                 args: ['remote', 'get-url', 'origin'],
-                stdout: 'piped'
+                stdout: 'piped',
               }).output();
               const remoteUrlText = new TextDecoder().decode(remoteUrl.stdout).trim();
               // Extract project path from GitLab URL
               const match = remoteUrlText.match(/[:/]([^/]+\/[^/]+?)(?:\.git)?$/);
               if (match) {
                 options.project = match[1];
-                logger.passThrough('log', colors.dim(`Using project from git remote: ${options.project}`));
+                logger.passThrough(
+                  'log',
+                  colors.dim(`Using project from git remote: ${options.project}`),
+                );
               }
             } catch {
               if (!options.interactive) {
@@ -182,7 +194,7 @@ for (const { type, description } of agentTypes) {
             project: options.project,
             mergeRequestId: options.mr,
             interactive: options.interactive,
-            draft: options.draft
+            draft: options.draft,
           };
           const agent = factory.getAgent(type, engineeringOptions);
           const args: string[] = [];
@@ -219,7 +231,10 @@ for (const { type, description } of agentTypes) {
       .command('test', 'Run QA tests')
       .description('Run quality assurance tests')
       .example('Test with URL', 'nova agent qa test --url http://localhost:3000')
-      .example('Test with specific depth', 'nova agent qa test --url http://localhost:3000 --depth=deep')
+      .example(
+        'Test with specific depth',
+        'nova agent qa test --url http://localhost:3000 --depth=deep',
+      )
       .option('--url <url:string>', 'URL to test')
       .option('--depth <depth:string>', 'Test depth (quick|normal|deep)', { default: 'normal' })
       .option('--browser <browser:string>', 'Browser to use for testing', { default: 'chromium' })
@@ -228,15 +243,15 @@ for (const { type, description } of agentTypes) {
           const config = await configManager.loadConfig();
           const gitlab = new GitLabService(config);
           const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
-          const factory = new AgentFactory({ 
-            config, 
+          const factory = new AgentFactory({
+            config,
             gitlab,
-            logger 
+            logger,
           });
           const qaOptions = {
             depth: options.depth as BaseEngineeringOptions['depth'],
             url: options.url,
-            browser: options.browser
+            browser: options.browser,
           };
           const agent = factory.getAgent(type, qaOptions);
           const args: string[] = [];
@@ -270,7 +285,7 @@ for (const { name, description } of toolShortcuts) {
       // TODO: Implement tool launching
       logger.passThrough('log', colors.yellow(`${name} integration not yet implemented`));
     });
-  
+
   agentCommand.command(name, toolCommand);
 }
 
@@ -279,24 +294,42 @@ agentCommand
   .command('help', 'Show detailed help and usage examples')
   .action(() => {
     logger.passThrough('log', colors.blue('\n🤖 Nova AI Agents - Detailed Help\n'));
-    
+
     logger.passThrough('log', colors.bold('Available Agents:'));
-    logger.passThrough('log', `  ${colors.cyan('dev')}       - Software Engineer for code review and analysis`);
-    logger.passThrough('log', `  ${colors.cyan('qa')}        - Quality Assurance Engineer for testing`);
-    
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('dev')}       - Software Engineer for code review and analysis`,
+    );
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('qa')}        - Quality Assurance Engineer for testing`,
+    );
+
     logger.passThrough('log', colors.bold('\nEngineering Agent Commands:'));
-    logger.passThrough('log', `  ${colors.cyan('review')}    - Review code changes in files or directories`);
-    logger.passThrough('log', `  ${colors.cyan('review-mr')} - Review current merge request changes`);
-    
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('review')}    - Review code changes in files or directories`,
+    );
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('review-mr')} - Review current merge request changes`,
+    );
+
     logger.passThrough('log', colors.bold('\nQA Agent Commands:'));
-    logger.passThrough('log', `  ${colors.cyan('test')}      - Run quality assurance tests on URLs`);
-    
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('test')}      - Run quality assurance tests on URLs`,
+    );
+
     logger.passThrough('log', colors.bold('\nUsage Examples:'));
     logger.passThrough('log', colors.dim('  # Review a specific file'));
     logger.passThrough('log', colors.dim('  nova agent dev review --path src/main.ts'));
     logger.passThrough('log', colors.dim(''));
     logger.passThrough('log', colors.dim('  # Review multiple files with deep analysis'));
-    logger.passThrough('log', colors.dim('  nova agent dev review --path "src/main.ts,src/utils.ts" --depth=deep'));
+    logger.passThrough(
+      'log',
+      colors.dim('  nova agent dev review --path "src/main.ts,src/utils.ts" --depth=deep'),
+    );
     logger.passThrough('log', colors.dim(''));
     logger.passThrough('log', colors.dim('  # Review current merge request and post comments'));
     logger.passThrough('log', colors.dim('  nova agent dev review-mr --depth=normal --post'));
@@ -304,11 +337,17 @@ agentCommand
     logger.passThrough('log', colors.dim('  # Run QA tests on a local server'));
     logger.passThrough('log', colors.dim('  nova agent qa test --url http://localhost:3000'));
     logger.passThrough('log', colors.dim(''));
-    
+
     logger.passThrough('log', colors.bold('Options:'));
-    logger.passThrough('log', `  ${colors.cyan('--depth')}    - Analysis depth: quick, normal, deep`);
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('--depth')}    - Analysis depth: quick, normal, deep`,
+    );
     logger.passThrough('log', `  ${colors.cyan('--post')}     - Post review comments to GitLab`);
     logger.passThrough('log', `  ${colors.cyan('--project')}  - Specify GitLab project path`);
-    logger.passThrough('log', `  ${colors.cyan('--reviewer')} - Review perspective: junior, senior, architect, all`);
+    logger.passThrough(
+      'log',
+      `  ${colors.cyan('--reviewer')} - Review perspective: junior, senior, architect, all`,
+    );
     logger.passThrough('log', '');
   });

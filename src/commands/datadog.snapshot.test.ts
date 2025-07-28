@@ -229,8 +229,9 @@ await snapshotTest({
 
     mockMetrics.forEach((metric) => {
       const latestValue = metric.values[metric.values.length - 1];
-      const avgValue = (metric.values.reduce((sum, val) => sum + val, 0) / metric.values.length).toFixed(2);
-      
+      const avgValue = (metric.values.reduce((sum, val) => sum + val, 0) / metric.values.length)
+        .toFixed(2);
+
       table.push([
         metric.name,
         metric.tags.join(', '),
@@ -262,11 +263,17 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova datadog dashboards --format json | jq \'.[] | select(.author.name=="Jane Smith")\'\n'));
-    
+    console.log(
+      colors.blue(
+        '\nPipeline Example: nova datadog dashboards --format json | jq \'.[] | select(.author.name=="Jane Smith")\'\n',
+      ),
+    );
+
     // Simulate the jq filter operation
-    const janesDashboards = mockDashboards.filter(dashboard => dashboard.author.name === 'Jane Smith');
-    
+    const janesDashboards = mockDashboards.filter((dashboard) =>
+      dashboard.author.name === 'Jane Smith'
+    );
+
     console.log(JSON.stringify(janesDashboards, null, 2));
     console.log(colors.dim(`\nFound ${janesDashboards.length} dashboards by Jane Smith\n`));
   },
@@ -279,10 +286,14 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova datadog dashboards --format json | jq -r \'.[] | "\\(.title) - \\(.url)"\'\n'));
-    
+    console.log(
+      colors.blue(
+        '\nPipeline Example: nova datadog dashboards --format json | jq -r \'.[] | "\\(.title) - \\(.url)"\'\n',
+      ),
+    );
+
     // Simulate the jq string transformation
-    mockDashboards.forEach(dashboard => {
+    mockDashboards.forEach((dashboard) => {
       console.log(`${dashboard.title} - ${dashboard.url}`);
     });
   },
@@ -295,18 +306,22 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova datadog teams --format json | jq \'{ total_teams: length, total_members: map(.user_count) | add, teams: map({name: .name, members: .user_count}) }\'\n'));
-    
+    console.log(
+      colors.blue(
+        "\nPipeline Example: nova datadog teams --format json | jq '{ total_teams: length, total_members: map(.user_count) | add, teams: map({name: .name, members: .user_count}) }'\n",
+      ),
+    );
+
     // Simulate the jq aggregation
     const teamStats = {
       total_teams: mockTeams.length,
       total_members: mockTeams.reduce((sum, team) => sum + team.user_count, 0),
-      teams: mockTeams.map(team => ({
+      teams: mockTeams.map((team) => ({
         name: team.name,
-        members: team.user_count
-      }))
+        members: team.user_count,
+      })),
     };
-    
+
     console.log(JSON.stringify(teamStats, null, 2));
   },
 });
@@ -318,12 +333,18 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova datadog dashboards --format json | jq -r \'.[] | "<li><a href=\\"\(.url)\\">\(.title)</a> (by \(.author.name))</li>"\' > dashboards.html\n'));
-    
+    console.log(
+      colors.blue(
+        '\nPipeline Example: nova datadog dashboards --format json | jq -r \'.[] | "<li><a href=\\"\(.url)\\">\(.title)</a> (by \(.author.name))</li>"\' > dashboards.html\n',
+      ),
+    );
+
     // Simulate HTML output generation
     console.log('<ul>');
-    mockDashboards.forEach(dashboard => {
-      console.log(`  <li><a href="${dashboard.url}">${dashboard.title}</a> (by ${dashboard.author.name})</li>`);
+    mockDashboards.forEach((dashboard) => {
+      console.log(
+        `  <li><a href="${dashboard.url}">${dashboard.title}</a> (by ${dashboard.author.name})</li>`,
+      );
     });
     console.log('</ul>');
   },
@@ -336,19 +357,23 @@ await snapshotTest({
   colors: true,
   // deno-lint-ignore require-await
   async fn() {
-    console.log(colors.blue('\nPipeline Example: nova datadog metrics --format json | jq \'map({name: .name, min: (.values | min), max: (.values | max), avg: (.values | add / length)})\'\n'));
-    
+    console.log(
+      colors.blue(
+        "\nPipeline Example: nova datadog metrics --format json | jq 'map({name: .name, min: (.values | min), max: (.values | max), avg: (.values | add / length)})'\n",
+      ),
+    );
+
     // Simulate calculating statistics for each metric
-    const metricStats = mockMetrics.map(metric => {
+    const metricStats = mockMetrics.map((metric) => {
       const values = metric.values;
       return {
         name: metric.name,
         min: Math.min(...values),
         max: Math.max(...values),
-        avg: parseFloat((values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2))
+        avg: parseFloat((values.reduce((sum, val) => sum + val, 0) / values.length).toFixed(2)),
       };
     });
-    
+
     console.log(JSON.stringify(metricStats, null, 2));
   },
-}); 
+});
