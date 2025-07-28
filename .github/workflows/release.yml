@@ -3,7 +3,7 @@ name: Nova Release
 on:
   push:
     tags: 
-      -'v*.*.*' # Release every new tag, which starts with 'v'
+      -'v*.*.*-*' # Release every new tag, which starts with 'v'
 
 jobs:
   build:
