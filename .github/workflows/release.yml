@@ -3,7 +3,7 @@ name: Nova Release
 on:
   push:
     tags: 
-      -'v*.*.*-*' # Release every new tag, which starts with 'v'
+      - 'v*.*.*-*' # Release every new tag, which starts with 'v'
 
 jobs:
   build:
@@ -14,13 +14,13 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: nova-cli-linux-amd64
+            artifact_name: nova-linux-amd64
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: nova-cli-macos-amd64
+            artifact_name: nova-macos-amd64
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: nova-cli-macos-arm64
+            artifact_name: nova-macos-arm64
 
     steps:
       - name: 1. Checkout Code
