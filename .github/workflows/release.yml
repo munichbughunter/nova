@@ -1,0 +1,106 @@
+name: Nova Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release-Version (z.B. v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build für ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: nova-linux-amd64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: nova-macos-amd64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: nova-macos-arm64
+            
+    steps:
+      - name: 1. Code auschecken
+        uses: actions/checkout@v4
+
+      - name: 2. Deno-Umgebung einrichten
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: 3. Anwendung kompilieren
+        run: deno task compile
+
+      - name: 4. Binärdatei als Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  create-github-release:
+    name: GitHub Release erstellen
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write # Erforderlich, um ein Release zu erstellen
+    steps:
+      - name: 1. Alle Build-Artefakte herunterladen
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: 2. GitHub Release erstellen und Artefakte anhängen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          name: Nova ${{ github.event.inputs.version }}
+          body: "Eine neue Version von Nova wurde veröffentlicht. Details finden Sie im CHANGELOG."
+          files: |
+            artifacts/nova-linux-amd64/nova-linux-amd64
+            artifacts/nova-macos-amd64/nova-macos-amd64
+            artifacts/nova-macos-arm64/nova-macos-arm64
+
+  update-homebrew:
+    name: Homebrew Tap aktualisieren
+    runs-on: ubuntu-latest
+    needs: create-github-release
+    steps:
+      - name: Homebrew-Formel aktualisieren
+        uses: mislav/bump-homebrew-formula-action@v4
+        with:
+          # Der Name der Formel-Datei in Ihrem Tap (z.B. nova.rb)
+          formula-name: nova
+          # Ihr Homebrew Tap Repository
+          tap-repository: munichbughunter/nova
+          # Der Tag des neuen GitHub Releases
+          tag-name: ${{ github.event.inputs.version }}
+          # Ein Personal Access Token (PAT) mit repo-Zugriff auf den Tap
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+  notify-discord:
+    name: Discord-Benachrichtigung senden
+    runs-on: ubuntu-latest
+    needs: update-homebrew
+    steps:
+      - name: Discord-Benachrichtigung senden
+        uses: rjstone/discord-webhook-notify@v1
+        with:
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🚀 Nova Release: ${{ github.event.inputs.version }}"
+          description: |
+            Eine neue Version von **nova** wurde erfolgreich veröffentlicht!
+            
+            **Installation/Update via Homebrew:**
+            ```
+            brew upgrade nova
+            ```
+          color: "3447003" # Blau
+          footer:
+            text: "Nova Release Pipeline"
