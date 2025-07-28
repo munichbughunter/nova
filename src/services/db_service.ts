@@ -16,14 +16,14 @@ export class DBService {
       this.logger.error('HOME environment variable not set.');
       throw new Error('HOME environment variable not set.');
     }
-    
+
     const novaDir = join(homeDir, '.nova');
     this.dbPath = join(novaDir, 'nova.db');
 
     try {
       // Ensure the directory exists
       ensureDir(novaDir);
-      
+
       this.db = new DB(this.dbPath);
       this.init();
     } catch (error) {
@@ -69,7 +69,7 @@ export class DBService {
       const serializedValue = JSON.stringify(value);
       this.db.query(
         'INSERT OR REPLACE INTO key_value_store (key, value) VALUES (?, ?)',
-        [key, serializedValue]
+        [key, serializedValue],
       );
     } catch (error) {
       this.logger.error(`Failed to set value for key "${key}":`, error);
@@ -110,11 +110,12 @@ export class DBService {
       const serializedData = JSON.stringify(item);
       this.db.query(
         'INSERT OR REPLACE INTO recent_items (type, key, data, last_viewed) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
-        [type, key, serializedData]
+        [type, key, serializedData],
       );
 
       // Prune old entries
-      this.db.query(`
+      this.db.query(
+        `
         DELETE FROM recent_items
         WHERE id IN (
           SELECT id FROM recent_items
@@ -122,7 +123,9 @@ export class DBService {
           ORDER BY last_viewed DESC
           LIMIT -1 OFFSET 10
         )
-      `, [type]);
+      `,
+        [type],
+      );
     } catch (error) {
       this.logger.error(`Failed to add recent item for type "${type}" and key "${key}":`, error);
       throw error;
@@ -131,12 +134,15 @@ export class DBService {
 
   public getRecentItems<T>(type: string, limit = 10): T[] {
     try {
-      const results = this.db.query(`
+      const results = this.db.query(
+        `
         SELECT data FROM recent_items
         WHERE type = ?
         ORDER BY last_viewed DESC
         LIMIT ?
-      `, [type, limit]);
+      `,
+        [type, limit],
+      );
       return results.map((row) => JSON.parse(row[0] as string) as T);
     } catch (error) {
       this.logger.error(`Failed to get recent items for type "${type}":`, error);
