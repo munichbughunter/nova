@@ -24,7 +24,7 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             artifact_name: nova-macos-arm64
-            
+
     steps:
       - name: 1. Code auschecken
         uses: actions/checkout@v4
@@ -60,7 +60,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.version }}
           name: Nova ${{ github.event.inputs.version }}
-          body: "Eine neue Version von Nova wurde veröffentlicht. Details finden Sie im CHANGELOG."
+          body: 'Eine neue Version von Nova wurde veröffentlicht. Details finden Sie im CHANGELOG.'
           files: |
             artifacts/nova-linux-amd64/nova-linux-amd64
             artifacts/nova-macos-amd64/nova-macos-amd64
@@ -93,14 +93,14 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "🚀 Nova Release: ${{ github.event.inputs.version }}"
+          title: '🚀 Nova Release: ${{ github.event.inputs.version }}'
           description: |
             Eine neue Version von **nova** wurde erfolgreich veröffentlicht!
-            
+
             **Installation/Update via Homebrew:**
             ```
             brew upgrade nova
             ```
-          color: "3447003" # Blau
+          color: '3447003' # Blau
           footer:
-            text: "Nova Release Pipeline"
+            text: 'Nova Release Pipeline'

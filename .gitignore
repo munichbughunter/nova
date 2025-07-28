@@ -14,5 +14,7 @@ node_modules
 .github/prompts
 .github/copilot-instructions.md
 .kiro
-.vscode
+.vscode/
+deno.lock
+
 knowledge-base
