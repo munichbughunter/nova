@@ -3,7 +3,8 @@ name: Nova Release
 on:
   push:
     tags: 
-      - 'v*.*.*-*' # Release every new tag, which starts with 'v'
+      - 'v*.*.*'      # Release for stable versions like v1.0.0
+      - 'v*.*.*-*'    # Release for pre-release versions like v1.0.0-alpha
 
 jobs:
   build:
@@ -31,8 +32,15 @@ jobs:
         with:
           deno-version: v1.x
 
-      - name: 3. Compile application
-        run: deno task compile
+      - name: 3. Compile application for specific target
+        run: |
+          if [ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]; then
+            deno compile --no-check --allow-net --allow-read --allow-env --allow-write --allow-ffi --allow-sys --allow-run --target x86_64-unknown-linux-gnu --output ${{ matrix.artifact_name }} main.ts
+          elif [ "${{ matrix.target }}" == "x86_64-apple-darwin" ]; then
+            deno compile --no-check --allow-net --allow-read --allow-env --allow-write --allow-ffi --allow-sys --allow-run --target x86_64-apple-darwin --output ${{ matrix.artifact_name }} main.ts
+          elif [ "${{ matrix.target }}" == "aarch64-apple-darwin" ]; then
+            deno compile --no-check --allow-net --allow-read --allow-env --allow-write --allow-ffi --allow-sys --allow-run --target aarch64-apple-darwin --output ${{ matrix.artifact_name }} main.ts
+          fi
 
       - name: 4. Upload binary as artifact
         uses: actions/upload-artifact@v4
@@ -45,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      contents: write # Erforderlich, um ein Release zu erstellen
+      contents: write
     steps:
       - name: 1. Download all build artifacts
         uses: actions/download-artifact@v4
@@ -55,8 +63,8 @@ jobs:
       - name: 2. Create GitHub Release and attach artifacts
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          name: Nova ${{ github.event.inputs.version }}
+          tag_name: ${{ github.ref_name }}
+          name: Nova ${{ github.ref_name }}
           body: 'New Nova Version available!'
           files: |
             artifacts/nova-linux-amd64/nova-linux-amd64
@@ -71,13 +79,9 @@ jobs:
       - name: Update Homebrew Formula
         uses: mislav/bump-homebrew-formula-action@v4
         with:
-          # Der Name der Formel-Datei in Ihrem Tap (z.B. nova.rb)
           formula-name: nova
-          # Ihr Homebrew Tap Repository
           tap-repository: munichbughunter/homebrew-nova
-          # Der Tag des neuen GitHub Releases
-          tag-name: ${{ github.event.inputs.version }}
-          # Ein Personal Access Token (PAT) mit repo-Zugriff auf den Tap
+          tag-name: ${{ github.ref_name }}
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
@@ -90,7 +94,7 @@ jobs:
         uses: rjstone/discord-webhook-notify@v1
         with:
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: '🚀 Nova Release: ${{ github.event.inputs.version }}'
+          title: '🚀 Nova Release: ${{ github.ref_name }}'
           description: |
             A new version of **Nova** has been successfully released!
 
@@ -98,5 +102,5 @@ jobs:
             ```
             brew upgrade nova
             ```
-          color: '3447003' # Blau
+          color: '3447003'
           footer: 'Nova Release Pipeline'
