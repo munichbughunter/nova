@@ -72,18 +72,44 @@ jobs:
             artifacts/nova-macos-arm64/nova-macos-arm64
 
   update-homebrew:
-    name: Homebrew Tap actualisation
+    name: Update Homebrew Formula
     runs-on: ubuntu-latest
-    needs: create-github-release
+    needs: release
     steps:
-      - name: Update Homebrew Formula
-        uses: mislav/bump-homebrew-formula-action@v3
+      - name: Clone tap repo
+        uses: actions/checkout@v4
         with:
-          formula-name: nova
-          homebrew-tap: munichbughunter/homebrew-nova
-          tag-name: ${{ github.ref_name }}
-        env:
-          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          repository: munichbughunter/homebrew-nova
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Download artifacts
+        run: |
+          mkdir bin
+          gh release download ${{ github.ref_name }} --repo munichbughunter/nova --pattern "nova-*"
+          mv nova-* bin/
+
+      - name: Calculate SHA256
+        id: sha
+        run: |
+          echo "sha_arm=$(shasum -a 256 bin/nova-macos-arm64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "sha_amd=$(shasum -a 256 bin/nova-macos-amd64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+          echo "sha_linux=$(shasum -a 256 bin/nova-linux-amd64 | awk '{print $1}')" >> $GITHUB_OUTPUT
+
+      - name: Update Formula
+        run: |
+          sed -i "s|<SHA_ARM>|${{ steps.sha.outputs.sha_arm }}|" Formula/nova.rb
+          sed -i "s|<SHA_AMD>|${{ steps.sha.outputs.sha_amd }}|" Formula/nova.rb
+          sed -i "s|<SHA_LINUX>|${{ steps.sha.outputs.sha_linux }}|" Formula/nova.rb
+          sed -i "s|version .*|version \"${{ github.ref_name }}\"|" Formula/nova.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Formula/nova.rb
+          git commit -m "Update nova.rb for ${{ github.ref_name }}"
+          git push
+
 
   # notify-discord:
   #   name: Send Discord Notification
