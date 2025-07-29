@@ -17,71 +17,71 @@ import { agentCommand } from './src/commands/agent.ts';
  * Initialize Nova CLI
  */
 export const program = new Command()
-  .name('nova')
-  .description('Nova - AI-powered project management and development workflow tool')
-  .version(NOVA_VERSION)
-  .example('nova setup', 'Configure Nova')
-  .example('nova config', 'Manage configuration')
-  .example('nova mcp', 'MCP operations')
-  .example('nova agent "analyze src/main.ts"', 'Analyze code with AI agent')
-  .example('nova agent example help', 'Get help for specific agent')
-  .example('nova agent --interactive', 'Start interactive agent session')
-  .default('help');
+    .name('nova')
+    .description('Nova - AI-powered project management and development workflow tool')
+    .version(NOVA_VERSION)
+    .example('nova setup', 'Configure Nova')
+    .example('nova config', 'Manage configuration')
+    .example('nova mcp', 'MCP operations')
+    .example('nova agent "analyze src/main.ts"', 'Analyze code with AI agent')
+    .example('nova agent example help', 'Get help for specific agent')
+    .example('nova agent --interactive', 'Start interactive agent session')
+    .default('help');
 
 // Register commands with subcommands directly (not lazy loaded)
 program
-  // .command('gitlab', gitlabCommand)
-  // .command('jira', jiraCommand)
-  .command('agent', agentCommand)
-  .command('config', configCommand)
-  // .command('dora', doraCommand)
-  // .command('confluence', confluenceCommand)
-  // .command('datadog', datadogCommand)
-  // .command('git', gitCommand)
-  // .command('update', updateCommand)
-  .command('setup', setupCommand)
-  .command('mcp', mcpCommand);
+    // .command('gitlab', gitlabCommand)
+    // .command('jira', jiraCommand)
+    .command('agent', agentCommand)
+    .command('config', configCommand)
+    // .command('dora', doraCommand)
+    // .command('confluence', confluenceCommand)
+    // .command('datadog', datadogCommand)
+    // .command('git', gitCommand)
+    // .command('update', updateCommand)
+    .command('setup', setupCommand)
+    .command('mcp', mcpCommand);
 
 // Add custom help command
 program.command(
-  'help',
-  new Command()
-    .description('Show help information')
-    .action(async () => {
-      const logger = new Logger('Nova', Deno.env.get('NOVA_DEBUG') === 'true');
-      try {
-        const config = await configManager.loadConfig();
-        const statusService = new StatusService();
-        await statusService.displayStatusTableWithProgress(config);
-      } catch {
-        logger.passThrough('error', colors.yellow('\nUnable to load configuration\n'));
-      }
+    'help',
+    new Command()
+        .description('Show help information')
+        .action(async () => {
+            const logger = new Logger('Nova', Deno.env.get('NOVA_DEBUG') === 'true');
+            try {
+                const config = await configManager.loadConfig();
+                const statusService = new StatusService();
+                await statusService.displayStatusTableWithProgress(config);
+            } catch {
+                logger.passThrough('error', colors.yellow('\nUnable to load configuration\n'));
+            }
 
-      logger.passThrough('log', colors.bold('\nHelp:\n'));
-      logger.passThrough('log', '  nova --help            - Show all the commands');
-    }),
+            logger.passThrough('log', colors.bold('\nHelp:\n'));
+            logger.passThrough('log', '  nova --help            - Show all the commands');
+        }),
 )
-  .command('completions', new CompletionsCommand());
+    .command('completions', new CompletionsCommand());
 
 // Add global error handler
 program.error((error, cmd) => {
-  const logger = new Logger('Nova', Deno.env.get('NOVA_DEBUG') === 'true');
+    const logger = new Logger('Nova', Deno.env.get('NOVA_DEBUG') === 'true');
 
-  if (error instanceof ValidationError) {
-    // For validation errors, show command help and error message
-    cmd.showHelp();
-    logger.error(`${error.message}`);
-  } else {
-    // For all other errors
-    logger.error(`${error.message}`);
-    if (Deno.env.get('NOVA_DEBUG') === 'true') {
-      console.error(error);
+    if (error instanceof ValidationError) {
+        // For validation errors, show command help and error message
+        cmd.showHelp();
+        logger.error(`${error.message}`);
+    } else {
+        // For all other errors
+        logger.error(`${error.message}`);
+        if (Deno.env.get('NOVA_DEBUG') === 'true') {
+            console.error(error);
+        }
     }
-  }
-  Deno.exit(1);
+    Deno.exit(1);
 });
 
 // Parse arguments
 if (import.meta.main) {
-  await program.parse(Deno.args);
+    await program.parse(Deno.args);
 }

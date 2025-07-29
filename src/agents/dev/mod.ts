@@ -24,28 +24,31 @@ import { QAAgentContext } from './qa/types.ts';
 import { BaseEngineeringOptions } from './types.ts';
 
 export class EngineeringAgent extends BaseAgent {
-  name = 'Engineering';
-  description = 'Technical tasks and code quality';
-  private subAgents: Map<string, BaseAgent>;
-  protected override options: BaseEngineeringOptions;
+    name = 'Engineering';
+    description = 'Technical tasks and code quality';
+    private subAgents: Map<string, BaseAgent>;
+    protected override options: BaseEngineeringOptions;
 
-  constructor(context: AgentContext & { gitlab: GitLabService }, options: BaseEngineeringOptions) {
-    super(context);
-    this.options = options;
-    this.subAgents = new Map();
-    this.initializeSubAgents();
-  }
+    constructor(
+        context: AgentContext & { gitlab: GitLabService },
+        options: BaseEngineeringOptions,
+    ) {
+        super(context);
+        this.options = options;
+        this.subAgents = new Map();
+        this.initializeSubAgents();
+    }
 
-  private initializeSubAgents(): void {
-    const context = this.context as ReviewAgentContext;
-    this.subAgents.set('review', new CodeReviewAgent(context, this.options));
-    this.subAgents.set('review-mr', new MergeRequestReviewAgent(context, this.options));
-    this.subAgents.set('qa-tester', new QAAgent(context as QAAgentContext, this.options));
-    this.logger.debug(`Initialized subAgents: ${Array.from(this.subAgents.keys()).join(', ')}`);
-  }
+    private initializeSubAgents(): void {
+        const context = this.context as ReviewAgentContext;
+        this.subAgents.set('review', new CodeReviewAgent(context, this.options));
+        this.subAgents.set('review-mr', new MergeRequestReviewAgent(context, this.options));
+        this.subAgents.set('qa-tester', new QAAgent(context as QAAgentContext, this.options));
+        this.logger.debug(`Initialized subAgents: ${Array.from(this.subAgents.keys()).join(', ')}`);
+    }
 
-  override help(): string {
-    return `
+    override help(): string {
+        return `
 ${theme.header('Engineering Agent Help')}
 
 Available Commands:
@@ -78,53 +81,53 @@ Examples:
   # Start a chat session
   nova agent eng chat
 `;
-  }
-
-  override execute(command: string, args: string[]): Promise<AgentResponse> {
-    // Show help by default or when help command is used
-    if (!command || command === 'help') {
-      return Promise.resolve({
-        success: true,
-        message: this.help(),
-      });
     }
 
-    // Map commands to sub-agents
-    const subAgent = this.getSubAgentForCommand(command);
-    if (subAgent) {
-      return subAgent.execute(command, args);
+    override execute(command: string, args: string[]): Promise<AgentResponse> {
+        // Show help by default or when help command is used
+        if (!command || command === 'help') {
+            return Promise.resolve({
+                success: true,
+                message: this.help(),
+            });
+        }
+
+        // Map commands to sub-agents
+        const subAgent = this.getSubAgentForCommand(command);
+        if (subAgent) {
+            return subAgent.execute(command, args);
+        }
+
+        // Handle unknown commands
+        return Promise.resolve({
+            success: false,
+            message: `Unknown command: ${command}\n\n${this.help()}`,
+        });
     }
 
-    // Handle unknown commands
-    return Promise.resolve({
-      success: false,
-      message: `Unknown command: ${command}\n\n${this.help()}`,
-    });
-  }
-
-  private getSubAgentForCommand(command: string): BaseAgent | undefined {
-    // Map commands to sub-agents
-    switch (command) {
-      case 'review':
-        return this.subAgents.get('review');
-      case 'review-mr':
-        return this.subAgents.get('review-mr');
-      case 'qa-tester':
-        return this.subAgents.get('qa-tester');
-      case 'chat':
-        return this.subAgents.get('chat');
-      case 'documentor':
-        return this.subAgents.get('documentor');
-      case 'architect':
-        return this.subAgents.get('architect');
-      case 'tester':
-        return this.subAgents.get('tester');
-      case 'refactor':
-        return this.subAgents.get('refactor');
-      case 'security':
-        return this.subAgents.get('security');
-      default:
-        return undefined;
+    private getSubAgentForCommand(command: string): BaseAgent | undefined {
+        // Map commands to sub-agents
+        switch (command) {
+            case 'review':
+                return this.subAgents.get('review');
+            case 'review-mr':
+                return this.subAgents.get('review-mr');
+            case 'qa-tester':
+                return this.subAgents.get('qa-tester');
+            case 'chat':
+                return this.subAgents.get('chat');
+            case 'documentor':
+                return this.subAgents.get('documentor');
+            case 'architect':
+                return this.subAgents.get('architect');
+            case 'tester':
+                return this.subAgents.get('tester');
+            case 'refactor':
+                return this.subAgents.get('refactor');
+            case 'security':
+                return this.subAgents.get('security');
+            default:
+                return undefined;
+        }
     }
-  }
 }

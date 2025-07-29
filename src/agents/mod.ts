@@ -17,76 +17,76 @@ export type AgentType = 'pm' | 'dev' | 'bm' | 'qa';
 export type AgentOptions = BaseEngineeringOptions | Record<string, unknown>;
 
 export interface AgentContext {
-  config: Config;
-  gitlab: GitLabService;
-  jira?: JiraService;
-  projectPath?: string;
-  logger: Logger;
-  mcpEnabled?: boolean;
-  mcpContext?: MCPToolContext;
-  confluence?: ConfluenceService;
-  datadog?: DatadogService;
-  dora?: DoraService;
-  mcpService?: MCPService;
+    config: Config;
+    gitlab: GitLabService;
+    jira?: JiraService;
+    projectPath?: string;
+    logger: Logger;
+    mcpEnabled?: boolean;
+    mcpContext?: MCPToolContext;
+    confluence?: ConfluenceService;
+    datadog?: DatadogService;
+    dora?: DoraService;
+    mcpService?: MCPService;
 }
 
 export class AgentFactory {
-  private context: AgentContext;
+    private context: AgentContext;
 
-  constructor(context: Partial<AgentContext>) {
-    // Create a logger if not provided
-    const logger = context.logger || new Logger('Agent', Deno.env.get('DEBUG') === 'true');
+    constructor(context: Partial<AgentContext>) {
+        // Create a logger if not provided
+        const logger = context.logger || new Logger('Agent', Deno.env.get('DEBUG') === 'true');
 
-    // Initialize Jira service if configured
-    let jira: JiraService | undefined;
-    try {
-      if (
-        context.config?.atlassian?.jira_url &&
-        context.config.atlassian.jira_token &&
-        context.config.atlassian.username
-      ) {
-        jira = new JiraService(context.config);
-        logger.debug('Initialized Jira service');
-      }
-    } catch (error) {
-      logger.warn('Failed to initialize Jira service:', error);
+        // Initialize Jira service if configured
+        let jira: JiraService | undefined;
+        try {
+            if (
+                context.config?.atlassian?.jira_url &&
+                context.config.atlassian.jira_token &&
+                context.config.atlassian.username
+            ) {
+                jira = new JiraService(context.config);
+                logger.debug('Initialized Jira service');
+            }
+        } catch (error) {
+            logger.warn('Failed to initialize Jira service:', error);
+        }
+
+        this.context = {
+            config: context.config!,
+            gitlab: context.gitlab!,
+            jira,
+            projectPath: context.projectPath,
+            logger: logger,
+            mcpEnabled: context.mcpEnabled,
+            mcpContext: context.mcpContext,
+            confluence: context.confluence,
+            datadog: context.datadog,
+            dora: context.dora,
+            mcpService: context.mcpService,
+        };
     }
 
-    this.context = {
-      config: context.config!,
-      gitlab: context.gitlab!,
-      jira,
-      projectPath: context.projectPath,
-      logger: logger,
-      mcpEnabled: context.mcpEnabled,
-      mcpContext: context.mcpContext,
-      confluence: context.confluence,
-      datadog: context.datadog,
-      dora: context.dora,
-      mcpService: context.mcpService,
-    };
-  }
+    getAgent(type: AgentType, options: AgentOptions = {}): BaseAgent {
+        // Create a child logger for the specific agent type
+        const agentLogger = this.context.logger.child(type);
+        const agentContext = {
+            ...this.context,
+            logger: agentLogger,
+        };
 
-  getAgent(type: AgentType, options: AgentOptions = {}): BaseAgent {
-    // Create a child logger for the specific agent type
-    const agentLogger = this.context.logger.child(type);
-    const agentContext = {
-      ...this.context,
-      logger: agentLogger,
-    };
-
-    switch (type) {
-      case 'dev':
-        return new EngineeringAgent(agentContext, options as BaseEngineeringOptions);
-      case 'qa':
-        return new QAAgent(agentContext, options as QATesterOptions);
-      case 'pm':
-      case 'bm':
-        throw new Error(`Agent type '${type}' not implemented yet`);
-      default:
-        throw new Error(`Unknown agent type: ${type}`);
+        switch (type) {
+            case 'dev':
+                return new EngineeringAgent(agentContext, options as BaseEngineeringOptions);
+            case 'qa':
+                return new QAAgent(agentContext, options as QATesterOptions);
+            case 'pm':
+            case 'bm':
+                throw new Error(`Agent type '${type}' not implemented yet`);
+            default:
+                throw new Error(`Unknown agent type: ${type}`);
+        }
     }
-  }
 }
 
 // Export all agents

@@ -5,52 +5,52 @@ import { ReviewAgentContext } from './engineering/types.ts';
 export type AgentType = 'pm' | 'eng' | 'bm' | 'code-review';
 
 export class AgentFactory {
-  private agents: Map<AgentType, BaseAgent>;
-  private context: AgentContext;
+    private agents: Map<AgentType, BaseAgent>;
+    private context: AgentContext;
 
-  constructor(context: AgentContext) {
-    this.context = context;
-    this.agents = new Map();
-  }
-
-  getAgent(type: AgentType): BaseAgent {
-    let agent = this.agents.get(type);
-    if (!agent) {
-      agent = this.createAgent(type);
-      this.agents.set(type, agent);
+    constructor(context: AgentContext) {
+        this.context = context;
+        this.agents = new Map();
     }
-    return agent;
-  }
 
-  private createAgent(type: AgentType): BaseAgent {
-    switch (type) {
-      case 'eng':
-        return new CodeReviewAgent(this.context as ReviewAgentContext, {
-          analysisDepth: 'normal',
-          postToGitlab: false,
-          path: '.',
-          name: 'Engineering',
-        });
-      case 'code-review':
-        return new CodeReviewAgent(this.context as ReviewAgentContext, {
-          analysisDepth: 'normal',
-          postToGitlab: false,
-          path: '.',
-        });
-      default:
-        throw new Error(`Unknown agent type: ${type}`);
+    getAgent(type: AgentType): BaseAgent {
+        let agent = this.agents.get(type);
+        if (!agent) {
+            agent = this.createAgent(type);
+            this.agents.set(type, agent);
+        }
+        return agent;
     }
-  }
 
-  listAgents(): Array<{ type: AgentType; name: string; description: string }> {
-    const result: Array<{ type: AgentType; name: string; description: string }> = [];
-    for (const [type, agent] of this.agents) {
-      result.push({
-        type,
-        name: agent.name,
-        description: agent.description,
-      });
+    private createAgent(type: AgentType): BaseAgent {
+        switch (type) {
+            case 'eng':
+                return new CodeReviewAgent(this.context as ReviewAgentContext, {
+                    analysisDepth: 'normal',
+                    postToGitlab: false,
+                    path: '.',
+                    name: 'Engineering',
+                });
+            case 'code-review':
+                return new CodeReviewAgent(this.context as ReviewAgentContext, {
+                    analysisDepth: 'normal',
+                    postToGitlab: false,
+                    path: '.',
+                });
+            default:
+                throw new Error(`Unknown agent type: ${type}`);
+        }
     }
-    return result;
-  }
+
+    listAgents(): Array<{ type: AgentType; name: string; description: string }> {
+        const result: Array<{ type: AgentType; name: string; description: string }> = [];
+        for (const [type, agent] of this.agents) {
+            result.push({
+                type,
+                name: agent.name,
+                description: agent.description,
+            });
+        }
+        return result;
+    }
 }
