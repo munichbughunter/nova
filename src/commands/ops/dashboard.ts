@@ -4,7 +4,7 @@ import { keypress } from '@cliffy/keypress';
 import { Table } from '@cliffy/table';
 import type { ProjectSchema } from '@gitbeaker/rest';
 import { configManager } from '../../config/mod.ts';
-import { GitLabService } from '../../services/gitlab_service.ts';
+import { GitProviderFactory } from '../services/git_provider_factory.ts';
 import { ProgressIndicator } from '../../utils.ts';
 import { DevCache } from '../../utils/devcache.ts';
 import { logger } from '../../utils/logger.ts';
@@ -516,7 +516,7 @@ export const dashboardCommand = new Command()
 
         // Initialize GitLab service
         const config = await configManager.loadConfig();
-        const gitlab = new GitLabService(config);
+        const gitProvider = await GitProviderFactory.createFromConfig(config);
 
         // Initialize cleanup function
         let cleanupFn = () => {

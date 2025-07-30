@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { Config } from '../config/mod.ts';
 import { ConfluenceService } from '../services/confluence_service.ts';
 import { DatadogService } from '../services/datadog_service.ts';
-import { DatabaseService } from '../services/db_service.ts';
+import { DBService } from '../services/db_service.ts';
 import { DoraService } from '../services/dora_service.ts';
+import { IGitProviderService } from '../services/git_provider_factory.ts';
 import { GitLabService } from '../services/gitlab_service.ts';
 import { JiraService } from '../services/jira_service.ts';
 import { MCPService } from '../services/mcp_service.ts';
@@ -24,7 +25,7 @@ export interface MCPToolContext {
     shellId?: string;
     browserActive?: boolean;
     mcpService: MCPService;
-    gitlab?: GitLabService;
+    gitProvider?: IGitProviderService; // New unified provider
     jira?: JiraService;
     confluence?: ConfluenceService;
     datadog?: DatadogService;
@@ -53,13 +54,14 @@ export interface AgentContext {
     mcpEnabled?: boolean;
     mcpContext?: MCPToolContext;
     mcpService?: MCPService;
-    gitlab?: GitLabService;
+    gitProvider?: IGitProviderService; // New unified provider
+    gitlab?: GitLabService; // Backward compatibility
     jira?: JiraService;
     confluence?: ConfluenceService;
     datadog?: DatadogService;
     dora?: DoraService;
     projectPath?: string;
-    dbService?: DatabaseService;
+    dbService?: DBService;
 }
 
 export interface AgentResponse {

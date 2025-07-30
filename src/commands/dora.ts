@@ -2,9 +2,9 @@ import { colors } from '@cliffy/ansi/colors';
 import { Command } from '@cliffy/command';
 import { Select } from '@cliffy/prompt';
 import { configManager } from '../config/mod.ts';
-import { DatabaseService } from '../services/db_service.ts';
+import { DBService } from '../services/db_service.ts';
 import { DoraService, ExtendedDoraMetricsResult } from '../services/dora_service.ts';
-import { GitLabService } from '../services/gitlab_service.ts';
+import { GitProviderFactory } from '../services/git_provider_factory.ts';
 import { JiraService } from '../services/jira_service.ts';
 import { sendIngestPayload } from '../utils/ingest.ts';
 import { logger } from '../utils/logger.ts';
@@ -85,13 +85,14 @@ const metricsCmd = new Command()
             }
 
             const jiraService = new JiraService(config);
-            const gitlabService = new GitLabService(config);
-            const db = await DatabaseService.getInstance();
-            const doraService = new DoraService(config, jiraService, gitlabService, logger, db);
+            const gitProvider = await GitProviderFactory.createFromConfig(config);
+            const metrics = await gitProvider.getProjectMetrics(projectPath, timeRange);
+            const db = await DBService.getInstance();
+            const doraService = new DoraService(config, jiraService, gitProvider, logger, db);
 
             // Clear cache if requested
             if (options.clearCache) {
-                await gitlabService.clearCache();
+                await gitProvider.clearCache();
                 logger.info(colors.blue('\nCleared all cached data\n'));
             }
 

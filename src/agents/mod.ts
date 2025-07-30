@@ -2,6 +2,7 @@ import { Config } from '../config/mod.ts';
 import { ConfluenceService } from '../services/confluence_service.ts';
 import { DatadogService } from '../services/datadog_service.ts';
 import { DoraService } from '../services/dora_service.ts';
+import { IGitProviderService } from '../services/git_provider_factory.ts';
 import { GitLabService } from '../services/gitlab_service.ts';
 import { JiraService } from '../services/jira_service.ts';
 import { MCPService } from '../services/mcp_service.ts';
@@ -18,7 +19,7 @@ export type AgentOptions = BaseEngineeringOptions | Record<string, unknown>;
 
 export interface AgentContext {
     config: Config;
-    gitlab: GitLabService;
+   gitProvider?: IGitProviderService
     jira?: JiraService;
     projectPath?: string;
     logger: Logger;
@@ -54,7 +55,8 @@ export class AgentFactory {
 
         this.context = {
             config: context.config!,
-            gitlab: context.gitlab!,
+            gitProvider: context.gitProvider,
+            gitlab: context.gitProvider instanceof GitLabService ? (context.gitProvider as GitLabService) : undefined,
             jira,
             projectPath: context.projectPath,
             logger: logger,

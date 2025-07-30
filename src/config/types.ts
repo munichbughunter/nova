@@ -200,3 +200,22 @@ export interface GitProviderServiceConfig {
     isEnterprise: boolean;
     host: string;
 }
+
+// Profile configuration schema
+export const ProfileConfigSchema = z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+    config: ConfigSchema,
+});
+
+export type ProfileConfig = z.infer<typeof ProfileConfigSchema>;
+
+// Profiles collection schema
+export const ProfilesSchema = z.object({
+    active_profile: z.string().default('default'),
+    profiles: z.record(z.string(), ProfileConfigSchema),
+});
+
+export type Profiles = z.infer<typeof ProfilesSchema>;

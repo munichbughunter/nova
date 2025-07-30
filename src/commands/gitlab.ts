@@ -5,8 +5,8 @@ import { Table } from '@cliffy/table';
 import { ProjectSchema } from '@gitbeaker/rest';
 import process from 'node:process';
 import { configManager } from '../config/mod.ts';
-import { DatabaseService } from '../services/db_service.ts';
-import { GitLabService } from '../services/gitlab_service.ts';
+import { DBService } from '../services/db_service.ts';
+import { GitProviderFactory } from '../services/git_provider_factory.ts';
 import { ProgressIndicator } from '../utils.ts';
 import { commonJsonExamples, formatJsonExamples } from '../utils/help.ts';
 import { sendIngestPayload } from '../utils/ingest.ts';
@@ -73,7 +73,11 @@ const projectsCommand = new Command()
                 Deno.exit(1);
             }
 
-            const gitlab = new GitLabService(config);
+            const gitProvider = await GitProviderFactory.createFromConfig(config);
+            if (gitProvider.getProviderType() !== 'gitlab') {
+                throw new Error('GitLab commands require GitLab configuration');
+            }
+            const gitlab = (gitProvider as any).gitlabService; // Zugriff auf underlying service
 
             if (format !== 'json') {
                 logger.passThrough('log', colors.blue('\nFetching GitLab projects...\n'));
@@ -197,7 +201,11 @@ const projectCommand = new Command()
                 Deno.exit(1);
             }
 
-            const gitlab = new GitLabService(config);
+            const gitProvider = await GitProviderFactory.createFromConfig(config);
+            if (gitProvider.getProviderType() !== 'gitlab') {
+                throw new Error('GitLab commands require GitLab configuration');
+            }
+            const gitlab = (gitProvider as any).gitlabService; // Zugriff auf underlying service
 
             logger.passThrough(
                 'log',
@@ -318,7 +326,11 @@ const dashboardCommand = new Command()
     ) => {
         try {
             const config = await configManager.loadConfig();
-            const gitlab = new GitLabService(config);
+            const gitProvider = await GitProviderFactory.createFromConfig(config);
+            if (gitProvider.getProviderType() !== 'gitlab') {
+                throw new Error('GitLab commands require GitLab configuration');
+            }
+            const gitlab = (gitProvider as any).gitlabService; // Zugriff auf underlying service
 
             logger.passThrough(
                 'log',
@@ -381,7 +393,7 @@ const dashboardCommand = new Command()
 
                 try {
                     // First check if we have cached data before showing loading indicator
-                    const db = await DatabaseService.getInstance();
+                    const db = await DBService.getInstance();
                     const cachedData = await db.getCachedProjectsList();
 
                     // Show loading indicator only if we need to fetch fresh data
@@ -475,7 +487,7 @@ const dashboardCommand = new Command()
 
                 try {
                     // First check if we have cached data before showing loading indicator
-                    const db = await DatabaseService.getInstance();
+                    const db = await DBService.getInstance();
                     const cachedData = await db.getCachedProjectsList();
 
                     // Show loading indicator only if we need to fetch fresh data
@@ -562,7 +574,7 @@ const dashboardCommand = new Command()
 
             try {
                 // Check if we have cached metrics
-                const db = await DatabaseService.getInstance();
+                const db = await DBService.getInstance();
                 const cachedDashboard = await db.getCachedDashboard(
                     selectedProject.path_with_namespace,
                 );

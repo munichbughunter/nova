@@ -3,7 +3,7 @@ import { DOMParser, Element } from 'https://deno.land/x/deno_dom/deno-dom-wasm.t
 import { Config } from '../config/mod.ts';
 import { formatTimestamp, theme } from '../utils.ts';
 import { Logger } from '../utils/logger.ts';
-import { DatabaseService } from './db_service.ts';
+import { DBService } from './db_service.ts';
 
 // Remove all interface definitions and start with the class
 export class ConfluenceService {
@@ -39,7 +39,7 @@ export class ConfluenceService {
             await this.request<{ type: string }>('/space?limit=1');
 
             // Initialize database for caching if needed
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             await db.initializeConfluenceTables();
 
             this.initialized = true;
@@ -148,7 +148,7 @@ export class ConfluenceService {
      */
     async getSpaces(): Promise<ConfluenceSpace[]> {
         try {
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
 
             // Try to get cached spaces
             const cached = await db.getCachedConfluenceSpaces();
@@ -226,7 +226,7 @@ export class ConfluenceService {
             }
 
             // Try to get from cache first
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             const cached = await db.getCachedConfluencePages(spaceKey);
 
             if (cached) {
@@ -302,7 +302,7 @@ export class ConfluenceService {
             this.logger.debug(`Fetching page ${pageId}`);
 
             // Try to get from cache first if not forcing refresh
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             const cached = !forceRefresh ? await db.getCachedConfluencePage(pageId) : null;
 
             if (cached) {
@@ -389,7 +389,7 @@ export class ConfluenceService {
 
         try {
             // Try to get cached data first
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             const cached = await db.getCachedConfluenceDashboard(spaceKey);
 
             if (cached) {
@@ -817,7 +817,7 @@ export class ConfluenceService {
      */
     private async addToRecentSpaces(space: ConfluenceSpace): Promise<void> {
         try {
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             await db.addRecentConfluenceSpace(space.key, space.name);
         } catch (error) {
             this.logger.error('Error adding to recent spaces:', error);
@@ -1009,7 +1009,7 @@ export class ConfluenceService {
      */
     async refreshSpaceStatistics(spaceKey: string): Promise<ConfluenceSpaceStats> {
         // Clear existing cache
-        const db = await DatabaseService.getInstance();
+        const db = await DBService.getInstance();
         await db.clearConfluenceDashboardCache(spaceKey);
         this.logger.info('Cleared dashboard cache for:', spaceKey);
         // Fetch fresh statistics

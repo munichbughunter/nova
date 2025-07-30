@@ -112,7 +112,7 @@ export class GitProviderDetector {
     /**
      * Parse a remote URL to extract provider information
      */
-    static parseRemoteUrl(remoteUrl: string): GitProviderInfo {
+    static async parseRemoteUrl(remoteUrl: string): Promise<GitProviderInfo> {
         // Normalize the URL
         let url = remoteUrl.trim();
 

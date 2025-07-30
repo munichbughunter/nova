@@ -110,12 +110,23 @@ export class StatusService {
     }
 
     async getAllStatuses(config: Config): Promise<ServiceStatus[]> {
+        // Debug: Log the config structure
+        this.logger.debug('getAllStatuses called with config:', {
+            gitlab: !!config.gitlab?.url,
+            github: !!config.github?.url,
+            ai: !!config.ai,
+            gitlabToken: !!config.gitlab?.token,
+            githubToken: !!config.github?.token,
+        });
+
         // If config is empty or has no values set, return empty status list
-        if (!config || (!config.gitlab?.url && !config.ai)) {
+        if (!config || (!config.gitlab?.url && !config.github?.url && !config.ai)) {
+            this.logger.debug('Returning empty status list - no valid config found');
             return [];
         }
 
         const results = await this.testConnections(config);
+        this.logger.debug('testConnections results:', results);
         const statuses: ServiceStatus[] = [];
 
         // Core Services
@@ -128,6 +139,19 @@ export class StatusService {
                     } ${theme.symbols.success}`
                     : `Not Connected ${theme.symbols.error}`,
                 source: process.env.GITLAB_TOKEN ? 'env' : 'config',
+            });
+        }
+
+        // Add GitHub status check - show if configured
+        if (config.github?.url) {
+            statuses.push({
+                name: 'GitHub',
+                status: results.github
+                    ? `Connected${
+                        results.github_username ? ` as ${results.github_username}` : ''
+                    } ${theme.symbols.success}`
+                    : `Not Connected ${theme.symbols.error}`,
+                source: process.env.GITHUB_TOKEN ? 'env' : 'config',
             });
         }
 
@@ -220,6 +244,40 @@ export class StatusService {
             }
         }
 
+        // Test GitHub connection
+        if (config.github?.url) {
+            if (!config.github.token) {
+                this.logger.warn('GitHub URL configured but no token provided');
+                results.github = false;
+            } else {
+                try {
+                    const apiUrl = config.github.url === 'https://github.com' 
+                        ? 'https://api.github.com' 
+                        : `${config.github.url}/api/v3`;
+                    
+                    const githubResponse = await fetch(`${apiUrl}/user`, {
+                        headers: { 
+                            'Authorization': `token ${config.github.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        },
+                    });
+
+                    if (!githubResponse.ok) {
+                        const errorText = await githubResponse.text();
+                        this.logger.error('GitHub auth failed:', githubResponse.status, errorText);
+                        results.github = false;
+                    } else {
+                        const userData = await githubResponse.json();
+                        results.github = true;
+                        results.github_username = userData.login;
+                    }
+                } catch (error) {
+                    this.logger.error('GitHub connection error:', error);
+                    results.github = false;
+                }
+            }
+        }
+
         return results;
     }
 
@@ -266,12 +324,7 @@ export class StatusService {
             ]);
         }
 
-        // Add a separator before AI services
-        if (regularServices.length > 0 && aiServices.length > 0) {
-            table.push(['', '', '']);
-        }
-
-        // Then add AI services
+        // Then add AI services (without separator)
         for (const status of aiServices) {
             const statusText = status.details
                 ? `${status.status} ${status.details}`

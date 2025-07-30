@@ -13,7 +13,7 @@ import prompts from '../mcp/prompts.ts';
 import { AIService } from '../services/ai_service.ts';
 import { ConfluenceService } from '../services/confluence_service.ts';
 import { DatadogService } from '../services/datadog_service.ts';
-import { GitLabService } from '../services/gitlab_service.ts';
+import { GitProviderFactory } from '../services/git_provider_factory.ts';
 import { JiraService } from '../services/jira_service.ts';
 import { MCPService } from '../services/mcp_service.ts';
 import { Logger } from '../utils/logger.ts';
@@ -63,8 +63,8 @@ export const mcpServerCommand = new Command()
                 // Initialize AI service
                 const aiService = new AIService(config);
 
-                // Initialize GitLab service if configured
-                const gitlabService = config.gitlab?.url ? new GitLabService(config) : undefined;
+                // Initialize GitProvider service if configured
+                const gitProvider = await GitProviderFactory.createFromConfig(config);
 
                 // Initialize Jira service if configured
                 const jiraService = config.atlassian?.jira_url
@@ -88,7 +88,7 @@ export const mcpServerCommand = new Command()
                     ai: {
                         llmProvider: aiService.getLLMProvider(),
                     },
-                    gitlab: gitlabService,
+                    gitProvider: gitProvider,
                     jira: jiraService,
                     confluence: confluenceService,
                     datadog: datadogService,
@@ -301,9 +301,9 @@ export const mcpServerCommand = new Command()
                 const aiService = new AIService(config);
 
                 // Initialize GitLab service if configured
-                const gitlabService = config.gitlab?.url ? new GitLabService(config) : undefined;
-                if (gitlabService) {
-                    logger.info('GitLab service initialized');
+                const gitProvider = await GitProviderFactory.createFromConfig(config);
+                if (gitProvider) {
+                    logger.info('Git provider initialized');
                 }
 
                 // Initialize Jira service if configured
@@ -337,7 +337,7 @@ export const mcpServerCommand = new Command()
                     ai: {
                         llmProvider: aiService.getLLMProvider(),
                     },
-                    gitlab: gitlabService,
+                    gitProvider: gitProvider,
                     jira: jiraService,
                     confluence: confluenceService,
                     datadog: datadogService,

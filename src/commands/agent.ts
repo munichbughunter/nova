@@ -3,7 +3,7 @@ import { Command } from '@cliffy/command';
 import { BaseEngineeringOptions } from '../agents/dev/types.ts';
 import { AgentFactory } from '../agents/mod.ts';
 import { configManager } from '../config/mod.ts';
-import { GitLabService } from '../services/gitlab_service.ts';
+import { GitProviderFactory } from '../services/git_provider_factory.ts';
 import { Logger, logger } from '../utils/logger.ts';
 import { GitProviderDetector } from '../services/git_provider_detector.ts';
 
@@ -108,11 +108,11 @@ for (const { type, description } of agentTypes) {
                 ) {
                     try {
                         const config = await configManager.loadConfig();
-                        const gitlab = new GitLabService(config);
+                        const gitProvider = await GitProviderFactory.createFromConfig(config);
                         const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
                         const factory = new AgentFactory({
                             config,
-                            gitlab,
+                            gitProvider,
                             logger,
                         });
                         const engineeringOptions: BaseEngineeringOptions = {
@@ -173,11 +173,11 @@ for (const { type, description } of agentTypes) {
             }) {
                 try {
                     const config = await configManager.loadConfig();
-                    const gitlab = new GitLabService(config);
+                    const gitProvider = await GitProviderFactory.createFromConfig(config);
                     const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
                     const factory = new AgentFactory({
                         config,
-                        gitlab,
+                        gitProvider,
                         logger,
                     });
 
@@ -278,11 +278,11 @@ for (const { type, description } of agentTypes) {
             .action(async function (options: { url?: string; depth: string; browser: string }) {
                 try {
                     const config = await configManager.loadConfig();
-                    const gitlab = new GitLabService(config);
+                    const gitProvider = await GitProviderFactory.createFromConfig(config);
                     const logger = new Logger('Agent', Deno.env.get('DEBUG') === 'true');
                     const factory = new AgentFactory({
                         config,
-                        gitlab,
+                        gitProvider,
                         logger,
                     });
                     const qaOptions = {

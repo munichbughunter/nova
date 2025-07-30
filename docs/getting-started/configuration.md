@@ -207,6 +207,65 @@ operations, the `read_repository` and `write_repository` scopes.
     ✓ GitLab: Connected successfully (User: Your Name, ID: 123)
     ```
 
+### GitHub
+
+!!! note Required Permissions 
+    GitHub tokens need at minimum the `repo` scope for private repositories. For CI/CD operations, the `workflow` scope may also be required.
+
+!!! note Step 1: Create Personal Access Token
+    1. Log in to GitHub or your GitHub Enterprise instance
+    2. Go to `Settings` → `Developer settings` → `Personal access tokens`
+    3. Click "Generate new token" → "Generate new token (classic)"
+    4. Select the following scopes:
+       - `repo` (Full control of private repositories)
+       - `read:org` (Read org and team membership)
+       - `user:email` (Access user email addresses)
+       - `workflow` (Update GitHub Action workflows) - optional for CI/CD
+    5. Copy the generated token
+
+!!! note Step 2: Configure Nova
+    **Option A: Using the setup wizard**
+    ```bash
+    nova setup
+    # Select GitHub integration when prompted
+    ```
+
+    **Option B: Using config command**
+    ```bash
+    nova config set github.token "your-github-token"
+    nova config set github.url "https://github.com" # or your GitHub Enterprise URL
+    nova config set github.owner "your-organization" # optional
+    nova config set github.repository "your-repo" # optional
+    ```
+
+    **Option C: Using environment variables**
+    ```bash
+    export GITHUB_TOKEN="your-github-token"
+    export GITHUB_URL="https://github.com"
+    ```
+
+!!! note Step 3: Test Connection
+    ```bash
+    nova config test github
+    ```
+
+    Expected output:
+    ```
+    ✓ GitHub: Connected successfully (User: Your Name, Login: yourusername)
+    ```
+
+### Multi-Provider Setup
+
+When both GitLab and GitHub are configured, Nova can automatically detect which provider to use based on the current repository context, or you can set preferences:
+
+```bash
+# Set auto-detection as default
+nova config set gitProvider.defaultProvider auto
+
+# Set provider priority for fallback
+nova config set gitProvider.preferredProviders '["gitlab", "github"]'
+```
+
 ### Atlassian (Jira/Confluence)
 
 !!! note Credential Management Nova supports both API tokens and OAuth for Atlassian authentication.

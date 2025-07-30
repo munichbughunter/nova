@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import type { IGitProviderService } from './git_provider_types.ts';
 
 // Forward declarations of service classes to avoid circular imports
 declare class MCPService {
@@ -210,11 +211,20 @@ export interface MCPServiceType {
 }
 
 /**
- * Complete context with all services
+ * Git provider service interface for MCP tools
+ */
+export interface GitProviderServiceType extends IGitProviderService {
+    [key: string]: unknown;
+}
+
+/**
+ * Complete context with all services including Git providers
  */
 export interface ExtendedToolContext extends MCPToolContext {
     mcpService?: MCPServiceType;
     gitlab?: GitLabServiceType;
+    github?: GitProviderServiceType; // Add GitHub support
+    gitProvider?: GitProviderServiceType; // Unified provider
     jira?: JiraServiceType;
     confluence?: ConfluenceServiceType;
     datadog?: DatadogServiceType;

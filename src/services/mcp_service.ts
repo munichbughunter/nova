@@ -19,6 +19,7 @@ import {
 } from '../types/tool_types.ts';
 import { Logger } from '../utils/logger.ts';
 import { AIService } from './ai_service.ts';
+import type { IGitProviderService } from './git_provider_factory.ts';
 
 // Browser tool types
 type AtomicMethod =
@@ -785,7 +786,7 @@ export class MCPService {
                     return await this.executeJavaScriptExecutor(params, context);
                 // GitLab Tools
                 case 'gitlab_search':
-                    return await this.executeGitLabSearch(params, context);
+                    return await this.executeGitProviderSearch(params, context);
                 case 'gitlab_create_issue':
                     return await this.executeGitLabCreateIssue(params, context);
                 // Jira Tools
@@ -1124,19 +1125,19 @@ export class MCPService {
         });
     }
 
-    // GitLab Tool Implementations
-    private async executeGitLabSearch(
+    // Git Provider Tool Implementations
+    private async executeGitProviderSearch(
         params: Record<string, unknown>,
         context: MCPToolContext,
     ): Promise<MCPToolResult> {
         try {
-            // Use existing GitLab service if available in context
-            const gitlabService = context.gitlab as GitLabServiceType;
+            // Use unified git provider instead of GitLab service
+            const gitProvider = context.gitProvider as IGitProviderService;
 
-            if (!gitlabService) {
+            if (!gitProvider) {
                 return {
                     success: false,
-                    error: 'GitLab service not available. Please configure GitLab settings.',
+                    error: 'Git provider service not available. Please configure Git settings.',
                 };
             }
 
@@ -1149,20 +1150,20 @@ export class MCPService {
             let results;
             switch (scope) {
                 case 'projects':
-                    results = await gitlabService.searchProjects(query);
+                    results = await gitProvider.searchRepositories(query);
                     break;
                 case 'issues':
                     if (project) {
-                        results = await gitlabService.getProjectIssues(project);
+                        results = await gitProvider.getRepositoryIssues(project);
                     } else {
-                        results = await gitlabService.searchIssues(query);
+                        results = await gitProvider.searchIssues(query);
                     }
                     break;
                 case 'merge_requests':
                     if (project) {
-                        results = await gitlabService.getProjectMergeRequests(project, '30d');
+                        results = await gitProvider.getRepositoryPullRequests(project);
                     } else {
-                        results = await gitlabService.searchMergeRequests(query);
+                        results = await gitProvider.searchPullRequests(query);
                     }
                     break;
             }
@@ -1172,7 +1173,7 @@ export class MCPService {
                 data: results,
             };
         } catch (error) {
-            this.logger.error('GitLab search failed:', error);
+            this.logger.error('Git provider search failed:', error);
             return {
                 success: false,
                 error: error instanceof Error ? error.message : String(error),

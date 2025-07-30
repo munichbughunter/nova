@@ -2,7 +2,7 @@ import { assertEquals } from '@std/assert';
 import { assertSpyCalls, stub } from '@std/testing/mock';
 import type { Config } from '../config/mod.ts';
 import { configManager } from '../config/mod.ts';
-import { DatabaseService } from './db_service.ts';
+import { DBService } from './db_service.ts';
 import { JiraService } from './jira_service.ts';
 
 // Test setup and cleanup
@@ -84,11 +84,11 @@ Deno.test('JiraService Tests', async (t) => {
             );
 
             // Mock database service
-            const dbStub = stub(DatabaseService, 'getInstance', () =>
+            const dbStub = stub(DBService, 'getInstance', () =>
                 Promise.resolve({
                     getCachedJiraProjectsList: () => Promise.resolve(null),
                     cacheJiraProjectsList: () => Promise.resolve(),
-                } as unknown as DatabaseService));
+                } as unknown as DBService));
 
             const service = new JiraService(mockConfig);
             const fetchStub = stub(

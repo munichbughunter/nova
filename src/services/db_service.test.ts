@@ -2,7 +2,7 @@ import { ProjectSchema } from '@gitbeaker/rest';
 import { assertEquals } from '@std/assert';
 import { stub } from '@std/testing/mock';
 import { join } from 'node:path';
-import { DatabaseService } from './db_service.ts';
+import { DBService } from './db_service.ts';
 
 // Mock data
 const _mockRecentProject = {
@@ -346,13 +346,13 @@ const originalDb = (globalThis as { DatabaseSync?: typeof MockDatabaseSync }).Da
 let mockDb: MockDatabaseSync;
 
 // Mock getCachedProjectsList
-const originalGetCachedProjectsList = DatabaseService.prototype.getCachedProjectsList;
+const originalGetCachedProjectsList = DBService.prototype.getCachedProjectsList;
 
 // Store original method implementation
-const originalAddRecentProject = DatabaseService.prototype.addRecentProject;
+const originalAddRecentProject = DBService.prototype.addRecentProject;
 
 // Mock implementation of addRecentProject
-DatabaseService.prototype.addRecentProject = function (project: ProjectSchema): void {
+DBService.prototype.addRecentProject = function (project: ProjectSchema): void {
     // Add to mockDb.recentProjects directly
     if (mockDb) {
         // Fix: logging for debugging purposes
@@ -389,7 +389,7 @@ DatabaseService.prototype.addRecentProject = function (project: ProjectSchema): 
 };
 
 // Implement mock version of getCachedProjectsList
-DatabaseService.prototype.getCachedProjectsList = function () {
+DBService.prototype.getCachedProjectsList = function () {
     const projects = mockDb?.recentProjects?.map((rp) => {
         return {
             id: '1',
@@ -489,8 +489,8 @@ DatabaseService.prototype.getCachedProjectsList = function () {
 };
 
 // Mock implementation of getRecentProjects
-const originalGetRecentProjects = DatabaseService.prototype.getRecentProjects;
-DatabaseService.prototype.getRecentProjects = function (): Promise<ProjectSchema[]> {
+const originalGetRecentProjects = DBService.prototype.getRecentProjects;
+DBService.prototype.getRecentProjects = function (): Promise<ProjectSchema[]> {
     const projects = mockDb?.recentProjects?.map((rp) => {
         return {
             id: '1',
@@ -586,8 +586,8 @@ DatabaseService.prototype.getRecentProjects = function (): Promise<ProjectSchema
     return Promise.resolve(projects);
 };
 
-Deno.test('DatabaseService', async (t) => {
-    let dbService: DatabaseService;
+Deno.test('DBService', async (t) => {
+    let dbService: DBService;
     const tempDir = await Deno.makeTempDir();
     const configDir = join(tempDir, '.nova');
     await Deno.mkdir(configDir, { recursive: true });
@@ -605,8 +605,8 @@ Deno.test('DatabaseService', async (t) => {
 
         try {
             // Reset the singleton instance
-            (DatabaseService as unknown as { instance: DatabaseService | null }).instance = null;
-            dbService = await DatabaseService.getInstance();
+            (DBService as unknown as { instance: DBService | null }).instance = null;
+            dbService = await DBService.getInstance();
         } finally {
             envStub.restore();
         }
@@ -1151,9 +1151,9 @@ Deno.test('DatabaseService', async (t) => {
 
     await t.step('cleanup', async () => {
         // Restore the original methods
-        DatabaseService.prototype.getCachedProjectsList = originalGetCachedProjectsList;
-        DatabaseService.prototype.addRecentProject = originalAddRecentProject;
-        DatabaseService.prototype.getRecentProjects = originalGetRecentProjects;
+        DBService.prototype.getCachedProjectsList = originalGetCachedProjectsList;
+        DBService.prototype.addRecentProject = originalAddRecentProject;
+        DBService.prototype.getRecentProjects = originalGetRecentProjects;
 
         await dbService.close();
         (globalThis as { DatabaseSync?: typeof MockDatabaseSync }).DatabaseSync = originalDb;

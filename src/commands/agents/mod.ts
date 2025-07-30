@@ -2,7 +2,7 @@ import { colors } from '@cliffy/ansi/colors';
 import { Command } from '@cliffy/command';
 import { AgentFactory, AgentType } from '../../agents/mod.ts';
 import { configManager } from '../../config/mod.ts';
-import { GitLabService } from '../../services/gitlab_service.ts';
+import { GitProviderFactory } from '../../services/git_provider_factory.ts';
 import { logger } from '../../utils/logger.ts';
 // Helper function to create agent commands
 function createAgentCommand(type: AgentType, description: string) {
@@ -12,7 +12,7 @@ function createAgentCommand(type: AgentType, description: string) {
         .action(async (_options: unknown, command?: string, ...args: string[]) => {
             try {
                 const config = await configManager.loadConfig();
-                const gitlab = new GitLabService(config);
+                const gitProvider = await GitProviderFactory.createFromConfig(config);
                 const parent = agentsCommand;
 
                 // Get options with proper type assertions
@@ -28,7 +28,7 @@ function createAgentCommand(type: AgentType, description: string) {
 
                 // If --recent flag is used, try to use most recent project
                 if (recent && !finalProjectPath) {
-                    const recentProjects = await gitlab.getRecentProjects();
+                    const recentProjects = await gitProvider.getRecentProjects();
                     if (recentProjects.length > 0) {
                         finalProjectPath = recentProjects[0].fullPath;
                         logger.passThrough(
@@ -47,7 +47,7 @@ function createAgentCommand(type: AgentType, description: string) {
                 // Create agent context
                 const context = {
                     config,
-                    gitlab,
+                    gitProvider,
                     projectPath: finalProjectPath,
                 };
 

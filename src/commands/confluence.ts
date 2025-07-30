@@ -4,7 +4,7 @@ import { Input, Select } from '@cliffy/prompt';
 import { Table } from '@cliffy/table';
 import { configManager } from '../config/mod.ts';
 import { ConfluenceService } from '../services/confluence_service.ts';
-import { DatabaseService } from '../services/db_service.ts';
+import { DBService } from '../services/db_service.ts';
 import { logger } from '../utils/logger.ts';
 
 type OutputFormat = 'text' | 'json';
@@ -210,7 +210,7 @@ export const confluenceCommand = new Command()
                 const confluence = new ConfluenceService(config);
 
                 if (options.refresh) {
-                    const db = await DatabaseService.getInstance();
+                    const db = await DBService.getInstance();
                     await db.clearConfluenceSpacesCache();
                     await db.clearConfluencePagesCache();
                     logger.passThrough('log', colors.blue('Cache cleared, fetching fresh data...'));
@@ -509,7 +509,7 @@ export const confluenceCommand = new Command()
             const confluence = new ConfluenceService(config);
 
             if (options.refresh) {
-                const db = await DatabaseService.getInstance();
+                const db = await DBService.getInstance();
                 await db.clearConfluencePageCache(pageId);
                 logger.passThrough('log', colors.blue('Cache cleared, fetching fresh data...'));
             }

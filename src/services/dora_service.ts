@@ -10,7 +10,7 @@ import {
 } from '../utils.ts';
 import { DevCache } from '../utils/devcache.ts';
 import { Logger, logger } from '../utils/logger.ts';
-import { DatabaseService } from './db_service.ts';
+import { DBService } from './db_service.ts';
 import { GitLabService } from './gitlab_service.ts';
 import { JiraService } from './jira_service.ts';
 
@@ -24,7 +24,7 @@ export class DoraService {
     private logger: Logger;
     private initialized = false;
     private cache: DevCache;
-    private db: DatabaseService;
+    private db: DBService;
     private cacheDir: string;
     private isDebugMode: boolean;
     private cacheDuration: number;
@@ -34,7 +34,7 @@ export class DoraService {
         jiraService: JiraService,
         gitlabService: GitLabService,
         logger: Logger,
-        db: DatabaseService,
+        db: DBService,
     ) {
         this.config = config;
         this.jiraService = jiraService;

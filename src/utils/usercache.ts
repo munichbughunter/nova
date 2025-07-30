@@ -1,5 +1,5 @@
 import { ProjectSchema } from '@gitbeaker/rest';
-import { DatabaseService } from '../services/db_service.ts';
+import { DBService } from '../services/db_service.ts';
 import { Logger } from './logger.ts';
 
 interface RecentGitLabProject extends ProjectSchema {
@@ -15,7 +15,7 @@ interface RecentGitLabProject extends ProjectSchema {
  */
 export class UserCache {
     private static instance: UserCache | null = null;
-    private db!: DatabaseService;
+    private db!: DBService;
     private logger: Logger;
     private readonly maxRecentProjects = 10;
     private initialized = false;
@@ -34,7 +34,7 @@ export class UserCache {
 
     private async initialize(): Promise<void> {
         if (!this.initialized) {
-            this.db = await DatabaseService.getInstance();
+            this.db = await DBService.getInstance();
             this.initialized = true;
         }
     }

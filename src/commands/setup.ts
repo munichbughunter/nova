@@ -3,6 +3,7 @@ import { Command } from '@cliffy/command';
 import { Confirm, Input, Secret, Select } from '@cliffy/prompt';
 import { exists } from '@std/fs/exists';
 import { ConfigManager } from '../config/mod.ts';
+import { ProfileManager } from '../config/profile_manager.ts';
 import {
     AIConfig,
     AzureAIConfig,
@@ -25,6 +26,7 @@ function formatWarning(text: string): void {
 }
 
 const configManager = ConfigManager.getInstance();
+const profileManager = ProfileManager.getInstance();
 
 async function checkGitHubCopilot(): Promise<boolean> {
     try {
@@ -87,6 +89,145 @@ async function setupGitHubCopilot() {
     }
 }
 
+async function checkGitHubAuth(url: string, token: string): Promise<boolean> {
+    try {
+        const apiUrl = url === 'https://github.com' ? 'https://api.github.com' : `${url}/api/v3`;
+        const response = await fetch(`${apiUrl}/user`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'nova-cli',
+            },
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            formatSuccess(`${theme.symbols.success} Successfully authenticated as: ${data.name || data.login} (${data.login})`);
+            return true;
+        } else {
+            formatError(`${theme.symbols.error} Authentication failed: ${response.status} ${response.statusText}`);
+            return false;
+        }
+    } catch (error) {
+        formatError(
+            `${theme.symbols.error} Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+        return false;
+    }
+}
+
+async function setupGitHub(existingConfig: Partial<Config>, emoji: string = ''): Promise<Config['github'] | undefined> {
+    // Check if GitHub is actually configured with valid values
+    const isGitHubConfigured = Boolean(
+        existingConfig.github?.url &&
+            existingConfig.github.url.length > 0 &&
+            existingConfig.github.token &&
+            existingConfig.github.token.length > 0,
+    );
+
+    if (isGitHubConfigured) {
+        const shouldReconfigure = await Confirm.prompt({
+            message:
+                `${emoji} GitHub configuration already exists. Would you like to reconfigure it?`,
+            default: false,
+        });
+
+        if (!shouldReconfigure) {
+            return existingConfig.github;
+        }
+    }
+
+    formatInfo('\nSetting up GitHub integration...');
+
+    const githubUrl = await Input.prompt({
+        message: 'GitHub URL (use https://github.com for GitHub.com or your GitHub Enterprise URL)',
+        default: existingConfig.github?.url || 'https://github.com',
+        validate: (input: string) => {
+            try {
+                new URL(input);
+                return true;
+            } catch {
+                return 'Please enter a valid URL';
+            }
+        },
+    });
+
+    formatInfo('\nTo create a new Personal Access Token:');
+    logger.passThrough(
+        'log',
+        formatList([
+            `Go to ${githubUrl === 'https://github.com' ? 'https://github.com/settings/tokens' : `${githubUrl}/settings/tokens`}`,
+            'Click "Generate new token" → "Generate new token (classic)"',
+            'Select the following scopes:',
+            '  • repo (Full control of private repositories)',
+            '  • read:org (Read org and team membership)',
+            '  • user:email (Access user email addresses)',
+            '  • workflow (Update GitHub Action workflows) - if needed for CI/CD',
+            '  • admin:repo_hook (Full control of repository hooks) - if needed for webhooks',
+        ]),
+    );
+
+    const token = await Input.prompt({
+        message: 'GitHub Personal Access Token',
+        minLength: 20,
+        validate: (input: string) => {
+            // GitHub tokens start with specific prefixes
+            if (input.startsWith('ghp_') || input.startsWith('gho_') || input.startsWith('ghu_') || input.startsWith('ghs_') || input.startsWith('ghr_')) {
+                return true;
+            }
+            return 'GitHub tokens should start with ghp_, gho_, ghu_, ghs_, or ghr_';
+        },
+    });
+
+    // Test the connection
+    formatInfo('\nTesting GitHub connection...');
+    const authSuccessful = await checkGitHubAuth(githubUrl, token);
+
+    if (!authSuccessful) {
+        const shouldContinue = await Confirm.prompt({
+            message:
+                'Authentication failed. Would you like to continue with these credentials anyway?',
+            default: false,
+        });
+
+        if (!shouldContinue) {
+            formatInfo('Please try again with correct credentials.');
+            return await setupGitHub(existingConfig, emoji);
+        }
+    }
+
+    // Optional: Ask for default owner and repository
+    const useDefaults = await Confirm.prompt({
+        message: 'Would you like to set default owner and repository? (Optional)',
+        default: false,
+    });
+
+    let owner: string | undefined;
+    let repository: string | undefined;
+
+    if (useDefaults) {
+        owner = await Input.prompt({
+            message: 'Default owner/organization (optional)',
+            default: existingConfig.github?.owner || '',
+        });
+
+        if (owner && owner.trim()) {
+            repository = await Input.prompt({
+                message: 'Default repository (optional)',
+                default: existingConfig.github?.repository || '',
+            });
+        }
+    }
+
+    return {
+        url: githubUrl,
+        token: token,
+        ...(owner && owner.trim() && { owner: owner.trim() }),
+        ...(repository && repository.trim() && { repository: repository.trim() }),
+    };
+}
+
 async function setupGitLab(existingConfig: Partial<Config>, emoji: string = '') {
     // Check if GitLab is actually configured with valid values
     const isGitlabConfigured = Boolean(
@@ -136,15 +277,6 @@ async function setupGitLab(existingConfig: Partial<Config>, emoji: string = '') 
         url: gitlabUrl,
         token: token,
     };
-}
-
-// Add to existing interfaces or create new ones
-interface AtlassianConfig {
-    jira_url: string;
-    jira_token: string;
-    confluence_url: string;
-    confluence_token: string;
-    username: string;
 }
 
 async function setupnova(existingConfig: Partial<ExtendedConfig>, emoji: string = '') {
@@ -216,7 +348,7 @@ async function setupOpenAI(existingConfig: Partial<ExtendedConfig>, emoji: strin
     return { api_key: apiKey, api_url: apiUrl, api_version: apiVersion };
 }
 
-// Add interfaces for config types
+// Interfaces for config types
 interface AtlassianConfig {
     username: string;
     jira_token: string;
@@ -227,6 +359,11 @@ interface AtlassianConfig {
 
 interface ExtendedConfig {
     gitlab: Config['gitlab'];
+    github: Config['github'];
+    gitProvider?: {
+        defaultProvider: 'gitlab' | 'github' | 'auto';
+        preferredProviders: ('gitlab' | 'github')[];
+    };
     atlassian?: AtlassianConfig;
     datadog?: {
         api_key: string;
@@ -460,7 +597,7 @@ async function setupOllama(
             }
         }
     } else {
-        formatSuccess(`${theme.symbols.success} Ollama is already installed and running!`);
+        formatSuccess('Ollama is already installed and running!');
     }
 
     if (!ollamaAvailable) {
@@ -566,15 +703,15 @@ async function checkAtlassianAuth(domain: string, email: string, token: string):
 
         if (response.ok) {
             const data = await response.json();
-            formatSuccess(`✅ Successfully authenticated as: ${data.displayName || email}`);
+            formatSuccess(`${theme.symbols.success} Successfully authenticated as: ${data.displayName || email}`);
             return true;
         } else {
-            formatError(`❌ Authentication failed: ${response.status} ${response.statusText}`);
+            formatError(`${theme.symbols.error} Authentication failed: ${response.status} ${response.statusText}`);
             return false;
         }
     } catch (error) {
         formatError(
-            `❌ Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            `${theme.symbols.error} Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
         return false;
     }
@@ -657,8 +794,30 @@ function isServiceConfigured(config: Partial<Config>, service: keyof Config): bo
     switch (service) {
         case 'gitlab': {
             const gitlab = config.gitlab as Config['gitlab'];
-            const isConfigured = Boolean(gitlab?.url && gitlab?.token);
+            const isConfigured = Boolean(
+                gitlab?.url && 
+                gitlab.url.length > 0 && 
+                gitlab?.token && 
+                gitlab.token.length > 0
+            );
             logger.debug(`GitLab configured: ${isConfigured}`);
+            return isConfigured;
+        }
+        case 'github': {
+            const github = config.github as Config['github'];
+            const isConfigured = Boolean(
+                github?.url && 
+                github.url.length > 0 && 
+                github?.token && 
+                github.token.length > 0 &&
+                // GitHub tokens should have proper prefix
+                (github.token.startsWith('ghp_') || 
+                 github.token.startsWith('gho_') || 
+                 github.token.startsWith('ghu_') || 
+                 github.token.startsWith('ghs_') || 
+                 github.token.startsWith('ghr_'))
+            );
+            logger.debug(`GitHub configured: ${isConfigured}`);
             return isConfigured;
         }
         case 'ai': {
@@ -951,45 +1110,166 @@ export const setupCommand = new Command()
     .action(async (options) => {
         formatInfo('\n🛠 Setting up nova...\n');
 
-        // Load existing configuration if available
+        // Load existing configuration from active profile if available
         let existingConfig: Partial<ExtendedConfig> = {};
         let isFirstTimeSetup = false;
+        let activeProfile: Awaited<ReturnType<typeof profileManager.getActiveProfile>> = null;
 
         try {
-            // Check if config file exists
-            if (await exists(`${Deno.env.get('HOME')}/.nova/config.json`)) {
-                existingConfig = await configManager.loadConfig() as Partial<ExtendedConfig>;
-
+            // First, try to get the active profile
+            activeProfile = await profileManager.getActiveProfile();
+            
+            if (activeProfile) {
+                existingConfig = activeProfile.config as Partial<ExtendedConfig>;
+                logger.passThrough('log', theme.info(`📋 Using configuration from active profile: ${activeProfile.name}`));
+                
                 // Show initial configuration status
-                formatInfo('Current Configuration:');
+                logger.passThrough('log', theme.info('📊 Current Configuration:'));
                 const statusService = new StatusService();
                 const initialStatuses = await statusService.getAllStatuses(
                     existingConfig as Config,
                 );
                 statusService.displayStatusTable(initialStatuses);
             } else {
+                // Fallback to legacy config file if no active profile
+                if (await exists(`${Deno.env.get('HOME')}/.nova/config.json`)) {
+                    existingConfig = await configManager.loadConfig() as Partial<ExtendedConfig>;
+                    formatInfo('Using legacy configuration file (consider migrating to profiles)');
+                    
+                    // Show initial configuration status
+                    formatInfo('Current Configuration:');
+                    const statusService = new StatusService();
+                    const initialStatuses = await statusService.getAllStatuses(
+                        existingConfig as Config,
+                    );
+                    statusService.displayStatusTable(initialStatuses);
+                } else {
+                    isFirstTimeSetup = true;
+                    formatInfo('No existing configuration found. Starting first-time setup...');
+                }
+            }
+        } catch {
+            // If profile loading fails, fall back to legacy logic
+            try {
+                if (await exists(`${Deno.env.get('HOME')}/.nova/config.json`)) {
+                    existingConfig = await configManager.loadConfig() as Partial<ExtendedConfig>;
+                    formatInfo('Using legacy configuration file');
+                } else {
+                    isFirstTimeSetup = true;
+                    formatInfo('No existing configuration found. Starting first-time setup...');
+                }
+            } catch {
                 isFirstTimeSetup = true;
                 formatInfo('No existing configuration found. Starting first-time setup...');
             }
-        } catch {
-            // Ignore errors, treat as no existing config
-            isFirstTimeSetup = true;
-            formatInfo('No existing configuration found. Starting first-time setup...');
         }
 
         formatInfo('Setting up Authentication Services:');
 
+        formatInfo('\n📚 Setting up Git Provider Authentication:');
+        logger.passThrough('log', '   Configure your Git hosting services (GitLab, GitHub)');
+
         // Create a config object to store all settings
         const config: ExtendedConfig = {
             gitlab: existingConfig.gitlab || { url: '', token: '' },
+            github: existingConfig.github || { url: '', token: '' },
         };
 
-        // GitLab setup (required)
+        // GitLab setup
         const gitlabConfigured = isServiceConfigured(existingConfig, 'gitlab');
-        const gitlabEmoji = gitlabConfigured ? theme.symbols.update : theme.symbols.new;
-        const gitlab = await setupGitLab(existingConfig, gitlabEmoji);
-        if (gitlab) {
-            config.gitlab = gitlab; // Save GitLab config immediately
+        // const gitlabEmoji = gitlabConfigured ? theme.symbols.update : theme.symbols.new;
+        
+        const shouldSetupGitLab = await Confirm.prompt({
+            message: `${
+                gitlabConfigured
+                    ? 'GitLab is configured. Would you like to reconfigure it?'
+                    : 'Would you like to set up GitLab integration?'
+            }`,
+            default: !gitlabConfigured, // Default to true if not configured
+        });
+
+        if (shouldSetupGitLab) {
+            const gitlab = await setupGitLab(existingConfig);
+            if (gitlab) {
+                config.gitlab = gitlab;
+            }
+        } else if (gitlabConfigured) {
+            config.gitlab = existingConfig.gitlab;
+        }
+
+        // GitHub setup
+        const githubConfigured = isServiceConfigured(existingConfig, 'github');
+        // const githubEmoji = githubConfigured ? theme.symbols.update : theme.symbols.new;
+
+        const shouldSetupGitHub = await Confirm.prompt({
+            message: `${
+                githubConfigured
+                    ? 'GitHub is configured. Would you like to reconfigure it?'
+                    : 'Would you like to set up GitHub integration?'
+            }`,
+            default: !githubConfigured, // Default to true if not configured
+        });
+
+        if (shouldSetupGitHub) {
+            const github = await setupGitHub(existingConfig);
+            if (github) {
+                config.github = github;
+            }
+        } else if (githubConfigured) {
+            config.github = existingConfig.github;
+        }
+
+        // Git Provider Preferences setup (if both GitLab and GitHub are configured)
+        if (config.gitlab?.url && config.gitlab?.token && config.github?.url && config.github?.token) {
+            formatInfo('\n⚙️  Configuring Git Provider Preferences...');
+            logger.passThrough('log', '   Since you have both GitLab and GitHub configured, let\'s set up provider preferences.');
+            
+            const defaultProvider = await Select.prompt({
+                message: 'Which Git provider would you like to use as default?',
+                options: [
+                    { name: 'Auto-detect based on current repository (Recommended)', value: 'auto' },
+                    { name: 'Always use GitLab', value: 'gitlab' },
+                    { name: 'Always use GitHub', value: 'github' },
+                ],
+                default: 'auto',
+            });
+
+            if (defaultProvider === 'auto') {
+                const preferredProviders = await Select.prompt({
+                    message: 'If auto-detection fails, which provider should be preferred?',
+                    options: [
+                        { name: 'GitLab first, then GitHub', value: ['gitlab', 'github'] },
+                        { name: 'GitHub first, then GitLab', value: ['github', 'gitlab'] },
+                    ],
+                    default: ['gitlab', 'github'],
+                });
+
+                config.gitProvider = {
+                    defaultProvider: 'auto',
+                    preferredProviders: preferredProviders as ('gitlab' | 'github')[],
+                };
+            } else {
+                config.gitProvider = {
+                    defaultProvider: defaultProvider as 'gitlab' | 'github',
+                    preferredProviders: [defaultProvider as 'gitlab' | 'github'],
+                };
+            }
+
+            formatSuccess(`✅ Git provider preferences configured: ${defaultProvider === 'auto' ? 'Auto-detection enabled' : `Default: ${defaultProvider}`}`);
+        }
+
+        // Show summary of Git configuration
+        if (config.gitlab?.url || config.github?.url) {
+            formatInfo('\n📋 Git Provider Summary:');
+            if (config.gitlab?.url) {
+                logger.passThrough('log', `   ✅ GitLab: ${config.gitlab.url}`);
+            }
+            if (config.github?.url) {
+                logger.passThrough('log', `   ✅ GitHub: ${config.github.url}`);
+            }
+            if (config.gitProvider) {
+                logger.passThrough('log', `   ⚙️  Default Provider: ${config.gitProvider.defaultProvider}`);
+            }
         }
 
         // Atlassian setup (optional)
@@ -1015,7 +1295,7 @@ export const setupCommand = new Command()
         }
 
         // Datadog setup (optional)
-        let datadog = undefined;
+        let datadog: DatadogConfig | undefined = undefined;
         const datadogConfigured = isServiceConfigured(existingConfig, 'datadog');
         const datadogEmoji = datadogConfigured ? theme.symbols.update : theme.symbols.new;
         const shouldSetupDatadog = await Confirm.prompt({
@@ -1050,42 +1330,65 @@ export const setupCommand = new Command()
         try {
             // Save the configuration
             logger.debug('Configuration being saved:', JSON.stringify(config, null, 2));
-            await configManager.saveConfig(config as Config);
-            formatSuccess('\n✨ Setup completed successfully!\n');
+            
+            if (activeProfile) {
+                // Update the active profile with the new configuration
+                await profileManager.updateProfile(activeProfile.name, config as Config);
+                formatSuccess(`\n✨ Profile "${activeProfile.name}" updated successfully!\n`);
+            } else {
+                // Fallback to legacy config saving
+                await configManager.saveConfig(config as Config);
+                formatSuccess('\n✨ Setup completed successfully!\n');
+            }
 
             // After saving configuration, show updated status
-            formatInfo('\nConfiguration Status:');
-            if (!options.skipTests && !isFirstTimeSetup) {
+            logger.passThrough('log', theme.info('📊 Final Configuration Status:'));
+            if (!options.skipTests) {
+                // Debug: Log configuration being passed to status service
+                logger.debug('Configuration for status check:', {
+                    gitlab: !!config.gitlab?.url,
+                    github: !!config.github?.url,
+                    ai: !!config.ai,
+                });
+                
                 const statusService = new StatusService();
                 const finalStatuses = await statusService.getAllStatuses(config as Config);
                 statusService.displayStatusTable(finalStatuses);
+            } else {
+                logger.passThrough('log', theme.warning('Status check skipped (--skip-tests option used)'));
             }
 
-            // Show available commands
-            formatInfo('\nPrimary Commands:');
-            logger.passThrough(
-                'log',
-                '  nova setup             - Interactive setup for nova configuration',
-            );
-            logger.passThrough('log', '  nova gitlab            - GitLab operations');
-            logger.passThrough(
-                'log',
-                '  nova agent eng         - Engineering Agent (uses OpenAI, Azure, Ollama)',
-            );
-            logger.passThrough('log', '  nova agent pm          - Project Manager');
+            // Show next steps based on what was configured
+            logger.passThrough('log', theme.info('\n🚀 Next Steps:'));
+            
+            if (config.gitlab?.url || config.github?.url) {
+                logger.passThrough('log', '   Try Git operations:');
+                if (config.gitlab?.url) {
+                    logger.passThrough('log', '     nova gitlab projects     - List GitLab projects');
+                    logger.passThrough('log', '     nova gitlab issues       - List issues');
+                }
+                if (config.github?.url) {
+                    logger.passThrough('log', '     nova github repos        - List GitHub repositories');
+                    logger.passThrough('log', '     nova github issues       - List issues');
+                }
+            }
 
-            formatInfo('\nUtility Commands:');
-            logger.passThrough('log', '  nova config            - Manage nova configuration');
-            logger.passThrough('log', '  nova config list       - List all configuration values');
-            logger.passThrough(
-                'log',
-                '  nova config get        - Get specific configuration value',
-            );
-            logger.passThrough(
-                'log',
-                '  nova config set        - Set specific configuration value',
-            );
-            logger.passThrough('log', '');
+            if (config.ai?.default_provider) {
+                logger.passThrough('log', '   Try AI agents:');
+                logger.passThrough('log', '     nova agent eng           - Enhanced Code Review Agent');
+                logger.passThrough('log', '     nova agent pm            - Project Manager Agent');
+            }
+
+            if (config.atlassian) {
+                logger.passThrough('log', '   Try Atlassian integration:');
+                logger.passThrough('log', '     nova mcp server          - Start MCP server for Jira/Confluence');
+            }
+
+            logger.passThrough('log', theme.info('\n📚 Available Commands:'));
+            logger.passThrough('log', '     nova setup               - Run setup again');
+            logger.passThrough('log', '     nova config list         - View all configuration');
+            logger.passThrough('log', '     nova config test         - Test service connections');
+            logger.passThrough('log', '     nova --help              - Show all commands');
         } catch (error) {
             if (error instanceof Error) {
                 logger.error('Error saving config:', error.message);

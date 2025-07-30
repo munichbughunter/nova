@@ -1,7 +1,7 @@
 import { Config } from '../../../config/types.ts';
 import { ConfluenceService } from '../../../services/confluence_service.ts';
 import { DatadogService } from '../../../services/datadog_service.ts';
-import { DatabaseService } from '../../../services/db_service.ts';
+import { DBService } from '../../../services/db_service.ts';
 import { DoraService } from '../../../services/dora_service.ts';
 import { GitLabService } from '../../../services/gitlab_service.ts';
 import { JiraService } from '../../../services/jira_service.ts';
@@ -21,7 +21,7 @@ export interface ReviewAgentContext {
     datadog?: DatadogService;
     dora?: DoraService;
     mcpService?: MCPService;
-    dbService?: DatabaseService;
+    dbService?: DBService;
 }
 
 export interface FileAnalysis {

@@ -3,7 +3,7 @@ import { ProjectSchema } from '@gitbeaker/rest';
 import { assertEquals, assertMatch } from '@std/assert';
 import { assertSpyCalls, stub } from '@std/testing/mock';
 import { Config, configManager } from '../config/mod.ts';
-import { DatabaseService } from '../services/db_service.ts';
+import { DBService } from '../services/db_service.ts';
 import { GitLabService } from '../services/gitlab_service.ts';
 import { gitlabCommand } from './gitlab.ts';
 
@@ -394,7 +394,7 @@ const mockProjectMetrics: GitLabProjectMetrics = {
     },
 };
 
-// Mock DatabaseService
+// Mock DBService
 const mockDb = {
     getCachedDashboard: () => Promise.resolve(null),
     getCachedProjectsList: () =>
@@ -810,9 +810,9 @@ Deno.test('GitLab Command Tests', async (t) => {
             );
             const selectStub = stub(Select, 'prompt', () => Promise.resolve('test/project1'));
             const dbInstanceStub = stub(
-                DatabaseService,
+                DBService,
                 'getInstance',
-                () => Promise.resolve(mockDb as unknown as DatabaseService),
+                () => Promise.resolve(mockDb as unknown as DBService),
             );
 
             try {
@@ -976,9 +976,9 @@ Deno.test('GitLab Command Tests', async (t) => {
             );
             const selectStub = stub(Select, 'prompt', () => Promise.resolve('test/project1'));
             const dbInstanceStub = stub(
-                DatabaseService,
+                DBService,
                 'getInstance',
-                () => Promise.resolve(mockDb as unknown as DatabaseService),
+                () => Promise.resolve(mockDb as unknown as DBService),
             );
 
             try {
@@ -1053,9 +1053,9 @@ Deno.test('GitLab Command Tests', async (t) => {
                 () => Promise.resolve(mockRecentProjectSchemas),
             );
             const dbInstanceStub = stub(
-                DatabaseService,
+                DBService,
                 'getInstance',
-                () => Promise.resolve(mockDb as unknown as DatabaseService),
+                () => Promise.resolve(mockDb as unknown as DBService),
             );
 
             try {
@@ -1115,9 +1115,9 @@ Deno.test('GitLab Command Tests', async (t) => {
                 () => Promise.resolve(mockRecentProjectSchemas),
             );
             const dbInstanceStub = stub(
-                DatabaseService,
+                DBService,
                 'getInstance',
-                () => Promise.resolve(mockDb as unknown as DatabaseService),
+                () => Promise.resolve(mockDb as unknown as DBService),
             );
 
             try {

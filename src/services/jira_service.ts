@@ -4,7 +4,7 @@ import { Config } from '../config/mod.ts';
 import { formatServiceStatus, formatTimestamp, ProgressIndicator, theme } from '../utils.ts';
 import { DevCache } from '../utils/devcache.ts';
 import { Logger } from '../utils/logger.ts';
-import { DatabaseService } from './db_service.ts';
+import { DBService } from './db_service.ts';
 
 export class JiraService {
     private config: Config;
@@ -419,7 +419,7 @@ export class JiraService {
         try {
             // Check cache first if not forced to refresh
             if (!forceRefresh) {
-                const db = await DatabaseService.getInstance();
+                const db = await DBService.getInstance();
                 const cachedData = await db.getCachedJiraProjectsList();
 
                 // Use cache if it exists and is less than 1 day old
@@ -453,7 +453,7 @@ export class JiraService {
 
             // Cache the results if we successfully fetched projects
             if (transformedResponse.length > 0) {
-                const db = await DatabaseService.getInstance();
+                const db = await DBService.getInstance();
                 await db.cacheJiraProjectsList(transformedResponse);
                 this.logger.info(`Successfully cached ${transformedResponse.length} projects`);
             }
@@ -1695,7 +1695,7 @@ export class JiraService {
     async getRecentProjects(): Promise<RecentProject[]> {
         await this.initialize(this.currentProjectKey);
         try {
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             const recentProjects = await db.getRecentJiraProjects();
             this.logger.debug(`Retrieved ${recentProjects.length} recent projects from database`);
             // Add optional fullPath property to match RecentProject interface
@@ -1725,7 +1725,7 @@ export class JiraService {
         }
 
         try {
-            const db = await DatabaseService.getInstance();
+            const db = await DBService.getInstance();
             await db.addRecentJiraProject({
                 key: project.key,
                 name: project.name,
@@ -1742,7 +1742,7 @@ export class JiraService {
      */
     async refreshProjectMetrics(projectKey: string): Promise<JiraProjectMetrics> {
         // Clear existing cache
-        const db = await DatabaseService.getInstance();
+        const db = await DBService.getInstance();
         await db.clearJiraDashboardCache(projectKey);
         this.logger.debug('Cleared dashboard cache for:', projectKey);
         // Fetch fresh metrics
