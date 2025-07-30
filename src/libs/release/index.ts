@@ -13,9 +13,9 @@ export * from './versioning.ts';
 
 // Check if running in a CI environment
 export function isRunningInCI(): boolean {
-  return Boolean(
-    Deno.env.get('CI') ||
-      Deno.env.get('GITLAB_CI') ||
-      Deno.env.get('GITHUB_ACTIONS'),
-  );
+    return Boolean(
+        Deno.env.get('CI') ||
+            Deno.env.get('GITLAB_CI') ||
+            Deno.env.get('GITHUB_ACTIONS'),
+    );
 }

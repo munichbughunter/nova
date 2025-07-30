@@ -194,6 +194,22 @@ Creates a new configuration file with default values.
 | `gitlab.token`      | Personal Access Token | `"glpat-xxxxxxx"`              |
 | `gitlab.project_id` | Default project ID    | `"12345"`                      |
 
+### GitHub
+
+| Key                  | Description                            | Example Value                     |
+| -------------------- | -------------------------------------- | --------------------------------- |
+| `github.url`         | GitHub instance URL                    | `"https://github.com"`            |
+| `github.token`       | Personal Access Token                  | `"ghp_xxxxxxxxxxxxxxxx"`          |
+| `github.owner`       | Default owner/organization (optional)  | `"myorganization"`                |
+| `github.repository`  | Default repository (optional)          | `"myproject"`                     |
+
+### Git Provider Preferences
+
+| Key                                 | Description                     | Example Value                    |
+| ----------------------------------- | ------------------------------- | -------------------------------- |
+| `gitProvider.defaultProvider`       | Default Git provider            | `"auto"`, `"gitlab"`, `"github"` |
+| `gitProvider.preferredProviders`    | Provider priority for fallback | `["gitlab", "github"]`            |
+
 ### Jira
 
 | Key                | Description         | Example Value                     |
@@ -229,6 +245,12 @@ Creates a new configuration file with default values.
         "url": "https://gitlab.example.com",
         "token": "glpat-xxxxxxxx",
         "project_id": "12345"
+      },
+      "github": {
+        "url": "https://github.com",
+        "token": "ghp_xxxxxxxxxxxxxxxx",
+        "owner": "myorganization",
+        "repository": "myproject"
       },
       "jira": {
         "url": "https://example.atlassian.net",

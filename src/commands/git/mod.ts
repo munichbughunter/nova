@@ -5,11 +5,11 @@ import { releaseCommand } from './release.ts';
 
 // Define and export the main git command
 const git = new Command()
-  .name('git')
-  .description('Git-related commands and utilities')
-  .command('commit', commitCommand)
-  .command('dashboard', dashboardCommand)
-  .command('release', releaseCommand);
+    .name('git')
+    .description('Git-related commands and utilities')
+    .command('commit', commitCommand)
+    .command('dashboard', dashboardCommand)
+    .command('release', releaseCommand);
 
 // Export the command
 export const gitCommand = git;
